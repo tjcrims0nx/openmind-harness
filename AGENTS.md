@@ -5,17 +5,17 @@ Instructions for coding agents working in this repository.
 ## What this is
 
 OpenMind Harness: OpenCode 1.19.6 + one universal multi-provider config, packaged
-for iOS/iPadOS (native app, iSH-ARM64 guest + WKWebView), Linux (server/container),
-and Android (Termux). The harness is the product; the iOS app is one packaging of it.
+for Linux (server/container) and Android (Termux). The harness is the product.
+The iOS/iPadOS app is a separate repo: [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS) — it fetches this repo's config at build time.
 
 ## Layout
 
 - `opencode.json` — the single source of truth for the harness config
   (default model `openai/gpt-5`, free fallback `experientiallabs/deepseek-v4.1-flash:free`,
-  task-routed agents `fast` and `reviewer`). The iOS guest image and both setup scripts
-  install this exact file. Edit it in one place only.
+  task-routed agents `fast` and `reviewer`). Both setup scripts install this
+  exact file, and the omh-iOS build fetches it from this repo. Edit it in one place only.
 - `linux-setup.sh`, `termux-setup.sh` — install the harness on Linux and
-  Termux. `README.md` documents all three platforms.
+  Termux. `README.md` documents the platforms.
 - `skills/openmind-harness/SKILL.md` — the starter skill (Agent Skills standard).
   Installed to `~/.config/opencode/skills/` by the setup scripts and into the iOS guest image.
 - `plugins/openmind-guard/` — the guard plugin (pre-tool denies, post-tool
@@ -31,14 +31,8 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
   touches `opencode.json`, skills, plugins, the workspace, or the guest.
 - `commands/delete-env.md` — the `/delete-env` command (web UI slash menu)
   that runs the delete-env script.
-- `ios/app/` — the iOS shell (WKWebView front end, harness supervisor, capabilities).
-  Internal identifiers still carry the `DSH` prefix (class/file/project names) — do not
-  rename them; the Xcode project, scheme, and CI workflow depend on those names.
-- `ios/scripts/build-rootfs.sh` — builds `ios/build/root.tar.gz` (Alpine 3.21 + OpenCode musl arm64).
 - `docs/features.md` — the harness's own feature descriptions (providers,
   hooks, memory, autonomy levels, security boundaries).
-- `ios/ish-arm64/` — vendored iSH-ARM64 emulator fork. Do not modify unless the emulator itself
-  needs a fix.
 
 ## Rules
 
@@ -51,7 +45,6 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
   from the environment on its own when it is set.
 - No jailbreak prompts, no refusal-removal content, no hardcoded uncensored model.
   Default stays a stock model.
-- The iOS build is UNSIGNED (`CODE_SIGNING_ALLOWED=NO`). Never add signing material.
 - Branding is "OpenMind Harness" throughout user-visible text. Do not reintroduce
   dsh/DSH/DeepSeek naming (model/provider identifiers in the config are the only exception —
   they must match the providers' APIs exactly).
@@ -61,8 +54,5 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
 
 ## Build and test
 
-- `make -C ios rootfs` — build the guest image (needs macOS + the emulator build).
-- `make -C ios project` — regenerate `ios/DSH.xcodeproj` after adding/removing source files.
-- `make -C ios test` — emulator, rootfs, and simulator test suites.
 - `bash eval/run.sh --dry-run` — validate the eval runner's mechanics without a model.
-- CI: `.github/workflows/build-ipa.yml` builds the unsigned IPA on a macOS runner.
+- The iOS app (unsigned IPA build) lives in [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS).

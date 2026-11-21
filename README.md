@@ -1,5 +1,4 @@
 <p align="center">
-  <img src="ios/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png" width="96" alt="OpenMind Harness icon"><br>
   <strong>OpenMind Harness</strong><br>
   A universal coding-agent harness — OpenCode with one config for every provider, on every platform.
 </p>
@@ -99,7 +98,7 @@ Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signe
 
 | Platform | Shell | Setup |
 |---|---|---|
-| **iOS / iPadOS** | Native app (iSH-ARM64 guest + WKWebView) | Sideload the unsigned IPA from the repo's GitHub Actions (sign it yourself); the app boots the guest and loads the web UI. See "The iOS app" below. |
+| **iOS / iPadOS** | Native app (iSH-ARM64 guest + WKWebView) | Lives in its own repo: [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS) — sideload the unsigned IPA from its GitHub Actions (sign it yourself); the app boots the guest and loads the web UI. |
 | **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
 | **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
 
@@ -110,7 +109,7 @@ Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signe
 
 ### One config, everywhere
 
-`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (`ios/scripts/build-rootfs.sh` copies it into the guest), and both setup scripts install this exact file to `~/.config/opencode/`. Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
+`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (the [omh-iOS](https://github.com/tjcrims0nx/omh-iOS) build fetches it from this repo), and both setup scripts install this exact file to `~/.config/opencode/`. Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
 
 ## Adding keys
 
@@ -122,95 +121,7 @@ Keys go in the machine, not in the repo. Three ways:
 
 ## The iOS app
 
-The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 emulator + Alpine 3.21 guest + WKWebView) that boots the same OpenCode and loads the same web UI. It behaves on iPad exactly like on iPhone — same boot flow, same guest, same web UI, all four iPad orientations.
-
-```
-┌─ OpenMind Harness ───────────────────────────────────────────────────┐
-│  RootViewController ──► WKWebView ──► http://127.0.0.1:<port>        │
-│  Harness supervisor (port pick · readiness probe · restart · health)  │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  iSH-ARM64 emulator ──► Alpine 3.21 guest                      │  │
-│  │    /usr/local/bin/opencode-serve                               │  │
-│  │      → opencode serve --hostname 127.0.0.1 --port $DSH_PORT    │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-- **The app** picks a free loopback port, launches `opencode-serve` in the guest, probes the server until it answers (ready when the HTTP status is < 500), and loads the OpenCode web UI in the WKWebView. The server is loopback-only and runs with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from inside the app).
-- **The guest** is Alpine 3.21 arm64 with OpenCode 1.19.6 (musl arm64 binary, no Node needed). Your workspace lives in `/root/workspace` in the guest; session data in `/root/.config/opencode`.
-
-### Install
-
-The unsigned IPA is built by GitHub Actions (`.github/workflows/build-ipa.yml`, `CODE_SIGNING_ALLOWED=NO`). Sign it with your own Apple ID / developer certificate and sideload it (AltStore, Sideloadly, or Xcode) — no signing material is shipped in the repo.
-
-### Test it on your iPad
-
-First launch imports the guest image (about a minute on first boot, then
-seconds). Work through these in order; what success looks like is in
-brackets.
-
-1. **Install** — sign the IPA with your Apple ID and sideload it. Open the
-   app. [The app opens; a progress overlay shows the guest starting.]
-2. **First boot** — wait for the overlay to clear and the OpenCode web UI
-   to appear. [The status dot reads `ready` and the chat input is visible.]
-3. **Sign in with ChatGPT Plus** — open the Terminal (`>_` in the control
-   bar) and run `opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"`.
-   Enter the shown code at `auth.openai.com/codex/device` in Safari.
-   [The terminal reports the login succeeded; no key was typed anywhere.]
-4. **First prompt** — in the web UI, type `Say only the word ok.` and send.
-   [GPT-5 answers `ok` — that is your Plus subscription answering, not API billing.]
-5. **Switch provider mid-session** — open the model picker (top of the UI),
-   switch to `experientiallabs/deepseek-v4.1-flash:free`, and ask a
-   follow-up in the same session. [The free fallback answers and the
-   earlier GPT-5 exchange is still in the session — memory intact.]
-6. **Switch model back** — pick `openai/gpt-5` again in the same session
-   and ask another question. [GPT-5 answers; the session still holds the
-   whole conversation.]
-7. **Plan mode** — switch the agent to `plan` and ask it to plan a small
-   change before editing. [It explores and writes a plan without editing
-   files.]
-8. **Sub-agent** — ask the primary agent to use the reviewer subagent on
-   your current changes. [A read-only review comes back; nothing is edited.]
-9. **Sessions** — leave the app, reopen it, and check the session list.
-   [Your session is still there and resumes.]
-10. **Rotate the iPad** — turn it to landscape and back, including upside
-    down. [The layout follows all four orientations.]
-
-If a step fails, note the exact step and what you saw (a screenshot of the
-overlay or the Terminal output helps); the app's Log screen (`≡` menu)
-holds the guest and server logs.
-
-### Delete saved env (free up space)
-
-Keys, sessions, and caches accumulate on the device. One action clears
-them:
-
-- **In the app:** open the web UI and type `/delete-env` in the chat, or
-  open the Terminal (`>_`) and run `openmind-delete-env`.
-- **On Linux / Termux:** run `openmind-delete-env` (add `--yes` to skip
-  the prompt).
-- **What it removes:** stored credentials (ChatGPT Plus OAuth tokens and
-  any API keys saved through the UI), sessions (unless `--keep-sessions`),
-  logs, the guard audit log, stale server locks, and the model catalog
-  cache. It reports what was removed and roughly how much space was freed
-  (keys removed are named, never shown). Key exports in shell rc files
-  are reported, and stripped only with `--purge-rc`.
-- **What it does NOT remove:** the provider config, skills, plugins,
-  commands, your files/workspace, or the guest image.
-- **Afterwards:** the harness starts cleanly, exactly as if freshly
-  installed — it just asks you to sign in or enter keys again. Deleting
-  env cannot break the install, the guest, or the app. Stop the server
-  first (the script refuses while one is running).
-
-### Build it yourself
-
-```sh
-git clone https://github.com/tjcrims0nx/openmind-harness.git && cd openmind-harness
-make -C ios rootfs       # ios/build/root.tar.gz — Alpine + OpenCode (~90 MB, ~6 min, needs network)
-open ios/DSH.xcodeproj   # DSH scheme → your iPad → set the team → Run
-```
-
-`make -C ios test` runs the emulator, rootfs, and simulator test suites. The guest image is built reproducibly by `ios/scripts/build-rootfs.sh` from the Alpine 3.21 aarch64 repositories and the pinned OpenCode release.
+The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 emulator + Alpine 3.21 guest + WKWebView) that boots the same OpenCode and loads the same web UI. It lives in its own repo: [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS) — that repo has the app, the guest image build, the unsigned IPA (built by its GitHub Actions, sign it yourself), and the iPad test checklist. The app fetches this repo's config at build time, so the harness here stays the single source of truth.
 
 ## Eval
 
@@ -218,4 +129,4 @@ open ios/DSH.xcodeproj   # DSH scheme → your iPad → set the team → Run
 
 ## License
 
-OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`ios/ish-arm64/LICENSE.IOS`](ios/ish-arm64/LICENSE.IOS). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
+OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`LICENSE.IOS`](https://github.com/tjcrims0nx/omh-iOS/blob/main/ish-arm64/LICENSE.IOS) (in the omh-iOS repo). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
