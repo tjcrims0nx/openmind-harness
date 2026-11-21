@@ -38,10 +38,10 @@ run_task() { # run_task <name> <prompt>
   local name="$1" prompt="$2"
   local dir="$WORK/$name"; mkdir -p "$dir"
   if [ "$DRY_RUN" = 1 ]; then
-    echo "DRY-RUN $name: opencode run --model $MODEL \"$prompt\" (cwd $dir)"
+    echo "DRY-RUN $name: opencode run --model $MODEL --format json \"$prompt\" (cwd $dir)"
     return 0
   fi
-  (cd "$dir" && opencode run --model "$MODEL" "$prompt" > output.txt 2>&1)
+  (cd "$dir" && opencode run --model "$MODEL" --format json "$prompt" < /dev/null > output.txt 2>&1)
 }
 
 # --- H1: FizzBuzz ---

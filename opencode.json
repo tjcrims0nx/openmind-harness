@@ -170,7 +170,8 @@
       "options": {
         "apiKey": "{env:OPENMIND_CUSTOM_API_KEY}",
         "baseURL": "{env:OPENMIND_CUSTOM_BASE_URL}"
-      }
+      },
+      "models": {}
     }
   },
   "experimental": {

@@ -40,7 +40,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | GitHub Models | pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`) | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user — no card. One endpoint, many model families (GPT, DeepSeek, Llama, Mistral, Phi). Needs a PAT; not yet tested live. |
 | Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
 | LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
-| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. |
+| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Set it with `openmind-set-custom-endpoint` (or `/custom-endpoint` in the web UI) — it asks for the URL, the bearer key and a model id, and saves them where the harness reads them. |
 
 The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
 

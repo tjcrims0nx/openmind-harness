@@ -236,7 +236,16 @@ instead of hunting through directories:
 
 Ollama and LM Studio connect with a base URL only, no key. Any other
 OpenAI-compatible endpoint works through the `custom` provider
-(`OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY`). The harness
+(`OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY`). There is a
+place to put your own URL and bearer key: run
+`openmind-set-custom-endpoint` (in the guest Terminal, Linux, or
+Termux) or `/custom-endpoint` in the web UI. It asks for the base URL,
+the bearer key, and a model id that API serves, then saves the URL and
+key to `~/.config/opencode/.env` (mode 0600 — the key is never printed)
+and records the model in the config so `custom/<model-id>` resolves.
+The iOS app picks the file up automatically on the next start; on
+Linux / Termux source the file once (`source
+~/.config/opencode/.env`) before starting the server. The harness
 speaks the Anthropic and OpenAI wire formats through the built-in
 providers, and recovers tool calls a model emits as plain text.
 

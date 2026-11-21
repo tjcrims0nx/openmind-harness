@@ -21,6 +21,16 @@ PORT="${DSH_PORT:-3080}"
 mkdir -p "$OPENCODE_WORKSPACE"
 cd "$OPENCODE_WORKSPACE"
 
+# Saved environment (~/.config/opencode/.env): the place for a custom
+# endpoint URL + bearer key (openmind-set-custom-endpoint) and any other
+# provider keys the user saved there. Sourced before the server starts
+# so the Custom endpoint provider works in the app. The file is mode
+# 0600 and its values are never printed.
+if [ -f "$HOME/.config/opencode/.env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.config/opencode/.env"
+fi
+
 # Antigravity bridge (loopback translator for the Antigravity provider).
 # Runs only when node and the bridge are present; it serves /v1/models
 # regardless, and chat calls fail cleanly until the user signs in with
