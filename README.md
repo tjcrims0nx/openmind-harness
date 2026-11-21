@@ -1,215 +1,56 @@
-<p align="center">
-  <img src="ios/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png" width="96" alt="OpenMind Harness icon"><br>
-  <strong>OpenMind Harness</strong><br>
-  On-device workspace for iPhone and iPad
-</p>
+# OpenMind Harness
 
-The iOS release packages the full on-device coding workspace under
-[`ios/workspace`](ios/workspace). The native shell supervises an Alpine guest
-and opens its local web UI. This build shares the repository’s vendored
-emulator with the standalone OpenMind engine preview in `ios/`.
+OpenMind Harness brings a coding workspace to iPhone and iPad. The app boots an Alpine Linux guest on the device, starts the workspace server on loopback, and opens it in a native web view. The terminal and workspace run locally. Model requests go to the configured provider.
 
-## Quick start
+| Target | Runtime | Entry point |
+| --- | --- | --- |
+| iPhone and iPad release | Native shell, iSH-ARM64 and the packaged DeepSeek Harness runtime | [iOS workspace](ios/workspace) |
+| Linux and Android (Termux) | OpenCode with a shared provider configuration | [Linux installer](linux-setup.sh) · [Termux installer](termux-setup.sh) |
+| Standalone chat preview | OpenMind’s Python engine with an OpenAI-compatible endpoint | [OpenMind launcher](openmind-harness) |
 
-| Platform | Install and launch |
-| --- | --- |
-| iOS and iPadOS | Download the unsigned IPA from [GitHub Actions](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/build-ipa.yml), then sign and sideload it. See [iOS setup](#the-ios-app). |
-| Linux | Clone this repository and run `bash linux-setup.sh`. |
-| Android (Termux) | Clone this repository in Termux and run `bash termux-setup.sh`. |
+## Run on iPhone or iPad
 
-On Linux and Termux, the setup script launches the web UI. After installation,
-run `opencode web` to launch it again. On iOS the app opens the UI automatically.
-Connect a provider and select a model in the picker before starting a session.
+1. Open the [unsigned IPA workflow](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/build-ipa.yml). Choose a successful run for the revision you want to install. For a manual build, select the branch before starting the workflow.
+2. Download the IPA artifact, extract it, then sign and sideload the app with your Apple development credentials.
+3. Launch **OpenMind Harness** and let it import the guest image on first boot. When the workspace opens, configure your provider in the guest workspace.
+4. Open the terminal from the control bar to work in the same guest. The menu provides server logs and a restart action.
 
-## Standalone OpenMind engine preview
+The release target uses the workspace sandbox and asks for tool approval. Commands that require sandbox features unavailable in the emulator may fail. The [component notices](ios/workspace/LICENSE.md) identify the upstream software packaged with the app.
 
-The standalone launcher runs the repository’s own Python engine. It supports
-non-streaming chat through an OpenAI-compatible provider and keeps conversation
-history in memory for the duration of an interactive session. It requires
-Python 3 and runs directly from a clone.
+### Build from source
 
-Set `OPENMIND_CUSTOM_API_KEY` for a custom provider or `OPENAI_API_KEY` for the
-default OpenAI endpoint. Supply the model ID for your provider.
+On an Apple Silicon Mac with Xcode, Meson, Ninja, LLVM LLD, Node.js, npm and the Ruby `xcodeproj` gem, run these commands from the repository root:
 
 ```sh
+make -C ios/workspace emulator
+ninja -C ios/ish-arm64/build-arm64-release tools/fakefsify
+make -C ios/workspace rootfs
+make -C ios/workspace project
+open ios/workspace/DSH.xcodeproj
+```
+
+Select your signing team and device in Xcode. The [release workflow](.github/workflows/build-ipa.yml) contains the unsigned build and simulator smoke-test commands. The project one directory higher, `ios/DSH.xcodeproj`, is the standalone engine preview.
+
+## OpenCode on Linux and Termux
+
+From a clone of this repository, run `bash linux-setup.sh` on Linux or `bash termux-setup.sh` inside Termux. The installer launches the web UI. Use `--no-launch` to install only, or run `opencode web` to start it later.
+
+These installers use [opencode.json](opencode.json), which defines 18 provider entries, including local servers and custom endpoints. Provider availability depends on the selected model and your credentials. Connect a provider in OpenCode or use its supported environment variable. For a custom endpoint, run `openmind-set-custom-endpoint` and enter the URL, bearer key and model ID in the terminal. Load the saved settings with `. ~/.config/opencode/.env` before launching OpenCode from that shell.
+
+See the [OpenCode feature guide](docs/features.md) for agent configuration and the [evaluation guide](eval/README.md) for the coding-task runner.
+
+## Standalone OpenMind engine
+
+The Python launcher supports one-shot prompts, interactive chat and a local browser workspace. Set `OPENAI_API_KEY` for the default OpenAI endpoint, or supply your endpoint with `--base-url` and its key with `OPENMIND_CUSTOM_API_KEY`. Replace the example model ID with one your provider serves.
+
+```sh
+./openmind-harness --model "your-model-id" "Hello"
 ./openmind-harness --model "your-model-id"
-./openmind-harness --base-url http://127.0.0.1:11434/v1 --model "your-local-model-id" "Hello"
+./openmind-harness --web --model "your-model-id"
 ```
 
-Run `./openmind-harness --web --model "your-model-id"` for the local browser workspace. Open the printed loopback URL. Tabs share one in-memory conversation until the server exits.
-
-Type `/exit` to end an interactive session. The preview covers chat. The standalone iOS preview boots this workspace through its guest supervisor. Desktop setup scripts, coding tools, and the existing eval suite use OpenCode.
-
-## The harness
-
-OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. Nothing about the agent itself is customized — the work here is the packaging, the universal provider config, and the OpenMind Harness branding. Full feature list: [docs/features.md](docs/features.md).
-
-Two ways to run it on any platform:
-
-- **`opencode web`** — the full web UI (default port **4097**). This is what the iOS app loads in its WKWebView and what the setup scripts launch.
-- **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
-
-Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
-
-## Providers
-
-Pick a provider in the web UI's model picker; add its key once per machine (see "Adding keys" below). Keys are never stored in the repo or the config file — they are read from environment variables, the web UI's `/connect` flow, or `opencode auth login`.
-
-| Provider | Model | Key env var | Notes |
-|---|---|---|---|
-| OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | **Default.** ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
-| Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Alternative model when OpenAI is unavailable. Requires an Experiential Labs key. |
-| DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | pinned (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | `GEMINI_API_KEY` | Google provider. `gemini-2.5-flash` is retired by Google — the config pins the working models. |
-| Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
-| Groq | catalog (`openai/gpt-oss-120b`, …) | `GROQ_API_KEY` | Fast hosted models. |
-| Mistral | catalog (`codestral-2508`, …) | `MISTRAL_API_KEY` | Mistral models. |
-| xAI | catalog (`grok-4.6`, …) | `XAI_API_KEY` | Grok models. |
-| Together | catalog (empty in 1.19.6 — see note) | `TOGETHER_API_KEY` | The 1.19.6 model catalog lists no Together models yet; the provider is configured and the picker shows models once the catalog updates or a `models` entry is added. |
-| OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
-| OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
-| Antigravity | `antigravity/gemini-3-flash` | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. Needs the loopback bridge (starts automatically in the iOS app; start it by hand on Linux/Termux). |
-| APInex | pinned free (`free/deepseek-v4.1-flash`, `free/glm-5.3-flash`, `free/gemini-3.8-flash`, `free/gpt-6-luna`, `free/claude-sonnet-4.6`) | `APINEX_API_KEY` | Gateway: Claude, GPT, Gemini, DeepSeek, GLM, Qwen, Kimi, Grok on one key (22 free models listed live). **Needs a one-time $5 top-up to unlock the free tier** — until then every model call returns a billing error ("Make a single top-up of $5 or more to unlock 25M free tokens daily for life"). The key itself works (the model list answers); the account just has no usable free tokens yet. |
-| Pollinations | `pollinations/gpt-oss-20b` | none (keyless) | Free, no signup, no key. One model (GPT-OSS 20B). **Direct endpoint verified live (answers), but the harness run stalls** — OpenCode produces no output and the call never starts, twice in a row. Not reliable as a harness provider; kept as a spare. Rate-limited to about one request per 45 seconds per IP. |
-| GitHub Models | pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`) | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user — no card. One endpoint, many model families (GPT, DeepSeek, Llama, Mistral, Phi). Needs a PAT; not yet tested live. |
-| Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
-| LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
-| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Use [the terminal setup](#custom-endpoint). |
-
-The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — connect Experiential Labs first with `EXPLABS_API_KEY`. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
-
-## ChatGPT Plus — GPT-5 with no API credits
-
-The default is GPT-5 because it works on a **ChatGPT Plus/Pro subscription** — no API credits needed. OpenCode's built-in OpenAI login signs in with your ChatGPT account over OAuth; requests then count against the subscription, not against API billing. (An OpenAI API key works too — export `OPENAI_API_KEY` — but with Plus you do not need one, and the config deliberately sets no API key for the OpenAI provider so the subscription login is used.)
-
-```sh
-opencode auth login --provider openai
-```
-
-Pick a method (verified in OpenCode 1.19.6):
-
-| Method | How it works | Where to use it |
-|---|---|---|
-| `ChatGPT Pro/Plus (browser)` | Opens a browser; sign-in completes through a `localhost:1455` callback. | Linux, Termux (the phone browser shares Termux's localhost). |
-| `ChatGPT Pro/Plus (headless)` | Device code — a short code to enter at `auth.openai.com/codex/device`. No browser needed where OpenCode runs. | **iPad guest (use this one)**, SSH, containers. |
-| `Manually enter API Key` | API-key login (API billing, not the subscription). | Only if you want API billing instead of Plus. |
-
-Login state is stored in `~/.local/share/opencode/auth.json` (mode `0600`).
-
-**On the iPad**, use the app's Terminal (`>_` in the control bar) — the browser callback cannot reach the guest's loopback from iPad Safari, so the in-app web UI's `/connect` browser flow does not work for ChatGPT there. In the guest terminal run:
-
-```sh
-opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"
-```
-
-Enter the shown code at `auth.openai.com/codex/device` in Safari. If the headless sign-in is refused by OpenAI's security checks, the reliable alternative is to sign in once on Linux or Termux (browser flow) and copy `~/.local/share/opencode/auth.json` into the guest at `/root/.local/share/opencode/auth.json` — same file, same login. Never paste the file's contents into chat; copy the file itself.
-
-## Antigravity — Google account sign-in
-
-Antigravity is Google's agentic platform (Cloud Code Assist): Gemini and Claude models through Google's Cloud infrastructure, billed against your Google account — no API key. The harness speaks to it through a small loopback bridge (`scripts/antigravity-bridge.mjs`), because Antigravity's API is its own format, not OpenAI-compatible. The bridge translates the harness's requests and back; it only ever runs on `127.0.0.1` on your own machine.
-
-```sh
-openmind-antigravity-login
-```
-
-Sign in with your Google account in the browser that opens (or with `--manual` on the iPad guest Terminal and headless machines: the script prints the sign-in URL, you paste back the redirect URL). Tokens are stored at `~/.config/opencode/antigravity-auth.json` (mode `0600`) — access token, refresh token, your email, and the Google Cloud project id the API needs. The bridge refreshes the token itself when it expires.
-
-Start the bridge (the iOS app starts it automatically when the guest boots):
-
-```sh
-node ~/.local/bin/openmind-antigravity-bridge.mjs
-```
-
-Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signed in, the model answers with a clear "not signed in" error — run the login script. Check sign-in state any time with `openmind-antigravity-login --status`, and refresh the token with `--refresh`. The `ANTIGRAVITY_API_KEY` env var in the config is only the loopback bridge's key — the real credential is the OAuth token file, never a key in the config.
-
-## Onboarding — first run
-
-1. Install on your platform (below).
-2. Connect a provider: `opencode auth login --provider openai` (ChatGPT Plus/Pro) or export the provider's key (`EXPLABS_API_KEY`, …).
-3. Test the connection with `opencode run --model <provider/model> "Say only ok."`, replacing `<provider/model>` with the ID for the provider you connected.
-4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. Provider access depends on the credentials and quota for the selected model.
-
-## Platforms — the same harness, three shells
-
-| Platform | Shell | Setup |
-|---|---|---|
-| **iOS / iPadOS** | Native app (iSH-ARM64 guest + WKWebView) | Sideload the unsigned IPA from the repo's GitHub Actions (sign it yourself); the app boots the guest and loads the web UI. See "The iOS app" below. |
-| **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
-| **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
-
-### Version notes
-
-- iOS guest and Linux run OpenCode **1.19.6** (same release).
-- Termux runs OpenCode **1.17.9** (guysoft/opencode-termux v0.2.1, the latest Android release as of 2026-11-21) — upstream publishes no Android binary, and its Linux glibc binary cannot run under Android's Bionic libc. Same config, slightly older engine. For the exact 1.19.6 build on the phone, use proot instead: `pkg install proot-distro && proot-distro install ubuntu`, then run `linux-setup.sh` inside the Ubuntu container.
-
-### One config, everywhere
-
-`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (`ios/scripts/build-rootfs.sh` copies it into the guest), and both setup scripts install this exact file to `~/.config/opencode/`. Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
-
-## Adding keys
-
-Keys go in the machine, not in the repo. Three ways:
-
-1. **ChatGPT Plus/Pro** — `opencode auth login --provider openai` (see above).
-2. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
-3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, or in the iOS app's Terminal (`>_` in the control bar) in the guest shell, then restart the server from the `⋯` menu.
-
-### Custom endpoint
-
-Run `openmind-set-custom-endpoint` in a terminal and enter the base URL, bearer
-key, and model ID. On Linux, the helper requires Python 3. Restart the iOS app
-after saving. On Linux and Termux, run `. ~/.config/opencode/.env` in the shell
-that will start OpenCode. Select `custom/<model-id>` in the model picker. Run
-`openmind-set-custom-endpoint --show` to check the saved URL and model or
-`openmind-set-custom-endpoint --clear` to remove the saved credentials.
-
-## The iOS app
-
-The unsigned IPA workflow builds `ios/workspace/DSH.xcodeproj`. Its guest
-contains the pinned upstream coding runtime, terminal and host bridge.
-Configure the provider in the workspace after first boot. The Terminal button
-opens the guest shell and the menu exposes logs and restart controls.
-
-On macOS, build with `make -C ios/workspace rootfs` followed by
-`make -C ios/workspace project`. Run `make -C ios/workspace test` for this
-variant. The standalone OpenMind chat engine is a separate development target.
-
-### Standalone preview and OpenCode setup helpers
-
-Keys, sessions, and caches accumulate on the device. One action clears
-them:
-
-- **In the app:** open the web UI and type `/delete-env` in the chat, or
-  open the Terminal (`>_`) and run `openmind-delete-env`.
-- **On Linux / Termux:** run `openmind-delete-env` (add `--yes` to skip
-  the prompt).
-- **What it removes:** stored credentials (ChatGPT Plus OAuth tokens and
-  any API keys saved through the UI), sessions (unless `--keep-sessions`),
-  logs, the guard audit log, stale server locks, and the model catalog
-  cache. It reports what was removed and roughly how much space was freed
-  (keys removed are named, never shown). Key exports in shell rc files
-  are reported, and stripped only with `--purge-rc`.
-- **What it does NOT remove:** the provider config, skills, plugins,
-  commands, your files/workspace, or the guest image.
-- **Afterwards:** the harness starts cleanly, exactly as if freshly
-  installed — it just asks you to sign in or enter keys again. Deleting
-  env cannot break the install, the guest, or the app. Stop the server
-  first (the script refuses while one is running).
-
-### Build the standalone iOS preview
-
-```sh
-git clone https://github.com/tjcrims0nx/openmind-harness.git && cd openmind-harness
-make -C ios rootfs       # ios/build/root.tar.gz — Alpine + OpenCode (~90 MB, ~6 min, needs network)
-open ios/DSH.xcodeproj   # DSH scheme → your iPad → set the team → Run
-```
-
-`make -C ios test` runs the emulator, rootfs, and simulator test suites. The guest image is built reproducibly by `ios/scripts/build-rootfs.sh` from the Alpine 3.21 aarch64 repositories and the pinned OpenCode release.
-
-## Eval
-
-`eval/` holds a small task set (breadth tasks plus an exec-verified hard subset) and a runner that grades by running the model's actual artifact, so a stub fails. `bash eval/run.sh`. A live run needs a signed-in provider or a key. See `eval/README.md`.
+In web mode, open the loopback URL printed by the launcher. Tabs share one conversation until the server exits. In terminal mode, type `/exit` to end the session.
 
 ## License
 
-OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`ios/ish-arm64/LICENSE.IOS`](ios/ish-arm64/LICENSE.IOS). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
+See [LICENSE](LICENSE) and the [third-party component notices](LICENSE.md).
