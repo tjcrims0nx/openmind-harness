@@ -19,7 +19,63 @@ OpenCode is configured with a multi-provider setup. Pick a provider in the web U
 | OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
 | OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
 
-The default model is `openai/gpt-5` (top-level `"model"` in `rootfs/overlay/root/.config/opencode/opencode.json`). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback.
+The default model is `openai/gpt-5` (top-level `"model"` in [`cross-platform/opencode.json`](cross-platform/opencode.json) — the same config file used on Linux and Termux). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback.
+
+## ChatGPT Plus — GPT-5 with no API credits
+
+The default is GPT-5 because it works on a **ChatGPT Plus/Pro subscription**
+— no API credits needed. OpenCode's built-in OpenAI login signs in with your
+ChatGPT account over OAuth; requests then count against the subscription, not
+against API billing. (An OpenAI API key works too — export `OPENAI_API_KEY` —
+but with Plus you do not need one, and the config deliberately sets no API
+key for the OpenAI provider so the subscription login is used.)
+
+```sh
+opencode auth login --provider openai
+```
+
+Pick a method (verified in OpenCode 1.19.6):
+
+| Method | How it works | Where to use it |
+|---|---|---|
+| `ChatGPT Pro/Plus (browser)` | Opens a browser; sign-in completes through a `localhost:1455` callback. | Linux, Termux (the phone browser shares Termux's localhost). |
+| `ChatGPT Pro/Plus (headless)` | Device code — a short code to enter at `auth.openai.com/codex/device`. No browser needed where OpenCode runs. | **iPad guest (use this one)**, SSH, containers. |
+| `Manually enter API Key` | API-key login (API billing, not the subscription). | Only if you want API billing instead of Plus. |
+
+Login state is stored in `~/.local/share/opencode/auth.json` (mode `0600`).
+
+**On the iPad**, use the app's Terminal (`>_` in the control bar) — the
+browser callback cannot reach the guest's loopback from iPad Safari, so the
+in-app web UI's `/connect` browser flow does not work for ChatGPT there.
+In the guest terminal run:
+
+```sh
+opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"
+```
+
+Enter the shown code at `auth.openai.com/codex/device` in Safari. If the
+headless sign-in is refused by OpenAI's security checks, the reliable
+alternative is to sign in once on Linux or Termux (browser flow) and copy
+`~/.local/share/opencode/auth.json` into the guest at
+`/root/.local/share/opencode/auth.json` — same file, same login. Never paste
+the file's contents into chat; copy the file itself.
+
+## Use it everywhere
+
+The harness is the same everywhere — same OpenCode, same providers, same
+ChatGPT-primary default, same free DeepSeek fallback. Only the shell differs.
+OpenCode runs its standard agent loop (prompt → model → tools → execute →
+observe → repeat) with sessions and the model picker; nothing about the agent
+itself is customized. See [cross-platform/README.md](cross-platform/README.md).
+
+| Platform | How to run |
+|---|---|
+| **iOS / iPadOS** | This app — sideload the unsigned IPA (sign it yourself); it boots the guest and loads the web UI. |
+| **Linux** (Cosyra container, Oracle VM, any server) | `bash cross-platform/linux-setup.sh` — installs Node 22 + `opencode-ai`, installs the config, launches `opencode web` on http://127.0.0.1:4097. |
+| **Android** (Termux) | `bash cross-platform/termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
+
+Skills, task-routed agents, and how this harness compares to Hermes,
+OrcaRouter, and dsh: [docs/harness-analysis.md](docs/harness-analysis.md).
 
 ## Adding keys
 

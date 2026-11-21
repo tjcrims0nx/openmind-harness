@@ -1,5 +1,6 @@
 # generated
 build/
+out/
 *.xcresult
 xcuserdata/
 DSH.xcodeproj/project.xcworkspace/xcuserdata/

@@ -8,6 +8,9 @@ PORT="${1:-4099}"
 echo "opencode: $(opencode --version)"
 echo "config: /root/.config/opencode/opencode.json"
 test -f /root/.config/opencode/opencode.json
+test -f /root/.config/opencode/skills/openmind-harness/SKILL.md \
+  && echo "skill: openmind-harness present" \
+  || echo "skill: openmind-harness MISSING"
 opencode models 2>/dev/null | grep -q "openai/gpt-5" \
   && echo "model: openai/gpt-5 (default) present" \
   || echo "model: openai/gpt-5 (default) MISSING"
