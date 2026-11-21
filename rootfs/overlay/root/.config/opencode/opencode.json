@@ -1,0 +1,60 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-5",
+  "provider": {
+    "deepseek": {
+      "options": {
+        "apiKey": "{env:DEEPSEEK_API_KEY}"
+      }
+    },
+    "experientiallabs": {
+      "models": {
+        "deepseek-v4.1-flash:free": {
+          "name": "DeepSeek V4.1 Flash (free)"
+        }
+      },
+      "name": "Experiential Labs",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:EXPLABS_API_KEY}",
+        "baseURL": "https://api.experientiallabs.ai/v1"
+      }
+    },
+    "google": {
+      "options": {
+        "apiKey": "{env:GEMINI_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    },
+    "openrouter": {
+      "models": {
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+          "name": "Nemotron 3 Nano Omni 30B Reasoning (free)"
+        }
+      },
+      "name": "OpenRouter",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}",
+        "baseURL": "https://openrouter.ai/api/v1"
+      }
+    },
+    "orcarouter": {
+      "models": {
+        "z-ai/glm-5.3-flash-free": {
+          "name": "GLM 5.3 Flash (free)"
+        }
+      },
+      "name": "OrcaRouter",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:ORCAROUTER_API_KEY}",
+        "baseURL": "https://api.orcarouter.ai/v1"
+      }
+    }
+  }
+}

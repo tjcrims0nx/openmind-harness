@@ -1,0 +1,28 @@
+#!/bin/sh
+# Smoke-test the OpenCode install inside the Linux guest.
+# Usage (from a guest shell): opencode-selftest [port]
+set -e
+export HOME=/root
+PORT="${1:-4099}"
+
+echo "opencode: $(opencode --version)"
+echo "config: /root/.config/opencode/opencode.json"
+test -f /root/.config/opencode/opencode.json
+opencode models 2>/dev/null | grep -q "openai/gpt-5" \
+  && echo "model: openai/gpt-5 (default) present" \
+  || echo "model: openai/gpt-5 (default) MISSING"
+opencode models 2>/dev/null | grep -q "experientiallabs/deepseek-v4.1-flash:free" \
+  && echo "model: experientiallabs/deepseek-v4.1-flash:free (fallback) present" \
+  || echo "model: experientiallabs/deepseek-v4.1-flash:free (fallback) MISSING"
+
+opencode serve --hostname 127.0.0.1 --port "$PORT" >/tmp/opencode-selftest.log 2>&1 &
+SERVER_PID=$!
+trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://127.0.0.1:$PORT/" || true)
+  [ "$CODE" = "200" ] && break
+  sleep 2
+done
+echo "web UI HTTP status on :$PORT: $CODE"
+[ "$CODE" = "200" ] || { cat /tmp/opencode-selftest.log; exit 1; }
+echo "selftest OK"
