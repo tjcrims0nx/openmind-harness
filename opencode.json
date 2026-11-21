@@ -122,6 +122,38 @@
         "baseURL": "https://api.apinex.bond/v1"
       }
     },
+    "pollinations": {
+      "models": {
+        "gpt-oss-20b": {
+          "name": "GPT-OSS 20B (free, no key)"
+        }
+      },
+      "name": "Pollinations",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "pollinations",
+        "baseURL": "https://text.pollinations.ai/openai"
+      }
+    },
+    "github-models": {
+      "models": {
+        "openai/gpt-4.1": {
+          "name": "GPT-4.1 (GitHub Models, free)"
+        },
+        "deepseek/DeepSeek-R1": {
+          "name": "DeepSeek R1 (GitHub Models, free)"
+        },
+        "meta/Meta-Llama-3.3-70B-Instruct": {
+          "name": "Llama 3.3 70B (GitHub Models, free)"
+        }
+      },
+      "name": "GitHub Models",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:GITHUB_TOKEN}",
+        "baseURL": "https://models.github.ai/inference"
+      }
+    },
     "together": {
       "options": {
         "apiKey": "{env:TOGETHER_API_KEY}"

@@ -5,9 +5,9 @@ shipped config, the guard plugin, the setup scripts, or the stock OpenCode
 behavior the harness is built on. No feature here depends on any other
 project.
 
-## Providers — one config, sixteen providers
+## Providers — one config, eighteen providers
 
-`opencode.json` declares sixteen providers. The default model is
+`opencode.json` declares eighteen providers. The default model is
 `openai/gpt-5`; the working out-of-the-box fallback is
 `experientiallabs/deepseek-v4.1-flash:free`. Switch in the web UI's model
 picker or with the model flag — no restart, no config edit. Small jobs
@@ -30,6 +30,8 @@ models are not on every key's access list.
 | OrcaRouter | `ORCAROUTER_API_KEY` | Gateway; free models pinned (`z-ai/glm-5.3-flash-free` verified live, `tencent/hy3-free`, `tencent/hy4-preview-free`). |
 | OpenRouter | `OPENROUTER_API_KEY` | Gateway; free models pinned (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`). |
 | APInex | `APINEX_API_KEY` | Gateway; free models pinned (`free/deepseek-v4.1-flash`, `free/glm-5.3-flash`, `free/gemini-3.8-flash`, `free/gpt-6-luna`, `free/claude-sonnet-4.6`). Key verified live (the model list answers, 44 models). **Needs a one-time $5 top-up to unlock the free tier** — until then model calls return a billing error, not a config error. |
+| Pollinations | none (keyless) | Free, no signup, no key. One model (`gpt-oss-20b`). **Direct endpoint verified live (answers), but the harness run stalls** — OpenCode produces no output and the call never starts, twice in a row. Not reliable as a harness provider; kept as a spare. Rate-limited to about one request per 45 seconds per IP. The config's `apiKey` is a dummy placeholder the endpoint ignores, not a credential. |
+| GitHub Models | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user, no card. Models pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`). Needs a PAT; not yet tested live. |
 | Ollama | none | Local models at `http://localhost:11434/v1`. Models appear when the Ollama server runs. |
 | LM Studio | none | Local models at `http://localhost:1234/v1`. Models appear when LM Studio runs. |
 | Custom endpoint | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. No models until the endpoint is set. |
