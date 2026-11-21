@@ -91,6 +91,11 @@ cp -R "$ROOT/../skills/." payload/root/.config/opencode/skills/
 # Same for the guard plugin (OpenCode's plugin discovery directory).
 mkdir -p payload/root/.config/opencode/plugins
 cp -R "$ROOT/../plugins/." payload/root/.config/opencode/plugins/
+# Same for the delete-env action: the script on the guest PATH (guest
+# Terminal) and the /delete-env command (web UI slash menu).
+install -m 0755 "$ROOT/../scripts/delete-env.sh" payload/usr/local/bin/openmind-delete-env
+mkdir -p payload/root/.config/opencode/command
+cp "$ROOT/../commands/delete-env.md" payload/root/.config/opencode/command/delete-env.md
 # BSD tar otherwise serialises extended attributes as AppleDouble `._*` files
 # when this payload is unpacked by the Linux guest.
 COPYFILE_DISABLE=1 tar czf payload.tgz -C payload .

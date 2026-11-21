@@ -23,6 +23,14 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
   scripts and into the iOS guest image. Activates on OpenCode 2.x; dormant
   on 1.19.6 (see `docs/features.md`).
 - `eval/` — the eval task set and runner (`eval/run.sh`).
+- `scripts/set-autonomy.sh` — sets the autonomy level in `opencode.json`
+  (`manual` / `auto-read` / `auto-edit` / `full`).
+- `scripts/delete-env.sh` — deletes saved env from the device (stored
+  credentials, sessions, caches, logs). Installed as `openmind-delete-env`
+  on the PATH by the setup scripts and into the iOS guest image. Never
+  touches `opencode.json`, skills, plugins, the workspace, or the guest.
+- `commands/delete-env.md` — the `/delete-env` command (web UI slash menu)
+  that runs the delete-env script.
 - `ios/app/` — the iOS shell (WKWebView front end, harness supervisor, capabilities).
   Internal identifiers still carry the `DSH` prefix (class/file/project names) — do not
   rename them; the Xcode project, scheme, and CI workflow depend on those names.

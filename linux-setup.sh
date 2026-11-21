@@ -44,10 +44,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_SRC=""
 SKILLS_SRC=""
 PLUGINS_SRC=""
+DELETE_ENV_SRC=""
+COMMAND_SRC=""
 if [ -f "$SCRIPT_DIR/opencode.json" ]; then
     CONFIG_SRC="$SCRIPT_DIR/opencode.json"
     [ -d "$SCRIPT_DIR/skills" ] && SKILLS_SRC="$SCRIPT_DIR/skills"
     [ -d "$SCRIPT_DIR/plugins" ] && PLUGINS_SRC="$SCRIPT_DIR/plugins"
+    [ -f "$SCRIPT_DIR/scripts/delete-env.sh" ] && DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
+    [ -f "$SCRIPT_DIR/commands/delete-env.md" ] && COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
 else
     CONFIG_SRC="$(mktemp)"
     echo "Downloading the universal config..."
@@ -113,6 +117,20 @@ if [ -n "$PLUGINS_SRC" ]; then
     echo "plugins installed: ~/.config/opencode/plugins/ (openmind-guard)"
 else
     echo "plugins skipped (run from a repo clone to install them: plugins/ -> ~/.config/opencode/plugins/)"
+fi
+if [ -n "$DELETE_ENV_SRC" ]; then
+    mkdir -p ~/.local/bin
+    install -m 0755 "$DELETE_ENV_SRC" ~/.local/bin/openmind-delete-env
+    echo "delete-env installed: ~/.local/bin/openmind-delete-env"
+else
+    echo "delete-env skipped (run from a repo clone to install it: scripts/delete-env.sh -> ~/.local/bin/openmind-delete-env)"
+fi
+if [ -n "$COMMAND_SRC" ]; then
+    mkdir -p ~/.config/opencode/command
+    cp "$COMMAND_SRC" ~/.config/opencode/command/delete-env.md
+    echo "command installed: ~/.config/opencode/command/delete-env.md (/delete-env in the web UI)"
+else
+    echo "command skipped (run from a repo clone to install it: commands/delete-env.md -> ~/.config/opencode/command/)"
 fi
 
 # --- 3. Launch (unless asked not to) ---

@@ -131,7 +131,17 @@ guard is present but dormant; the `permission` map is the live layer.
 ## Autonomy levels
 
 Four levels, expressed as `permission` rules (allow / ask / deny per tool)
-in the config — the user picks one by editing the `permission` block:
+in the config — the user picks one by editing the `permission` block, or
+with the script (needs python3; Linux / Termux / macOS):
+
+```sh
+bash scripts/set-autonomy.sh <manual|auto-read|auto-edit|full> [config-path]
+```
+
+The script writes a backup (`opencode.json.bak`), sets the map, and prints
+it. Restart OpenCode (or the iOS app) for it to take effect. The level
+applies to the primary agent; the `reviewer` agent stays read-only
+regardless.
 
 | Level | Reads | Edits | Shell | Web |
 |---|---|---|---|---|
@@ -165,6 +175,28 @@ denylist always applies (once active) — it is not bypassed by the level.
 - **No `--yolo` equivalent ships:** there is no flag in this harness that
   turns the guard off globally. Disable the plugin in the config if you
   need a call it blocks, and re-enable it after.
+
+## Delete saved env — free up space
+
+When keys, sessions, and caches pile up, delete them in one action
+instead of hunting through directories:
+
+- **Web UI:** type `/delete-env` in the chat. The agent runs the cleanup
+  and reports what was removed and how much space was freed.
+- **Terminal (Linux, Termux, or the app's guest Terminal):**
+  `openmind-delete-env` (add `--yes` to skip the prompt).
+- **What it removes:** stored credentials (`auth.json` — ChatGPT Plus
+  OAuth tokens and any API keys saved through the UI), sessions
+  (`opencode.db*`, unless `--keep-sessions`), logs, the guard audit log,
+  stale server locks, the model catalog cache, and `~/.config/opencode/.env`
+  if one exists. Shell rc key exports are reported, and stripped only
+  with `--purge-rc` (a `.bak` copy is kept).
+- **What it does NOT remove:** `opencode.json`, skills, plugins, commands,
+  the workspace, the binary, or the guest image.
+- **Afterwards:** the harness is exactly as if freshly installed — it
+  starts cleanly and just asks you to sign in or enter keys again. It
+  refuses to run while a server is running (stop the server first, or
+  pass `--force`).
 
 ## Custom endpoints — local models
 

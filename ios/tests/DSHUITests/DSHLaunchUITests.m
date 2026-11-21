@@ -3,8 +3,8 @@
 //  DSHUITests
 //
 //  End-to-end checks on a real device/simulator: the app boots the Linux
-//  guest, dsh-serve comes up, the WKWebView shows the DeepSeek Harness UI,
-//  and the native controls (terminal, log, menu) work.
+//  guest, opencode-serve comes up, the WKWebView shows the OpenMind Harness
+//  web UI, and the native controls (terminal, log, menu) work.
 //
 
 #import <XCTest/XCTest.h>

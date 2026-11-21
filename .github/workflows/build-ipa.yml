@@ -39,7 +39,7 @@ jobs:
           path: |
             ios/ish-arm64/build-arm64-release
             ios/build/root.tar.gz
-          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**') }}
+          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**', 'scripts/delete-env.sh', 'commands/**') }}
 
       - name: Build emulator
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -88,3 +88,66 @@ jobs:
           name: openmind-harness-unsigned-ipa
           path: OpenMind-Harness-unsigned.ipa
           if-no-files-found: error
+
+  # Simulator smoke test: the app is an emulator app, so the simulator is
+  # the one place it can be run before a real device. Builds the app for
+  # the iOS Simulator SDK, boots an iPad simulator, launches the app, and
+  # runs the launch UI test (guest boots, server answers, web UI shows).
+  # Runs after the IPA build so it reuses the warm emulator/rootfs cache.
+  simulator-smoke:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: |
+          XCODE27=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XCODE27" ]; then
+            sudo xcode-select -s "$XCODE27/Contents/Developer"
+          fi
+          xcodebuild -version
+
+      - name: Install build tools
+        run: |
+          brew install meson ninja lld libarchive
+          echo "/opt/homebrew/opt/lld/bin" >> "$GITHUB_PATH"
+          gem install xcodeproj --no-document || sudo gem install xcodeproj --no-document
+
+      - name: Restore emulator and rootfs cache
+        id: build-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/ish-arm64/build-arm64-release
+            ios/build/root.tar.gz
+          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**', 'scripts/delete-env.sh', 'commands/**') }}
+
+      - name: Build emulator
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        env:
+          CFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
+          CXXFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
+        run: |
+          make -C ios emulator
+          ninja -C ios/ish-arm64/build-arm64-release tools/fakefsify
+
+      - name: Build guest rootfs
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo hostname ish
+          sudo scutil --set HostName ish || true
+          make -C ios rootfs
+
+      - name: Regenerate Xcode project
+        run: make -C ios project
+
+      - name: Simulator smoke test (iPad)
+        run: |
+          SIM="$(ios/scripts/pick-simulator.sh)"
+          echo "Simulator: $SIM"
+          xcodebuild -project ios/DSH.xcodeproj -scheme DSH -configuration Release \
+            -destination "platform=iOS Simulator,name=$SIM" \
+            -only-testing:DSHUITests/DSHLaunchUITests/testHarnessBootsAndShowsWebUI \
+            test

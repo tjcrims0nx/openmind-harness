@@ -58,6 +58,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_SRC="$SCRIPT_DIR/opencode.json"
 SKILLS_SRC="$SCRIPT_DIR/skills"
 PLUGINS_SRC="$SCRIPT_DIR/plugins"
+DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
+COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
 [ -f "$CONFIG_SRC" ] || { echo "ERROR: opencode.json not found next to this script — run it from a clone of the repo." >&2; exit 1; }
 
 # --- 1. Android OpenCode build (skip if already installed) ---
@@ -99,6 +101,10 @@ cp -R "$PLUGINS_SRC/." ~/.config/opencode/plugins/
 echo "config installed: ~/.config/opencode/opencode.json (default model openai/gpt-5)"
 echo "skills installed: ~/.config/opencode/skills/ (openmind-harness)"
 echo "plugins installed: ~/.config/opencode/plugins/ (openmind-guard)"
+mkdir -p "$PREFIX/bin" ~/.config/opencode/command
+install -m 0755 "$DELETE_ENV_SRC" "$PREFIX/bin/openmind-delete-env"
+cp "$COMMAND_SRC" ~/.config/opencode/command/delete-env.md
+echo "delete-env installed: $PREFIX/bin/openmind-delete-env (/delete-env in the web UI)"
 
 # --- 3. Launch (unless asked not to) ---
 if [ "${1:-}" = "--no-launch" ]; then

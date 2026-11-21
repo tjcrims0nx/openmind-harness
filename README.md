@@ -121,6 +121,65 @@ The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 em
 
 The unsigned IPA is built by GitHub Actions (`.github/workflows/build-ipa.yml`, `CODE_SIGNING_ALLOWED=NO`). Sign it with your own Apple ID / developer certificate and sideload it (AltStore, Sideloadly, or Xcode) — no signing material is shipped in the repo.
 
+### Test it on your iPad
+
+First launch imports the guest image (about a minute on first boot, then
+seconds). Work through these in order; what success looks like is in
+brackets.
+
+1. **Install** — sign the IPA with your Apple ID and sideload it. Open the
+   app. [The app opens; a progress overlay shows the guest starting.]
+2. **First boot** — wait for the overlay to clear and the OpenCode web UI
+   to appear. [The status dot reads `ready` and the chat input is visible.]
+3. **Sign in with ChatGPT Plus** — open the Terminal (`>_` in the control
+   bar) and run `opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"`.
+   Enter the shown code at `auth.openai.com/codex/device` in Safari.
+   [The terminal reports the login succeeded; no key was typed anywhere.]
+4. **First prompt** — in the web UI, type `Say only the word ok.` and send.
+   [GPT-5 answers `ok` — that is your Plus subscription answering, not API billing.]
+5. **Switch provider mid-session** — open the model picker (top of the UI),
+   switch to `experientiallabs/deepseek-v4.1-flash:free`, and ask a
+   follow-up in the same session. [The free fallback answers and the
+   earlier GPT-5 exchange is still in the session — memory intact.]
+6. **Switch model back** — pick `openai/gpt-5` again in the same session
+   and ask another question. [GPT-5 answers; the session still holds the
+   whole conversation.]
+7. **Plan mode** — switch the agent to `plan` and ask it to plan a small
+   change before editing. [It explores and writes a plan without editing
+   files.]
+8. **Sub-agent** — ask the primary agent to use the reviewer subagent on
+   your current changes. [A read-only review comes back; nothing is edited.]
+9. **Sessions** — leave the app, reopen it, and check the session list.
+   [Your session is still there and resumes.]
+10. **Rotate the iPad** — turn it to landscape and back, including upside
+    down. [The layout follows all four orientations.]
+
+If a step fails, note the exact step and what you saw (a screenshot of the
+overlay or the Terminal output helps); the app's Log screen (`≡` menu)
+holds the guest and server logs.
+
+### Delete saved env (free up space)
+
+Keys, sessions, and caches accumulate on the device. One action clears
+them:
+
+- **In the app:** open the web UI and type `/delete-env` in the chat, or
+  open the Terminal (`>_`) and run `openmind-delete-env`.
+- **On Linux / Termux:** run `openmind-delete-env` (add `--yes` to skip
+  the prompt).
+- **What it removes:** stored credentials (ChatGPT Plus OAuth tokens and
+  any API keys saved through the UI), sessions (unless `--keep-sessions`),
+  logs, the guard audit log, stale server locks, and the model catalog
+  cache. It reports what was removed and roughly how much space was freed
+  (keys removed are named, never shown). Key exports in shell rc files
+  are reported, and stripped only with `--purge-rc`.
+- **What it does NOT remove:** the provider config, skills, plugins,
+  commands, your files/workspace, or the guest image.
+- **Afterwards:** the harness starts cleanly, exactly as if freshly
+  installed — it just asks you to sign in or enter keys again. Deleting
+  env cannot break the install, the guest, or the app. Stop the server
+  first (the script refuses while one is running).
+
 ### Build it yourself
 
 ```sh
