@@ -10,21 +10,26 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
 
 ## Layout
 
-- `cross-platform/opencode.json` — the single source of truth for the harness config
+- `opencode.json` — the single source of truth for the harness config
   (default model `openai/gpt-5`, free fallback `experientiallabs/deepseek-v4.1-flash:free`,
   task-routed agents `fast` and `reviewer`). The iOS guest image and both setup scripts
   install this exact file. Edit it in one place only.
-- `cross-platform/linux-setup.sh`, `cross-platform/termux-setup.sh` — install the harness
-  on Linux and Termux. `cross-platform/README.md` documents all three platforms.
+- `linux-setup.sh`, `termux-setup.sh` — install the harness on Linux and
+  Termux. `README.md` documents all three platforms.
 - `skills/openmind-harness/SKILL.md` — the starter skill (Agent Skills standard).
   Installed to `~/.config/opencode/skills/` by the setup scripts and into the iOS guest image.
-- `app/` — the iOS shell (WKWebView front end, harness supervisor, capabilities).
+- `plugins/openmind-guard/` — the guard plugin (pre-tool denies, post-tool
+  audit log). Installed to `~/.config/opencode/plugins/` by the setup
+  scripts and into the iOS guest image. Activates on OpenCode 2.x; dormant
+  on 1.19.6 (see `docs/features.md`).
+- `eval/` — the eval task set and runner (`eval/run.sh`).
+- `ios/app/` — the iOS shell (WKWebView front end, harness supervisor, capabilities).
   Internal identifiers still carry the `DSH` prefix (class/file/project names) — do not
   rename them; the Xcode project, scheme, and CI workflow depend on those names.
-- `scripts/build-rootfs.sh` — builds `build/root.tar.gz` (Alpine 3.21 + OpenCode musl arm64).
-- `docs/harness-analysis.md` — how this harness compares to Hermes, OrcaRouter, and dsh,
-  and which of their features were adopted.
-- `ish-arm64/` — vendored iSH-ARM64 emulator fork. Do not modify unless the emulator itself
+- `ios/scripts/build-rootfs.sh` — builds `ios/build/root.tar.gz` (Alpine 3.21 + OpenCode musl arm64).
+- `docs/features.md` — the harness's own feature descriptions (providers,
+  hooks, memory, autonomy levels, security boundaries).
+- `ios/ish-arm64/` — vendored iSH-ARM64 emulator fork. Do not modify unless the emulator itself
   needs a fix.
 
 ## Rules
@@ -48,7 +53,8 @@ and Android (Termux). The harness is the product; the iOS app is one packaging o
 
 ## Build and test
 
-- `make rootfs` — build the guest image (needs macOS + the emulator build).
-- `make project` — regenerate `DSH.xcodeproj` after adding/removing source files.
-- `make test` — emulator, rootfs, and simulator test suites.
+- `make -C ios rootfs` — build the guest image (needs macOS + the emulator build).
+- `make -C ios project` — regenerate `ios/DSH.xcodeproj` after adding/removing source files.
+- `make -C ios test` — emulator, rootfs, and simulator test suites.
+- `bash eval/run.sh --dry-run` — validate the eval runner's mechanics without a model.
 - CI: `.github/workflows/build-ipa.yml` builds the unsigned IPA on a macOS runner.

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # OpenMind Harness — Android via Termux. Installs the SAME harness as the
 # iOS app and the Linux setup: OpenCode + the universal multi-provider
-# config from cross-platform/opencode.json. No separate Android app — Termux
+# config from opencode.json. No separate Android app — Termux
 # is the Android route.
 #
 # In Termux (on the phone):
 #   pkg update && pkg install -y git curl
-#   git clone https://github.com/tjcrims0nx/openmind-harness-ios.git
-#   bash openmind-harness-ios/cross-platform/termux-setup.sh [--no-launch]
+#   git clone https://github.com/tjcrims0nx/openmind-harness.git
+#   bash openmind-harness/termux-setup.sh [--no-launch]
 #
 # Install method: the native Android/aarch64 OpenCode build from
 # guysoft/opencode-termux (upstream OpenCode publishes no Android binary,
@@ -17,12 +17,13 @@
 # is OpenCode 1.17.9 (guysoft v0.2.1, latest Android release as of
 # 2026-11-21) vs 1.19.6 on iOS/Linux — same config, slightly older engine.
 # Fallback for the exact 1.19.6 build: proot-distro Ubuntu, then run the
-# Linux setup inside it (see cross-platform/README.md).
+# Linux setup inside it (see README.md).
 #
 # What it does:
 #   1. Installs the Android OpenCode build + ripgrep (required dep).
-#   2. Installs the universal config to ~/.config/opencode/opencode.json
-#      and the starter skill to ~/.config/opencode/skills/.
+#   2. Installs the universal config to ~/.config/opencode/opencode.json,
+#      the starter skill to ~/.config/opencode/skills/, and the guard
+#      plugin to ~/.config/opencode/plugins/.
 #   3. Launches `opencode web` in the foreground (unless --no-launch):
 #      the web UI on http://127.0.0.1:4097 — open it in the phone browser.
 #
@@ -55,7 +56,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # --- config source: repo clone (this script is meant to run from a clone) ---
 CONFIG_SRC="$SCRIPT_DIR/opencode.json"
-SKILLS_SRC="$SCRIPT_DIR/../skills"
+SKILLS_SRC="$SCRIPT_DIR/skills"
+PLUGINS_SRC="$SCRIPT_DIR/plugins"
 [ -f "$CONFIG_SRC" ] || { echo "ERROR: opencode.json not found next to this script — run it from a clone of the repo." >&2; exit 1; }
 
 # --- 1. Android OpenCode build (skip if already installed) ---
@@ -89,12 +91,14 @@ if ! grep -q "SSL_CERT_FILE=.*etc/tls/cert.pem" ~/.bashrc 2>/dev/null; then
 fi
 export SSL_CERT_FILE="$PREFIX/etc/tls/cert.pem"
 
-# --- 2. Universal config + starter skill (same files the iOS app ships) ---
-mkdir -p ~/.config/opencode/skills
+# --- 2. Universal config + starter skill + guard plugin (same files the iOS app ships) ---
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/plugins
 cp "$CONFIG_SRC" ~/.config/opencode/opencode.json
 cp -R "$SKILLS_SRC/." ~/.config/opencode/skills/
+cp -R "$PLUGINS_SRC/." ~/.config/opencode/plugins/
 echo "config installed: ~/.config/opencode/opencode.json (default model openai/gpt-5)"
 echo "skills installed: ~/.config/opencode/skills/ (openmind-harness)"
+echo "plugins installed: ~/.config/opencode/plugins/ (openmind-guard)"
 
 # --- 3. Launch (unless asked not to) ---
 if [ "${1:-}" = "--no-launch" ]; then

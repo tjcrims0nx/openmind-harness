@@ -37,9 +37,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ish-arm64/build-arm64-release
-            build/root.tar.gz
-          key: omh-v1-${{ hashFiles('ish-arm64/**', 'rootfs/overlay/**', 'scripts/build-rootfs.sh', 'Makefile') }}
+            ios/ish-arm64/build-arm64-release
+            ios/build/root.tar.gz
+          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**') }}
 
       - name: Build emulator
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -47,9 +47,9 @@ jobs:
           CFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
           CXXFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
         run: |
-          make emulator
-          ninja -C ish-arm64/build-arm64-release tools/fakefsify
-          ls -lh ish-arm64/build-arm64-release/ish ish-arm64/build-arm64-release/tools/fakefsify
+          make -C ios emulator
+          ninja -C ios/ish-arm64/build-arm64-release tools/fakefsify
+          ls -lh ios/ish-arm64/build-arm64-release/ish ios/ish-arm64/build-arm64-release/tools/fakefsify
 
       - name: Build guest rootfs
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -59,23 +59,23 @@ jobs:
           sudo hostname ish
           sudo scutil --set HostName ish || true
           hostname
-          make rootfs
+          make -C ios rootfs
 
       - name: Regenerate Xcode project
-        run: make project
+        run: make -C ios project
 
       - name: Build app (unsigned)
         run: |
-          xcodebuild -project DSH.xcodeproj -scheme DSH -configuration Release \
+          xcodebuild -project ios/DSH.xcodeproj -scheme DSH -configuration Release \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             PRODUCT_BUNDLE_IDENTIFIER=app.jackfruit686.openmind-harness \
             build
-          ls -lh build/Release-iphoneos/DSH.app 2>/dev/null || ls -lh ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app
+          ls -lh ios/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app 2>/dev/null || ls -lh ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app
 
       - name: Package IPA
         run: |
-          APP=$(ls -dt build/Release-iphoneos/DSH.app ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app 2>/dev/null | head -1)
+          APP=$(ls -dt ios/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app 2>/dev/null | head -1)
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -r -y OpenMind-Harness-unsigned.ipa Payload

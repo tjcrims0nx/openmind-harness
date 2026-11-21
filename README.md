@@ -1,34 +1,48 @@
 <p align="center">
-  <img src="app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png" width="96" alt="OpenMind Harness icon"><br>
+  <img src="ios/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png" width="96" alt="OpenMind Harness icon"><br>
   <strong>OpenMind Harness</strong><br>
-  A universal coding-agent harness for iPhone and iPad — OpenCode running in an on-device Linux guest.
+  A universal coding-agent harness — OpenCode with one config for every provider, on every platform.
 </p>
 
-> OpenMind Harness is a native iOS app that runs [OpenCode](https://opencode.ai) inside an Alpine Linux guest (iSH-ARM64 emulator) and shows its web UI in a WKWebView. One universal OpenAI-compatible API interface: point it at any provider below and switch between them from the web UI's model picker. No server, no account, no subscription — the harness and your keys live on your device.
+> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The default is ChatGPT (GPT-5, via your Plus subscription — no API credits needed); the working fallback is a free stock DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+
+## The harness
+
+OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. Nothing about the agent itself is customized — the work here is the packaging, the universal provider config, and the OpenMind Harness branding. Full feature list: [docs/features.md](docs/features.md).
+
+Two ways to run it on any platform:
+
+- **`opencode web`** — the full web UI (default port **4097**). This is what the iOS app loads in its WKWebView and what the setup scripts launch.
+- **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
+
+Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
 
 ## Providers
 
-OpenCode is configured with a multi-provider setup. Pick a provider in the web UI's model picker; add its key once the app is running (see "Adding keys" below). Keys are never stored in the repo or the config file — they are read from environment variables in the guest.
+Pick a provider in the web UI's model picker; add its key once per machine (see "Adding keys" below). Keys are never stored in the repo or the config file — they are read from environment variables, the web UI's `/connect` flow, or `opencode auth login`.
 
 | Provider | Model | Key env var | Notes |
 |---|---|---|---|
-| OpenAI | `openai/gpt-5` | `OPENAI_API_KEY` | **Default.** ChatGPT models. Your OpenAI account needs credits — an account with no credits returns `credit_balance_exhausted`. |
+| OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | **Default.** ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
 | Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Free stock route; works out of the box as the fallback when OpenAI has no credits. |
 | DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
 | Gemini | catalog (`gemini-2.5-flash`, `gemini-3.5-flash-lite`, …) | `GEMINI_API_KEY` | Google provider. |
+| Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
+| Groq | catalog (`openai/gpt-oss-120b`, …) | `GROQ_API_KEY` | Fast hosted models. |
+| Mistral | catalog (`codestral-2508`, …) | `MISTRAL_API_KEY` | Mistral models. |
+| xAI | catalog (`grok-4.6`, …) | `XAI_API_KEY` | Grok models. |
+| Together | catalog (empty in 1.19.6 — see note) | `TOGETHER_API_KEY` | The 1.19.6 model catalog lists no Together models yet; the provider is configured and the picker shows models once the catalog updates or a `models` entry is added. |
 | OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
 | OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
+| Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
+| LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
+| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. |
 
-The default model is `openai/gpt-5` (top-level `"model"` in [`cross-platform/opencode.json`](cross-platform/opencode.json) — the same config file used on Linux and Termux). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback.
+The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback.
 
 ## ChatGPT Plus — GPT-5 with no API credits
 
-The default is GPT-5 because it works on a **ChatGPT Plus/Pro subscription**
-— no API credits needed. OpenCode's built-in OpenAI login signs in with your
-ChatGPT account over OAuth; requests then count against the subscription, not
-against API billing. (An OpenAI API key works too — export `OPENAI_API_KEY` —
-but with Plus you do not need one, and the config deliberately sets no API
-key for the OpenAI provider so the subscription login is used.)
+The default is GPT-5 because it works on a **ChatGPT Plus/Pro subscription** — no API credits needed. OpenCode's built-in OpenAI login signs in with your ChatGPT account over OAuth; requests then count against the subscription, not against API billing. (An OpenAI API key works too — export `OPENAI_API_KEY` — but with Plus you do not need one, and the config deliberately sets no API key for the OpenAI provider so the subscription login is used.)
 
 ```sh
 opencode auth login --provider openai
@@ -44,47 +58,49 @@ Pick a method (verified in OpenCode 1.19.6):
 
 Login state is stored in `~/.local/share/opencode/auth.json` (mode `0600`).
 
-**On the iPad**, use the app's Terminal (`>_` in the control bar) — the
-browser callback cannot reach the guest's loopback from iPad Safari, so the
-in-app web UI's `/connect` browser flow does not work for ChatGPT there.
-In the guest terminal run:
+**On the iPad**, use the app's Terminal (`>_` in the control bar) — the browser callback cannot reach the guest's loopback from iPad Safari, so the in-app web UI's `/connect` browser flow does not work for ChatGPT there. In the guest terminal run:
 
 ```sh
 opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"
 ```
 
-Enter the shown code at `auth.openai.com/codex/device` in Safari. If the
-headless sign-in is refused by OpenAI's security checks, the reliable
-alternative is to sign in once on Linux or Termux (browser flow) and copy
-`~/.local/share/opencode/auth.json` into the guest at
-`/root/.local/share/opencode/auth.json` — same file, same login. Never paste
-the file's contents into chat; copy the file itself.
+Enter the shown code at `auth.openai.com/codex/device` in Safari. If the headless sign-in is refused by OpenAI's security checks, the reliable alternative is to sign in once on Linux or Termux (browser flow) and copy `~/.local/share/opencode/auth.json` into the guest at `/root/.local/share/opencode/auth.json` — same file, same login. Never paste the file's contents into chat; copy the file itself.
 
-## Use it everywhere
+## Onboarding — first run
 
-The harness is the same everywhere — same OpenCode, same providers, same
-ChatGPT-primary default, same free DeepSeek fallback. Only the shell differs.
-OpenCode runs its standard agent loop (prompt → model → tools → execute →
-observe → repeat) with sessions and the model picker; nothing about the agent
-itself is customized. See [cross-platform/README.md](cross-platform/README.md).
+1. Install on your platform (below).
+2. Connect a provider: `opencode auth login --provider openai` (ChatGPT Plus/Pro) or export the provider's key (`EXPLABS_API_KEY`, …).
+3. Test the connection: `opencode run --model experientiallabs/deepseek-v4.1-flash:free "Say only ok."` — a one-line answer proves the provider, the key, and the model ID all work.
+4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. That is the whole setup; there is no account and no signup.
 
-| Platform | How to run |
-|---|---|
-| **iOS / iPadOS** | This app — sideload the unsigned IPA (sign it yourself); it boots the guest and loads the web UI. |
-| **Linux** (Cosyra container, Oracle VM, any server) | `bash cross-platform/linux-setup.sh` — installs Node 22 + `opencode-ai`, installs the config, launches `opencode web` on http://127.0.0.1:4097. |
-| **Android** (Termux) | `bash cross-platform/termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
+## Platforms — the same harness, three shells
 
-Skills, task-routed agents, and how this harness compares to Hermes,
-OrcaRouter, and dsh: [docs/harness-analysis.md](docs/harness-analysis.md).
+| Platform | Shell | Setup |
+|---|---|---|
+| **iOS / iPadOS** | Native app (iSH-ARM64 guest + WKWebView) | Sideload the unsigned IPA from the repo's GitHub Actions (sign it yourself); the app boots the guest and loads the web UI. See "The iOS app" below. |
+| **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
+| **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
+
+### Version notes
+
+- iOS guest and Linux run OpenCode **1.19.6** (same release).
+- Termux runs OpenCode **1.17.9** (guysoft/opencode-termux v0.2.1, the latest Android release as of 2026-11-21) — upstream publishes no Android binary, and its Linux glibc binary cannot run under Android's Bionic libc. Same config, slightly older engine. For the exact 1.19.6 build on the phone, use proot instead: `pkg install proot-distro && proot-distro install ubuntu`, then run `linux-setup.sh` inside the Ubuntu container.
+
+### One config, everywhere
+
+`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (`ios/scripts/build-rootfs.sh` copies it into the guest), and both setup scripts install this exact file to `~/.config/opencode/`. Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
 
 ## Adding keys
 
-Keys go in the guest, not in the repo. Two ways:
+Keys go in the machine, not in the repo. Three ways:
 
-1. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
-2. **Guest environment** — in the app's Terminal (`>_` in the control bar), set the variable in the guest shell, e.g. `export OPENAI_API_KEY=sk-…`, then restart the server from the `⋯` menu. The variable is read from the guest environment by `opencode-serve` on startup.
+1. **ChatGPT Plus/Pro** — `opencode auth login --provider openai` (see above).
+2. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
+3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, or in the iOS app's Terminal (`>_` in the control bar) in the guest shell, then restart the server from the `⋯` menu.
 
-## How it works
+## The iOS app
+
+The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 emulator + Alpine 3.21 guest + WKWebView) that boots the same OpenCode and loads the same web UI. It behaves on iPad exactly like on iPhone — same boot flow, same guest, same web UI, all four iPad orientations.
 
 ```
 ┌─ OpenMind Harness ───────────────────────────────────────────────────┐
@@ -100,22 +116,25 @@ Keys go in the guest, not in the repo. Two ways:
 
 - **The app** picks a free loopback port, launches `opencode-serve` in the guest, probes the server until it answers (ready when the HTTP status is < 500), and loads the OpenCode web UI in the WKWebView. The server is loopback-only and runs with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from inside the app).
 - **The guest** is Alpine 3.21 arm64 with OpenCode 1.19.6 (musl arm64 binary, no Node needed). Your workspace lives in `/root/workspace` in the guest; session data in `/root/.config/opencode`.
-- **iPad:** the app is universal (iPhone + iPad, all four iPad orientations) and behaves the same on iPad as on iPhone — same boot flow, same guest, same web UI.
 
-## Install
+### Install
 
 The unsigned IPA is built by GitHub Actions (`.github/workflows/build-ipa.yml`, `CODE_SIGNING_ALLOWED=NO`). Sign it with your own Apple ID / developer certificate and sideload it (AltStore, Sideloadly, or Xcode) — no signing material is shipped in the repo.
 
-## Build it yourself
+### Build it yourself
 
 ```sh
-git clone https://github.com/tjcrims0nx/openmind-harness-ios.git && cd openmind-harness-ios
-make rootfs          # build/root.tar.gz — Alpine + OpenCode (~85 MB, ~6 min, needs network)
-open DSH.xcodeproj   # DSH scheme → your iPad → set the team → Run
+git clone https://github.com/tjcrims0nx/openmind-harness.git && cd openmind-harness
+make -C ios rootfs       # ios/build/root.tar.gz — Alpine + OpenCode (~90 MB, ~6 min, needs network)
+open ios/DSH.xcodeproj   # DSH scheme → your iPad → set the team → Run
 ```
 
-`make test` runs the emulator, rootfs, and simulator test suites. The guest image is built reproducibly by `scripts/build-rootfs.sh` from the Alpine 3.21 aarch64 repositories and the pinned OpenCode release.
+`make -C ios test` runs the emulator, rootfs, and simulator test suites. The guest image is built reproducibly by `ios/scripts/build-rootfs.sh` from the Alpine 3.21 aarch64 repositories and the pinned OpenCode release.
+
+## Eval
+
+`eval/` holds a small task set (breadth tasks plus an exec-verified hard subset) and a runner that grades by running the model's actual artifact, so a stub fails. `bash eval/run.sh`. A live run needs a signed-in provider or a key. See `eval/README.md`.
 
 ## License
 
-OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`ish-arm64/LICENSE.IOS`](ish-arm64/LICENSE.IOS). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
+OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`ios/ish-arm64/LICENSE.IOS`](ios/ish-arm64/LICENSE.IOS). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.

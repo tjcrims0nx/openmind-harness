@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # OpenMind Harness — Linux setup (Cosyra container, Oracle Always Free VM,
 # or any Linux server). Installs the SAME harness as the iOS app: OpenCode
-# 1.19.6 + the universal multi-provider config from cross-platform/opencode.json.
+# 1.19.6 + the universal multi-provider config from opencode.json.
 #
-#   curl -fsSL https://raw.githubusercontent.com/tjcrims0nx/openmind-harness-ios/main/cross-platform/linux-setup.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/tjcrims0nx/openmind-harness/main/linux-setup.sh | bash
 #   # or, from a clone of the repo:
-#   ./cross-platform/linux-setup.sh [--no-launch]
+#   ./linux-setup.sh [--no-launch]
 #
 # Install method: the official Linux binary tarball first (deterministic —
 # the same release the iOS guest uses, glibc build for the host arch).
@@ -15,9 +15,10 @@
 #
 # What it does:
 #   1. Installs OpenCode 1.19.6 to ~/.local/bin (or reuses it if present).
-#   2. Installs the universal config to ~/.config/opencode/opencode.json
-#      and the starter skill to ~/.config/opencode/skills/ (from a repo
-#      clone; skipped when run standalone via curl).
+#   2. Installs the universal config to ~/.config/opencode/opencode.json,
+#      the starter skill to ~/.config/opencode/skills/, and the guard
+#      plugin to ~/.config/opencode/plugins/ (from a repo clone; config
+#      is downloaded when run standalone via curl).
 #   3. Launches `opencode web` in the foreground (unless --no-launch):
 #      the web UI on http://127.0.0.1:4097.
 #
@@ -42,13 +43,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # --- config source: repo clone if present, else download from GitHub ---
 CONFIG_SRC=""
 SKILLS_SRC=""
+PLUGINS_SRC=""
 if [ -f "$SCRIPT_DIR/opencode.json" ]; then
     CONFIG_SRC="$SCRIPT_DIR/opencode.json"
-    [ -d "$SCRIPT_DIR/../skills" ] && SKILLS_SRC="$SCRIPT_DIR/../skills"
+    [ -d "$SCRIPT_DIR/skills" ] && SKILLS_SRC="$SCRIPT_DIR/skills"
+    [ -d "$SCRIPT_DIR/plugins" ] && PLUGINS_SRC="$SCRIPT_DIR/plugins"
 else
     CONFIG_SRC="$(mktemp)"
     echo "Downloading the universal config..."
-    curl -fsSL -o "$CONFIG_SRC" "https://raw.githubusercontent.com/tjcrims0nx/openmind-harness-ios/main/cross-platform/opencode.json"
+    curl -fsSL -o "$CONFIG_SRC" "https://raw.githubusercontent.com/tjcrims0nx/openmind-harness/main/opencode.json"
 fi
 
 # --- 1. OpenCode (binary tarball first, npm fallback) ---
@@ -93,7 +96,7 @@ else
 fi
 command -v opencode >/dev/null 2>&1 || { echo "ERROR: opencode install failed." >&2; exit 1; }
 
-# --- 2. Universal config + starter skill (same files the iOS app ships) ---
+# --- 2. Universal config + starter skill + guard plugin (same files the iOS app ships) ---
 mkdir -p ~/.config/opencode
 cp "$CONFIG_SRC" ~/.config/opencode/opencode.json
 echo "config installed: ~/.config/opencode/opencode.json (default model openai/gpt-5)"
@@ -103,6 +106,13 @@ if [ -n "$SKILLS_SRC" ]; then
     echo "skills installed: ~/.config/opencode/skills/ (openmind-harness)"
 else
     echo "skills skipped (run from a repo clone to install them: skills/ -> ~/.config/opencode/skills/)"
+fi
+if [ -n "$PLUGINS_SRC" ]; then
+    mkdir -p ~/.config/opencode/plugins
+    cp -R "$PLUGINS_SRC/." ~/.config/opencode/plugins/
+    echo "plugins installed: ~/.config/opencode/plugins/ (openmind-guard)"
+else
+    echo "plugins skipped (run from a repo clone to install them: plugins/ -> ~/.config/opencode/plugins/)"
 fi
 
 # --- 3. Launch (unless asked not to) ---

@@ -6,7 +6,7 @@ description: Use the OpenMind Harness — OpenCode with the universal multi-prov
 # OpenMind Harness
 
 This workspace runs OpenCode with the universal multi-provider config
-(`cross-platform/opencode.json` in the repo, `~/.config/opencode/opencode.json`
+(`opencode.json` in the repo, `~/.config/opencode/opencode.json`
 on the machine). Same harness on iOS, Linux, and Termux — only the shell differs.
 
 ## Providers (switch in the model picker or with the model flag)

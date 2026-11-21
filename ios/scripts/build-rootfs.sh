@@ -80,14 +80,17 @@ overlay_ver=$(/usr/libexec/PlistBuddy -c 'Print :version' "$ISH_SRC/app/RootfsPa
 mkdir -p payload/ish && printf '%s\n' "$overlay_ver" > payload/ish/overlay-version
 cp -R "$ROOT/rootfs/overlay/." payload/
 find payload -name '._*' -delete
-# The harness config is canonical in cross-platform/ (the same file the
+# The harness config is canonical at the repo root (the same file the
 # Linux and Termux setups install); place it in the guest image so the iOS
 # app ships the identical config.
 mkdir -p payload/root/.config/opencode
-cp "$ROOT/cross-platform/opencode.json" payload/root/.config/opencode/opencode.json
+cp "$ROOT/../opencode.json" payload/root/.config/opencode/opencode.json
 # Same for the starter skill (OpenCode's global skills source).
 mkdir -p payload/root/.config/opencode/skills
-cp -R "$ROOT/skills/." payload/root/.config/opencode/skills/
+cp -R "$ROOT/../skills/." payload/root/.config/opencode/skills/
+# Same for the guard plugin (OpenCode's plugin discovery directory).
+mkdir -p payload/root/.config/opencode/plugins
+cp -R "$ROOT/../plugins/." payload/root/.config/opencode/plugins/
 # BSD tar otherwise serialises extended attributes as AppleDouble `._*` files
 # when this payload is unpacked by the Linux guest.
 COPYFILE_DISABLE=1 tar czf payload.tgz -C payload .
