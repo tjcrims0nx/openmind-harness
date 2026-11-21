@@ -21,4 +21,12 @@ PORT="${DSH_PORT:-3080}"
 mkdir -p "$OPENCODE_WORKSPACE"
 cd "$OPENCODE_WORKSPACE"
 
+# Antigravity bridge (loopback translator for the Antigravity provider).
+# Runs only when node and the bridge are present; it serves /v1/models
+# regardless, and chat calls fail cleanly until the user signs in with
+# `openmind-antigravity-login`. Loopback-only, same model as this server.
+if command -v node >/dev/null 2>&1 && [ -f /usr/local/bin/openmind-antigravity-bridge.mjs ]; then
+  (node /usr/local/bin/openmind-antigravity-bridge.mjs >> /root/antigravity-bridge.log 2>&1 &) || true
+fi
+
 exec /usr/local/bin/opencode serve --hostname 127.0.0.1 --port "$PORT" "$@"

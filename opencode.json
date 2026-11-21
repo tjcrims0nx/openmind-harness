@@ -26,6 +26,14 @@
       }
     },
     "google": {
+      "models": {
+        "gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash"
+        },
+        "gemini-3.5-flash-lite": {
+          "name": "Gemini 3.5 Flash Lite"
+        }
+      },
       "options": {
         "apiKey": "{env:GEMINI_API_KEY}"
       }
@@ -73,6 +81,19 @@
       "options": {
         "apiKey": "{env:ORCAROUTER_API_KEY}",
         "baseURL": "https://api.orcarouter.ai/v1"
+      }
+    },
+    "antigravity": {
+      "models": {
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)"
+        }
+      },
+      "name": "Antigravity",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:ANTIGRAVITY_API_KEY}",
+        "baseURL": "http://127.0.0.1:18080/v1"
       }
     },
     "together": {

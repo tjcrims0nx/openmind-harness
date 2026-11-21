@@ -46,12 +46,16 @@ SKILLS_SRC=""
 PLUGINS_SRC=""
 DELETE_ENV_SRC=""
 COMMAND_SRC=""
+ANTIGRAVITY_BRIDGE_SRC=""
+ANTIGRAVITY_LOGIN_SRC=""
 if [ -f "$SCRIPT_DIR/opencode.json" ]; then
     CONFIG_SRC="$SCRIPT_DIR/opencode.json"
     [ -d "$SCRIPT_DIR/skills" ] && SKILLS_SRC="$SCRIPT_DIR/skills"
     [ -d "$SCRIPT_DIR/plugins" ] && PLUGINS_SRC="$SCRIPT_DIR/plugins"
     [ -f "$SCRIPT_DIR/scripts/delete-env.sh" ] && DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
     [ -f "$SCRIPT_DIR/commands/delete-env.md" ] && COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
+    [ -f "$SCRIPT_DIR/scripts/antigravity-bridge.mjs" ] && ANTIGRAVITY_BRIDGE_SRC="$SCRIPT_DIR/scripts/antigravity-bridge.mjs"
+    [ -f "$SCRIPT_DIR/scripts/antigravity-login.mjs" ] && ANTIGRAVITY_LOGIN_SRC="$SCRIPT_DIR/scripts/antigravity-login.mjs"
 else
     CONFIG_SRC="$(mktemp)"
     echo "Downloading the universal config..."
@@ -124,6 +128,16 @@ if [ -n "$DELETE_ENV_SRC" ]; then
     echo "delete-env installed: ~/.local/bin/openmind-delete-env"
 else
     echo "delete-env skipped (run from a repo clone to install it: scripts/delete-env.sh -> ~/.local/bin/openmind-delete-env)"
+fi
+if [ -n "$ANTIGRAVITY_BRIDGE_SRC" ] && [ -n "$ANTIGRAVITY_LOGIN_SRC" ]; then
+    mkdir -p ~/.local/bin
+    install -m 0755 "$ANTIGRAVITY_BRIDGE_SRC" ~/.local/bin/openmind-antigravity-bridge.mjs
+    install -m 0755 "$ANTIGRAVITY_LOGIN_SRC" ~/.local/bin/openmind-antigravity-login.mjs
+    echo "antigravity installed: ~/.local/bin/openmind-antigravity-login.mjs (sign in with your Google account)"
+    echo "  then start the bridge: node ~/.local/bin/openmind-antigravity-bridge.mjs"
+    echo "  (the antigravity provider in the config points at it on 127.0.0.1:18080)"
+else
+    echo "antigravity skipped (run from a repo clone to install it: scripts/antigravity-*.mjs -> ~/.local/bin/)"
 fi
 if [ -n "$COMMAND_SRC" ]; then
     mkdir -p ~/.config/opencode/command

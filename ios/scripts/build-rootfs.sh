@@ -65,7 +65,7 @@ set -e
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 apk update >/dev/null
-apk add --no-progress bash git curl openssh-client ca-certificates libstdc++ libgcc 2>&1 | tail -1
+apk add --no-progress bash git curl openssh-client ca-certificates libstdc++ libgcc nodejs 2>&1 | tail -1
 EOF
 
 log "Guest phase 2: install opencode + overlay"
@@ -96,6 +96,11 @@ cp -R "$ROOT/../plugins/." payload/root/.config/opencode/plugins/
 install -m 0755 "$ROOT/../scripts/delete-env.sh" payload/usr/local/bin/openmind-delete-env
 mkdir -p payload/root/.config/opencode/command
 cp "$ROOT/../commands/delete-env.md" payload/root/.config/opencode/command/delete-env.md
+# Same for Antigravity: the loopback bridge (the antigravity provider in
+# opencode.json points at it) and the Google sign-in script (guest Terminal).
+# Node.js is installed in the guest image above (apk add nodejs).
+install -m 0755 "$ROOT/../scripts/antigravity-bridge.mjs" payload/usr/local/bin/openmind-antigravity-bridge.mjs
+install -m 0755 "$ROOT/../scripts/antigravity-login.mjs" payload/usr/local/bin/openmind-antigravity-login.mjs
 # BSD tar otherwise serialises extended attributes as AppleDouble `._*` files
 # when this payload is unpacked by the Linux guest.
 COPYFILE_DISABLE=1 tar czf payload.tgz -C payload .
@@ -109,9 +114,12 @@ export HOME=/root
 chmod +x /usr/local/bin/opencode /usr/local/bin/opencode-serve /usr/local/bin/opencode-selftest
 mkdir -p /root/workspace
 opencode --version
+node --version
 opencode models | grep -q "openai/gpt-5"
 opencode models | grep -q "experientiallabs/deepseek-v4.1-flash:free"
-echo "guest opencode: $(opencode --version), default + fallback models present"
+opencode models | grep -q "google/gemini-3.8-flash"
+opencode models | grep -q "antigravity/gemini-3-flash"
+echo "guest opencode: $(opencode --version), default + fallback + gemini + antigravity models present"
 rm -rf /var/cache/apk/* /tmp/*
 EOF
 

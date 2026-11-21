@@ -60,14 +60,16 @@ SKILLS_SRC="$SCRIPT_DIR/skills"
 PLUGINS_SRC="$SCRIPT_DIR/plugins"
 DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
 COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
+ANTIGRAVITY_BRIDGE_SRC="$SCRIPT_DIR/scripts/antigravity-bridge.mjs"
+ANTIGRAVITY_LOGIN_SRC="$SCRIPT_DIR/scripts/antigravity-login.mjs"
 [ -f "$CONFIG_SRC" ] || { echo "ERROR: opencode.json not found next to this script — run it from a clone of the repo." >&2; exit 1; }
 
 # --- 1. Android OpenCode build (skip if already installed) ---
 if command -v opencode >/dev/null 2>&1; then
     echo "opencode already installed: $(opencode --version)"
 else
-    echo "Installing Termux packages (unzip, ripgrep)..."
-    pkg install -y unzip ripgrep
+    echo "Installing Termux packages (unzip, ripgrep, nodejs)..."
+    pkg install -y unzip ripgrep nodejs
     TMP="$(mktemp -d)"
     echo "Downloading OpenCode ${OPENCODE_ANDROID_VERSION} for Android/aarch64..."
     curl -fsSL -o "$TMP/$ZIP" "$BASE_URL/$ZIP"
@@ -105,6 +107,10 @@ mkdir -p "$PREFIX/bin" ~/.config/opencode/command
 install -m 0755 "$DELETE_ENV_SRC" "$PREFIX/bin/openmind-delete-env"
 cp "$COMMAND_SRC" ~/.config/opencode/command/delete-env.md
 echo "delete-env installed: $PREFIX/bin/openmind-delete-env (/delete-env in the web UI)"
+install -m 0755 "$ANTIGRAVITY_BRIDGE_SRC" "$PREFIX/bin/openmind-antigravity-bridge.mjs"
+install -m 0755 "$ANTIGRAVITY_LOGIN_SRC" "$PREFIX/bin/openmind-antigravity-login.mjs"
+echo "antigravity installed: $PREFIX/bin/openmind-antigravity-login.mjs (sign in with your Google account)"
+echo "  then start the bridge: node $PREFIX/bin/openmind-antigravity-bridge.mjs"
 
 # --- 3. Launch (unless asked not to) ---
 if [ "${1:-}" = "--no-launch" ]; then

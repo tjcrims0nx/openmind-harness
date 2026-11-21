@@ -5,9 +5,9 @@ shipped config, the guard plugin, the setup scripts, or the stock OpenCode
 behavior the harness is built on. No feature here depends on any other
 project.
 
-## Providers — one config, fourteen providers
+## Providers — one config, fifteen providers
 
-`opencode.json` declares fourteen providers. The default model is
+`opencode.json` declares fifteen providers. The default model is
 `openai/gpt-5`; the working out-of-the-box fallback is
 `experientiallabs/deepseek-v4.1-flash:free`. Switch in the web UI's model
 picker or with the model flag — no restart, no config edit.
@@ -17,7 +17,8 @@ picker or with the model flag — no restart, no config edit.
 | OpenAI (default) | ChatGPT Plus/Pro OAuth (`opencode auth login --provider openai`) or `OPENAI_API_KEY` | Default `openai/gpt-5`. With a Plus/Pro subscription, requests count against the subscription, not API billing. |
 | Experiential Labs (free fallback) | `EXPLABS_API_KEY` | `deepseek-v4.1-flash:free` — free stock route. |
 | DeepSeek | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | `GEMINI_API_KEY` | Google provider. |
+| Gemini | `GEMINI_API_KEY` | Google provider. Models pinned in the config: `gemini-3.8-flash`, `gemini-3.5-flash-lite` (`gemini-2.5-flash` is retired by Google). |
+| Antigravity | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. The harness talks to Antigravity through the loopback bridge (`scripts/antigravity-bridge.mjs`, 127.0.0.1:18080); sign in once and the bridge uses the stored OAuth tokens. |
 | Anthropic | `ANTHROPIC_API_KEY` | Claude models. |
 | Groq | `GROQ_API_KEY` | Fast hosted models. |
 | Mistral | `MISTRAL_API_KEY` | Mistral models. |
@@ -31,6 +32,33 @@ picker or with the model flag — no restart, no config edit.
 
 Keys are never in the repo or the config file — environment variables, the
 web UI's `/connect` flow, or `opencode auth login` only.
+
+## Antigravity — Google account sign-in
+
+Antigravity (Google Cloud Code Assist) is a provider like the others, with
+one difference: it has no API key. You sign in with your Google account
+(OAuth 2.0 + PKCE), and requests count against that account's Antigravity
+quota. The harness reaches it through the bridge:
+
+- Sign in: `openmind-antigravity-login` (or `node scripts/antigravity-login.mjs`).
+  Auto mode opens the Google sign-in in your browser with a local callback;
+  `--manual` prints the URL and you paste back the redirect — use that in
+  the iPad guest Terminal and on headless machines, where the browser cannot
+  reach the local callback. Tokens land at
+  `~/.config/opencode/antigravity-auth.json` (mode 0600): access token,
+  refresh token, expiry, email, Google Cloud project id, and the models
+  your account can use.
+- Bridge: `node scripts/antigravity-bridge.mjs` (loopback only,
+  127.0.0.1:18080). It translates the harness's OpenAI-compatible requests
+  into Antigravity's API format and streams the answers back. The iOS app
+  starts it automatically when the guest boots; on Linux/Termux start it by
+  hand. It refreshes an expired access token itself.
+- Use: pick `antigravity/gemini-3-flash` in the model picker. Not signed in
+  yet? The model answers with a clear "not signed in" error — run the login
+  script. `--status` shows the sign-in state (no secrets); `--refresh`
+  refreshes the token.
+- The `ANTIGRAVITY_API_KEY` env var in the config is only the loopback
+  bridge's key. The real credential is the OAuth token file.
 
 ## Onboarding — first run
 
