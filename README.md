@@ -39,7 +39,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
 | Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. |
 
-The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback.
+The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
 
 ## ChatGPT Plus — GPT-5 with no API credits
 

@@ -10,7 +10,10 @@ project.
 `opencode.json` declares fifteen providers. The default model is
 `openai/gpt-5`; the working out-of-the-box fallback is
 `experientiallabs/deepseek-v4.1-flash:free`. Switch in the web UI's model
-picker or with the model flag — no restart, no config edit.
+picker or with the model flag — no restart, no config edit. Small jobs
+(session titles and other one-line calls) always use the free fallback
+(`"small_model"` in the config), because some providers' default small
+models are not on every key's access list.
 
 | Provider | Key | Notes |
 |---|---|---|
