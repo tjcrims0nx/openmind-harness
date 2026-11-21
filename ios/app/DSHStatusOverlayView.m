@@ -34,7 +34,7 @@
         UILabel *title = [UILabel new];
         title.text = @"OpenMind Harness";
         title.font = [UIFont monospacedSystemFontOfSize:40 weight:UIFontWeightBold];
-        title.textColor = UIColor.labelColor;
+        title.textColor = [UIColor colorNamed:@"DSHAccent"] ?: UIColor.labelColor;
         title.textAlignment = NSTextAlignmentCenter;
         self.titleLabel = title;
 
@@ -59,7 +59,8 @@
         self.messageLabel = message;
 
         UIProgressView *progress = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
-        progress.trackTintColor = [UIColor.secondaryLabelColor colorWithAlphaComponent:0.25];
+        UIColor *trackColor = [UIColor colorNamed:@"DSHSecondaryAccent"] ?: UIColor.secondaryLabelColor;
+        progress.trackTintColor = [trackColor colorWithAlphaComponent:0.35];
         progress.progressTintColor = [UIColor colorNamed:@"DSHAccent"] ?: UIColor.systemBlueColor;
         progress.layer.cornerRadius = 2;
         progress.clipsToBounds = YES;

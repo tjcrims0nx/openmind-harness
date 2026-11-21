@@ -1,179 +1,153 @@
 #!/usr/bin/env bash
-# openmind-set-custom-endpoint — the place to put your own API URL and
-# bearer key for the harness's Custom endpoint provider.
-#
-# The harness's `custom` provider (opencode.json) reads two environment
-# variables: OPENMIND_CUSTOM_BASE_URL and OPENMIND_CUSTOM_API_KEY. This
-# script saves them to ~/.config/opencode/.env (mode 0600) so they survive
-# restarts, and the iOS guest launcher (opencode-serve) sources that file
-# before starting the server. On Linux / Termux, source the file once in
-# your shell (or let this script add the line to ~/.bashrc) and then start
-# the server as usual.
-#
-# The provider also needs the model id listed in its `models` map in
-# opencode.json — without it OpenCode cannot resolve custom/<model-id>
-# and the call fails. So this script also records the model id you give
-# it in the installed config (~/.config/opencode/opencode.json). The
-# bearer key is never printed, not even by --show. The URL is fine to
-# show. delete-env removes the .env file again (it is part of the saved
-# env); the model entry in opencode.json stays until you remove it.
-#
-# Usage:
-#   openmind-set-custom-endpoint [--url URL] [--key KEY] [--model MODEL] [--show] [--clear] [--home DIR]
-#     (no args)        prompt for the URL, the key (hidden) and a model id
-#     --url URL        the base URL of your OpenAI-compatible API, e.g.
-#                      https://api.example.com/v1
-#     --key KEY        the bearer token for that API
-#     --model MODEL    a model id that API serves, e.g. deepseek-v4.1-flash:free
-#     --show           print the saved URL, model(s) and whether a key is set (never the key)
-#     --clear          remove the saved URL and key (model entries stay; remove them
-#                      from opencode.json by hand if you no longer want them)
-#     --home DIR       use DIR as $HOME (default: $HOME; the guest uses /root)
-set -u
+set -euo pipefail
 
-HOME_DIR="${HOME:-/root}"
-URL=""; KEY=""; MODEL=""; SHOW=0; CLEAR=0; ADD_RC=0
+home_dir="${HOME:-/root}"
+url=""; key=""; model=""; action=save; add_rc=0
 
-while [ $# -gt 0 ]; do
+while [ "$#" -gt 0 ]; do
     case "$1" in
-        --url) URL="$2"; shift 2 ;;
-        --url=*) URL="${1#--url=}"; shift ;;
-        --key) KEY="$2"; shift 2 ;;
-        --key=*) KEY="${1#--key=}"; shift ;;
-        --model) MODEL="$2"; shift 2 ;;
-        --model=*) MODEL="${1#--model=}"; shift ;;
-        --show) SHOW=1; shift ;;
-        --clear) CLEAR=1; shift ;;
-        --add-rc) ADD_RC=1; shift ;;
-        --home) HOME_DIR="$2"; shift 2 ;;
-        --home=*) HOME_DIR="${1#--home=}"; shift ;;
-        -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
-        *) echo "unknown option: $1" >&2; exit 2 ;;
+        --url|--key|--model|--home)
+            if [ "$#" -lt 2 ] || [[ "$2" == --* ]]; then
+                printf '%s requires a value\n' "$1" >&2
+                exit 2
+            fi
+            case "$1" in
+                --url) url="$2" ;;
+                --key) key="$2" ;;
+                --model) model="$2" ;;
+                --home) home_dir="$2" ;;
+            esac
+            shift ;;
+        --url=*) url="${1#*=}" ;;
+        --key=*) key="${1#*=}" ;;
+        --model=*) model="${1#*=}" ;;
+        --home=*) home_dir="${1#*=}" ;;
+        --show) action=show ;;
+        --clear) action=clear ;;
+        --add-rc) add_rc=1 ;;
+        -h|--help)
+            cat <<'HELP'
+Usage: openmind-set-custom-endpoint [--url URL] [--model MODEL] [--add-rc] [--home DIR]
+       openmind-set-custom-endpoint [--show | --clear] [--home DIR]
+
+Enter the bearer key at the hidden terminal prompt. The --key flag is also
+accepted for compatibility. --clear removes the saved URL and key.
+HELP
+            exit 0 ;;
+        *) echo "Unknown option. See --help." >&2; exit 2 ;;
     esac
+    shift
 done
 
-CONFIG="$HOME_DIR/.config/opencode"
-ENV_FILE="$CONFIG/.env"
-OPENCODE_JSON="$CONFIG/opencode.json"
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "Install Python 3 to use openmind-set-custom-endpoint." >&2
+    exit 1
+fi
 
-if [ "$SHOW" = 1 ]; then
-    if [ -f "$ENV_FILE" ] && grep -q '^OPENMIND_CUSTOM_BASE_URL=' "$ENV_FILE"; then
-        echo "Custom endpoint URL: $(grep '^OPENMIND_CUSTOM_BASE_URL=' "$ENV_FILE" | cut -d= -f2-)"
-        if grep -q '^OPENMIND_CUSTOM_API_KEY=.\+' "$ENV_FILE"; then
-            echo "Bearer key: set (value not shown)"
-        else
-            echo "Bearer key: NOT set"
+if [ "$action" = save ]; then
+    if [ -z "$url" ]; then read -r -p "API base URL: " url; fi
+    if [ -z "$key" ]; then read -rs -p "Bearer key (hidden): " key; echo; fi
+    if [ -z "$model" ]; then read -r -p "Model ID: " model; fi
+    if [ -z "$key" ] || [ -z "$model" ]; then
+        echo "A bearer key and model ID are required." >&2
+        exit 2
+    fi
+fi
+
+# Pass the credential over a pipe instead of putting it in Python's argv.
+printf '%s' "$key" | python3 -c '
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import sys
+from tempfile import NamedTemporaryFile
+from urllib.parse import urlsplit
+
+action, home, url, model = sys.argv[1:]
+config = Path(home) / ".config" / "opencode"
+env_path = config / ".env"
+config_path = config / "opencode.json"
+custom_line = re.compile(r"^(?:export )?OPENMIND_(?:CUSTOM_(BASE_URL|API_KEY)|MODEL)=")
+
+def replace(path, contents, mode):
+    with NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as temp:
+        temp_path = Path(temp.name)
+        try:
+            os.fchmod(temp.fileno(), mode)
+            temp.write(contents)
+            temp.flush()
+            os.replace(temp_path, path)
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+def run():
+    lines = env_path.read_text().splitlines(keepends=True) if env_path.exists() else []
+    if action == "show":
+        values = {}
+        for line in lines:
+            match = custom_line.match(line)
+            if match:
+                value = line[match.end():].rstrip("\n")
+                try:
+                    tokens = shlex.split(value)
+                    values[match[1]] = tokens[0] if len(tokens) == 1 else value
+                except ValueError:
+                    values[match[1]] = value
+        if values.get("BASE_URL"):
+            print("Custom endpoint URL:", values["BASE_URL"])
+        else:
+            print("No custom endpoint saved.")
+        print("Bearer key:", "set" if values.get("API_KEY") else "not set")
+        if config_path.exists():
+            models = json.loads(config_path.read_text()).get("provider", {}).get("custom", {}).get("models", {})
+            print("Models:", ", ".join(sorted(models)) or "(none)")
+        return
+
+    other_env = "".join(line for line in lines if not custom_line.match(line))
+    if action == "clear":
+        if env_path.exists():
+            replace(env_path, other_env, 0o600)
+        print("Custom endpoint credentials cleared.")
+        return
+
+    api_key = sys.stdin.read()
+    if any("\n" in value or "\r" in value or "\0" in value for value in (url, api_key, model)):
+        sys.exit("Endpoint settings must each fit on one line.")
+    endpoint = urlsplit(url)
+    if endpoint.scheme not in ("http", "https") or not endpoint.hostname or endpoint.username is not None:
+        sys.exit("Enter an HTTP or HTTPS base URL without embedded credentials.")
+    if not config_path.is_file():
+        sys.exit("OpenCode config is missing. Run the harness setup first.")
+    settings = json.loads(config_path.read_text())
+    custom = settings["provider"]["custom"]
+    custom.setdefault("models", {}).setdefault(model, {"name": model})
+    if other_env and not other_env.endswith("\n"):
+        other_env += "\n"
+    new_env = other_env + f"export OPENMIND_CUSTOM_BASE_URL={shlex.quote(url)}\n"
+    new_env += f"export OPENMIND_CUSTOM_API_KEY={shlex.quote(api_key)}\n"
+    new_env += f"export OPENMIND_MODEL={shlex.quote(model)}\n"
+    replace(config_path, json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+            config_path.stat().st_mode & 0o777)
+    replace(env_path, new_env, 0o600)
+    print(f"Saved custom/{model}. The endpoint credentials are stored in {env_path}.")
+
+try:
+    run()
+except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    sys.exit("Could not read or update the OpenCode settings. Check the installed config and file permissions.")
+' "$action" "$home_dir" "$url" "$model"
+
+if [ "$action" = save ]; then
+    printf 'Restart the iOS app. On Linux or Termux, load the credentials before starting OpenCode:\n'
+    printf '  . %q\n' "$home_dir/.config/opencode/.env"
+    if [ "$add_rc" = 1 ]; then
+        printf -v env_path '%q' "$home_dir/.config/opencode/.env"
+        source_line="[ -f $env_path ] && . $env_path"
+        rc_file="$home_dir/.bashrc"
+        if ! grep -qxF -- "$source_line" "$rc_file" 2>/dev/null; then
+            printf '\n# OpenMind Harness custom endpoint\n%s\n' "$source_line" >> "$rc_file"
         fi
-    else
-        echo "No custom endpoint saved."
-    fi
-    if [ -f "$OPENCODE_JSON" ]; then
-        python3 - "$OPENCODE_JSON" <<'PYEOF' 2>/dev/null || true
-import json, sys
-d = json.load(open(sys.argv[1]))
-models = d.get('provider', {}).get('custom', {}).get('models', {})
-print('Models: ' + (', '.join(sorted(models)) if models else '(none yet — set one with openmind-set-custom-endpoint --model <id>)'))
-PYEOF
-    fi
-    exit 0
-fi
-
-if [ "$CLEAR" = 1 ]; then
-    if [ -f "$ENV_FILE" ]; then
-        grep -v '^OPENMIND_CUSTOM_BASE_URL=' "$ENV_FILE" | grep -v '^OPENMIND_CUSTOM_API_KEY=' > "$ENV_FILE.tmp" || true
-        mv "$ENV_FILE.tmp" "$ENV_FILE"
-        chmod 600 "$ENV_FILE"
-        echo "Custom endpoint removed from $ENV_FILE"
-    else
-        echo "No custom endpoint saved."
-    fi
-    exit 0
-fi
-
-# --- prompt for anything not given on the command line ---
-if [ -z "$URL" ]; then
-    printf "API base URL (e.g. https://api.example.com/v1): "
-    read -r URL
-fi
-if [ -z "$KEY" ]; then
-    printf "Bearer key (typing is hidden): "
-    read -rs KEY
-    echo
-fi
-if [ -z "$MODEL" ]; then
-    printf "Model id that API serves (e.g. deepseek-v4.1-flash:free): "
-    read -r MODEL
-fi
-
-# --- validate ---
-case "$URL" in
-    http://*|https://*) ;;
-    *) echo "That does not look like an API URL — it must start with http:// or https://." >&2; exit 2 ;;
-esac
-if [ -z "$KEY" ]; then
-    echo "No bearer key given — nothing was saved." >&2; exit 2
-fi
-if [ -z "$MODEL" ]; then
-    echo "No model id given — nothing was saved (the provider needs a model listed to call it)." >&2; exit 2
-fi
-
-mkdir -p "$CONFIG"
-# Keep any other lines already in .env (other providers' keys), replace
-# only the two custom-endpoint lines.
-if [ -f "$ENV_FILE" ]; then
-    grep -v '^OPENMIND_CUSTOM_BASE_URL=' "$ENV_FILE" | grep -v '^OPENMIND_CUSTOM_API_KEY=' > "$ENV_FILE.tmp" || true
-    mv "$ENV_FILE.tmp" "$ENV_FILE"
-fi
-{
-    echo "OPENMIND_CUSTOM_BASE_URL=$URL"
-    echo "OPENMIND_CUSTOM_API_KEY=$KEY"
-} >> "$ENV_FILE"
-chmod 600 "$ENV_FILE"
-
-echo "Saved. Custom endpoint URL: $URL"
-echo "Bearer key: saved (value not shown). File: $ENV_FILE (mode 0600)"
-
-# --- record the model id in the installed config so OpenCode can call it ---
-if [ -f "$OPENCODE_JSON" ]; then
-    if python3 - "$OPENCODE_JSON" "$MODEL" <<'PYEOF'; then
-import json, sys
-path, model = sys.argv[1], sys.argv[2]
-d = json.load(open(path))
-custom = d.setdefault('provider', {}).setdefault('custom', {})
-models = custom.setdefault('models', {})
-if model not in models:
-    models[model] = {'name': model}
-json.dump(d, open(path, 'w'), indent=2)
-PYEOF
-        echo "Model recorded in the config: custom/$MODEL"
-    else
-        echo "Could not update $OPENCODE_JSON — add the model by hand under provider.custom.models." >&2
-    fi
-else
-    echo "Config $OPENCODE_JSON not found yet — run the setup first, then re-run this script to record the model."
-fi
-echo
-echo "To use it, pick the Custom endpoint provider (model: custom/$MODEL)"
-echo "in the model picker, or run: opencode run --model custom/$MODEL \"...\""
-echo
-echo "iOS app: it picks the file up automatically the next time the app"
-echo "starts (the guest launcher sources it)."
-echo "Linux / Termux: run this once in your shell, then start the server:"
-echo "  source $ENV_FILE"
-if [ "$ADD_RC" = 0 ]; then
-    printf "Add that source line to ~/.bashrc so it loads every time? [y/N] "
-    read -r answer
-    case "$answer" in
-        y|Y|yes|YES) ADD_RC=1 ;;
-    esac
-fi
-if [ "$ADD_RC" = 1 ]; then
-    RC="$HOME_DIR/.bashrc"
-    touch "$RC"
-    if ! grep -qF "source $ENV_FILE" "$RC"; then
-        printf '\n# OpenMind Harness custom endpoint\n[ -f %s ] && source %s\n' "$ENV_FILE" "$ENV_FILE" >> "$RC"
-        echo "Added to $RC"
-    else
-        echo "Already in $RC"
     fi
 fi

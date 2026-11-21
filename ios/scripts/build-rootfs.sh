@@ -65,7 +65,7 @@ set -e
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 apk update >/dev/null
-apk add --no-progress bash git curl openssh-client ca-certificates libstdc++ libgcc nodejs 2>&1 | tail -1
+apk add --no-progress bash git curl openssh-client ca-certificates libstdc++ libgcc nodejs python3
 EOF
 
 log "Guest phase 2: install opencode + overlay"
@@ -73,6 +73,10 @@ log "Guest phase 2: install opencode + overlay"
 # polyfills, our overlay) and stream it into the guest in a single pass.
 rm -rf payload && mkdir -p payload/usr/local/bin payload/lib
 install -m 0755 opencode-bin/opencode payload/usr/local/bin/opencode
+mkdir -p payload/usr/local/lib/openmind/openmind_engine
+install -m 0755 "$ROOT/../openmind-harness" payload/usr/local/lib/openmind/openmind-harness
+cp "$ROOT"/../openmind_engine/*.py "$ROOT"/../openmind_engine/workspace.html payload/usr/local/lib/openmind/openmind_engine/
+ln -s ../lib/openmind/openmind-harness payload/usr/local/bin/openmind-harness
 cp "$ISH_SRC"/app/RootfsPatch.bundle/files/lib/*.js payload/lib/
 # Record the overlay version so the app does not re-apply (and downgrade) the
 # same RootfsPatch files on first launch.
@@ -115,10 +119,11 @@ log "Guest phase 3: verify opencode boots and serves"
 ish <<'EOF'
 set -e
 export HOME=/root
-chmod +x /usr/local/bin/opencode /usr/local/bin/opencode-serve /usr/local/bin/opencode-selftest
+chmod +x /usr/local/bin/opencode /usr/local/bin/openmind-serve /usr/local/bin/opencode-selftest
 mkdir -p /root/workspace
 opencode --version
 node --version
+python3 --version
 opencode models | grep -q "openai/gpt-5"
 opencode models | grep -q "experientiallabs/deepseek-v4.1-flash:free"
 opencode models | grep -q "google/gemini-3.8-flash"
@@ -134,7 +139,7 @@ EOF
 # CLI emulator — the first build failed here with HTTP 000 after ~35s even
 # though the binary runs fine — so the host probe is authoritative.
 PORT=4099
-"$ISH_BUILD/ish" -f "$WORK/fakefs" /bin/sh -c "DSH_PORT=$PORT /usr/local/bin/opencode-serve" > "$WORK/opencode-serve.log" 2>&1 &
+"$ISH_BUILD/ish" -f "$WORK/fakefs" /bin/sh -c "DSH_PORT=$PORT /usr/local/bin/openmind-serve" > "$WORK/openmind-serve.log" 2>&1 &
 SERVER_ISH_PID=$!
 stop_server() {
     kill "$SERVER_ISH_PID" 2>/dev/null || true
@@ -149,12 +154,12 @@ for _ in $(seq 1 180); do
 done
 echo "host probe of guest opencode web UI on :$PORT: up=$up"
 if [ "$up" != 1 ]; then
-    echo "--- opencode-serve.log ---"
-    cat "$WORK/opencode-serve.log"
+    echo "--- openmind-serve.log ---"
+    cat "$WORK/openmind-serve.log"
     stop_server
     die "guest opencode web UI did not answer on 127.0.0.1:$PORT within 180s"
 fi
-grep -o '<title>[^<]*</title>' "$WORK/opencode-index.html" | head -1
+grep -Fq "<title>OpenMind Harness</title>" "$WORK/opencode-index.html"
 stop_server
 echo "guest opencode serves its web UI on 127.0.0.1:$PORT"
 

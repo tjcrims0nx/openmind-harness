@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+export HOME=/root
+workspace=${OPENCODE_WORKSPACE:-/root/workspace}
+mkdir -p "$workspace"
+cd "$workspace"
+if [ -f "$HOME/.config/opencode/.env" ]; then
+    set -a
+    . "$HOME/.config/opencode/.env"
+    set +a
+fi
+exec openmind-harness --web --port "${DSH_PORT:-3080}" --model "${OPENMIND_MODEL:-gpt-5}"

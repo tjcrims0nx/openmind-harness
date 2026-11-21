@@ -110,7 +110,7 @@ static NSString *const kDSHUserAgentSuffix = @" OpenMind-Harness-iOS/1.0";
     title.translatesAutoresizingMaskIntoConstraints = NO;
     title.text = @"OpenMind Harness";
     title.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightSemibold];
-    title.textColor = UIColor.secondaryLabelColor;
+    title.textColor = [UIColor colorNamed:@"DSHAccent"] ?: UIColor.labelColor;
     title.accessibilityIdentifier = @"dsh.title";
     self.titleLabel = title;
 
@@ -126,6 +126,9 @@ static NSString *const kDSHUserAgentSuffix = @" OpenMind-Harness-iOS/1.0";
 
     UIButton *terminal = [self barButtonWithSymbol:@"terminal" action:@selector(presentTerminal) identifier:@"dsh.terminal"];
     terminal.accessibilityLabel = @"Terminal";
+    UIButtonConfiguration *terminalStyle = terminal.configuration;
+    terminalStyle.baseForegroundColor = [UIColor colorNamed:@"DSHHighlight"] ?: UIColor.systemPinkColor;
+    terminal.configuration = terminalStyle;
     self.terminalButton = terminal;
 
     UIButton *menu = [self barButtonWithSymbol:@"ellipsis.circle" action:nil identifier:@"dsh.menu"];
@@ -233,7 +236,7 @@ static NSString *const kDSHUserAgentSuffix = @" OpenMind-Harness-iOS/1.0";
     DSHHarness *h = DSHHarness.shared;
     UIColor *dotColor;
     switch (h.state) {
-        case DSHHarnessStateReady: dotColor = UIColor.systemGreenColor; break;
+        case DSHHarnessStateReady: dotColor = [UIColor colorNamed:@"DSHReady"] ?: UIColor.systemGreenColor; break;
         case DSHHarnessStateFailed: dotColor = UIColor.systemRedColor; break;
         case DSHHarnessStateStopped: dotColor = UIColor.systemGrayColor; break;
         default: dotColor = UIColor.systemOrangeColor; break;
@@ -390,7 +393,7 @@ static NSString *const kDSHUserAgentSuffix = @" OpenMind-Harness-iOS/1.0";
                          [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"],
                          [NSBundle.mainBundle objectForInfoDictionaryKey:(NSString *) kCFBundleVersionKey]];
     NSString *message = [NSString stringWithFormat:
-                         @"OpenMind Harness %@\n\nOpenCode running in an Alpine Linux guest (iSH ARM64 emulator) inside this app.\n\nServer: %@\nState: %@\nStartup: %.1fs · restarts: %lu\n\n%@",
+                         @"OpenMind Harness %@\n\nThe OpenMind engine runs on this device in an Alpine Linux guest. The native shell is adapted from DSH-iOS and uses iSH-ARM64.\n\nServer: %@\nState: %@\nStartup: %.1fs · restarts: %lu\n\n%@",
                          version, h.baseURL.absoluteString ?: @"–", DSHHarnessStateName(h.state), h.lastStartupDuration,
                          (unsigned long) h.restartCount, DSHStartupMetrics.shared.summary];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"About OpenMind Harness" message:message preferredStyle:UIAlertControllerStyleAlert];

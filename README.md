@@ -1,10 +1,44 @@
 <p align="center">
   <img src="ios/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png" width="96" alt="OpenMind Harness icon"><br>
   <strong>OpenMind Harness</strong><br>
-  A universal coding-agent harness — OpenCode with one config for every provider, on every platform.
+  On-device workspace for iPhone and iPad
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The default is ChatGPT (GPT-5, via your Plus subscription — no API credits needed); the working fallback is a free stock DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+The iOS release packages the full on-device coding workspace under
+[`ios/workspace`](ios/workspace). The native shell supervises an Alpine guest
+and opens its local web UI. This build shares the repository’s vendored
+emulator with the standalone OpenMind engine preview in `ios/`.
+
+## Quick start
+
+| Platform | Install and launch |
+| --- | --- |
+| iOS and iPadOS | Download the unsigned IPA from [GitHub Actions](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/build-ipa.yml), then sign and sideload it. See [iOS setup](#the-ios-app). |
+| Linux | Clone this repository and run `bash linux-setup.sh`. |
+| Android (Termux) | Clone this repository in Termux and run `bash termux-setup.sh`. |
+
+On Linux and Termux, the setup script launches the web UI. After installation,
+run `opencode web` to launch it again. On iOS the app opens the UI automatically.
+Connect a provider and select a model in the picker before starting a session.
+
+## Standalone OpenMind engine preview
+
+The standalone launcher runs the repository’s own Python engine. It supports
+non-streaming chat through an OpenAI-compatible provider and keeps conversation
+history in memory for the duration of an interactive session. It requires
+Python 3 and runs directly from a clone.
+
+Set `OPENMIND_CUSTOM_API_KEY` for a custom provider or `OPENAI_API_KEY` for the
+default OpenAI endpoint. Supply the model ID for your provider.
+
+```sh
+./openmind-harness --model "your-model-id"
+./openmind-harness --base-url http://127.0.0.1:11434/v1 --model "your-local-model-id" "Hello"
+```
+
+Run `./openmind-harness --web --model "your-model-id"` for the local browser workspace. Open the printed loopback URL. Tabs share one in-memory conversation until the server exits.
+
+Type `/exit` to end an interactive session. The preview covers chat. The standalone iOS preview boots this workspace through its guest supervisor. Desktop setup scripts, coding tools, and the existing eval suite use OpenCode.
 
 ## The harness
 
@@ -24,7 +58,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | Provider | Model | Key env var | Notes |
 |---|---|---|---|
 | OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | **Default.** ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
-| Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Free stock route; works out of the box as the fallback when OpenAI has no credits. |
+| Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Alternative model when OpenAI is unavailable. Requires an Experiential Labs key. |
 | DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
 | Gemini | pinned (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | `GEMINI_API_KEY` | Google provider. `gemini-2.5-flash` is retired by Google — the config pins the working models. |
 | Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
@@ -40,9 +74,9 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | GitHub Models | pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`) | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user — no card. One endpoint, many model families (GPT, DeepSeek, Llama, Mistral, Phi). Needs a PAT; not yet tested live. |
 | Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
 | LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
-| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Set it with `openmind-set-custom-endpoint` (or `/custom-endpoint` in the web UI) — it asks for the URL, the bearer key and a model id, and saves them where the harness reads them. |
+| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Use [the terminal setup](#custom-endpoint). |
 
-The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
+The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — connect Experiential Labs first with `EXPLABS_API_KEY`. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
 
 ## ChatGPT Plus — GPT-5 with no API credits
 
@@ -92,8 +126,8 @@ Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signe
 
 1. Install on your platform (below).
 2. Connect a provider: `opencode auth login --provider openai` (ChatGPT Plus/Pro) or export the provider's key (`EXPLABS_API_KEY`, …).
-3. Test the connection: `opencode run --model experientiallabs/deepseek-v4.1-flash:free "Say only ok."` — a one-line answer proves the provider, the key, and the model ID all work.
-4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. That is the whole setup; there is no account and no signup.
+3. Test the connection with `opencode run --model <provider/model> "Say only ok."`, replacing `<provider/model>` with the ID for the provider you connected.
+4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. Provider access depends on the credentials and quota for the selected model.
 
 ## Platforms — the same harness, three shells
 
@@ -120,67 +154,27 @@ Keys go in the machine, not in the repo. Three ways:
 2. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
 3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, or in the iOS app's Terminal (`>_` in the control bar) in the guest shell, then restart the server from the `⋯` menu.
 
+### Custom endpoint
+
+Run `openmind-set-custom-endpoint` in a terminal and enter the base URL, bearer
+key, and model ID. On Linux, the helper requires Python 3. Restart the iOS app
+after saving. On Linux and Termux, run `. ~/.config/opencode/.env` in the shell
+that will start OpenCode. Select `custom/<model-id>` in the model picker. Run
+`openmind-set-custom-endpoint --show` to check the saved URL and model or
+`openmind-set-custom-endpoint --clear` to remove the saved credentials.
+
 ## The iOS app
 
-The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 emulator + Alpine 3.21 guest + WKWebView) that boots the same OpenCode and loads the same web UI. It behaves on iPad exactly like on iPhone — same boot flow, same guest, same web UI, all four iPad orientations.
+The unsigned IPA workflow builds `ios/workspace/DSH.xcodeproj`. Its guest
+contains the pinned upstream coding runtime, terminal and host bridge.
+Configure the provider in the workspace after first boot. The Terminal button
+opens the guest shell and the menu exposes logs and restart controls.
 
-```
-┌─ OpenMind Harness ───────────────────────────────────────────────────┐
-│  RootViewController ──► WKWebView ──► http://127.0.0.1:<port>        │
-│  Harness supervisor (port pick · readiness probe · restart · health)  │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  iSH-ARM64 emulator ──► Alpine 3.21 guest                      │  │
-│  │    /usr/local/bin/opencode-serve                               │  │
-│  │      → opencode serve --hostname 127.0.0.1 --port $DSH_PORT    │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────┘
-```
+On macOS, build with `make -C ios/workspace rootfs` followed by
+`make -C ios/workspace project`. Run `make -C ios/workspace test` for this
+variant. The standalone OpenMind chat engine is a separate development target.
 
-- **The app** picks a free loopback port, launches `opencode-serve` in the guest, probes the server until it answers (ready when the HTTP status is < 500), and loads the OpenCode web UI in the WKWebView. The server is loopback-only and runs with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from inside the app).
-- **The guest** is Alpine 3.21 arm64 with OpenCode 1.19.6 (musl arm64 binary, no Node needed). Your workspace lives in `/root/workspace` in the guest; session data in `/root/.config/opencode`.
-
-### Install
-
-The unsigned IPA is built by GitHub Actions (`.github/workflows/build-ipa.yml`, `CODE_SIGNING_ALLOWED=NO`). Sign it with your own Apple ID / developer certificate and sideload it (AltStore, Sideloadly, or Xcode) — no signing material is shipped in the repo.
-
-### Test it on your iPad
-
-First launch imports the guest image (about a minute on first boot, then
-seconds). Work through these in order; what success looks like is in
-brackets.
-
-1. **Install** — sign the IPA with your Apple ID and sideload it. Open the
-   app. [The app opens; a progress overlay shows the guest starting.]
-2. **First boot** — wait for the overlay to clear and the OpenCode web UI
-   to appear. [The status dot reads `ready` and the chat input is visible.]
-3. **Sign in with ChatGPT Plus** — open the Terminal (`>_` in the control
-   bar) and run `opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"`.
-   Enter the shown code at `auth.openai.com/codex/device` in Safari.
-   [The terminal reports the login succeeded; no key was typed anywhere.]
-4. **First prompt** — in the web UI, type `Say only the word ok.` and send.
-   [GPT-5 answers `ok` — that is your Plus subscription answering, not API billing.]
-5. **Switch provider mid-session** — open the model picker (top of the UI),
-   switch to `experientiallabs/deepseek-v4.1-flash:free`, and ask a
-   follow-up in the same session. [The free fallback answers and the
-   earlier GPT-5 exchange is still in the session — memory intact.]
-6. **Switch model back** — pick `openai/gpt-5` again in the same session
-   and ask another question. [GPT-5 answers; the session still holds the
-   whole conversation.]
-7. **Plan mode** — switch the agent to `plan` and ask it to plan a small
-   change before editing. [It explores and writes a plan without editing
-   files.]
-8. **Sub-agent** — ask the primary agent to use the reviewer subagent on
-   your current changes. [A read-only review comes back; nothing is edited.]
-9. **Sessions** — leave the app, reopen it, and check the session list.
-   [Your session is still there and resumes.]
-10. **Rotate the iPad** — turn it to landscape and back, including upside
-    down. [The layout follows all four orientations.]
-
-If a step fails, note the exact step and what you saw (a screenshot of the
-overlay or the Terminal output helps); the app's Log screen (`≡` menu)
-holds the guest and server logs.
-
-### Delete saved env (free up space)
+### Standalone preview and OpenCode setup helpers
 
 Keys, sessions, and caches accumulate on the device. One action clears
 them:
@@ -202,7 +196,7 @@ them:
   env cannot break the install, the guest, or the app. Stop the server
   first (the script refuses while one is running).
 
-### Build it yourself
+### Build the standalone iOS preview
 
 ```sh
 git clone https://github.com/tjcrims0nx/openmind-harness.git && cd openmind-harness

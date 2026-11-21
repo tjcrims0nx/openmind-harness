@@ -3,7 +3,7 @@
 //  DSHUITests
 //
 //  End-to-end checks on a real device/simulator: the app boots the Linux
-//  guest, opencode-serve comes up, the WKWebView shows the OpenMind Harness
+//  guest, openmind-serve comes up, the WKWebView shows the OpenMind Harness
 //  web UI, and the native controls (terminal, log, menu) work.
 //
 
@@ -58,13 +58,8 @@ static const NSTimeInterval kBootTimeout = 300;   // first launch imports the ro
     XCUIElement *web = self.app.webViews.firstMatch;
     XCTAssertTrue([web waitForExistenceWithTimeout:30], @"web view should exist");
 
-    // The DSH web app renders a sidebar with a "New Session" button (or the
-    // first-run notice with a Continue button) once its client bundle ran.
-    NSPredicate *uiUp = [NSPredicate predicateWithFormat:@"exists == YES"];
-    XCUIElementQuery *markers = [[web descendantsMatchingType:XCUIElementTypeAny]
-        matchingPredicate:[NSPredicate predicateWithFormat:@"label CONTAINS[c] 'New Session' OR label CONTAINS[c] 'Continue' OR label CONTAINS[c] 'DeepSeek'"]];
-    XCTestExpectation *e = [self expectationForPredicate:uiUp evaluatedWithObject:markers.firstMatch handler:nil];
-    [self waitForExpectations:@[e] timeout:90];
+    XCTAssertTrue([web.buttons[@"Send"] waitForExistenceWithTimeout:90],
+                  @"OpenMind chat composer should appear after the guest boots");
     [self attachScreenshot:@"03-web-ui"];
 
     // Title shows the port the server listens on.
@@ -85,7 +80,7 @@ static const NSTimeInterval kBootTimeout = 300;   // first launch imports the ro
     XCTAssertTrue([logView waitForExistenceWithTimeout:10]);
     NSString *text = (NSString *) logView.value;
     XCTAssertTrue([text containsString:@"server answered"], @"log should record readiness, got: %@", text);
-    XCTAssertTrue([text containsString:@"dsh web: http://127.0.0.1:"], @"log should carry dsh's own banner, got: %@", text);
+    XCTAssertTrue([text containsString:@"OpenMind workspace: http://127.0.0.1:"], @"log should carry the engine banner, got: %@", text);
     [self attachScreenshot:@"04-log"];
     [self.app.buttons[@"Done"] tap];
 }

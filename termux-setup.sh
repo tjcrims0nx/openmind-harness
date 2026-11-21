@@ -66,6 +66,10 @@ ANTIGRAVITY_BRIDGE_SRC="$SCRIPT_DIR/scripts/antigravity-bridge.mjs"
 ANTIGRAVITY_LOGIN_SRC="$SCRIPT_DIR/scripts/antigravity-login.mjs"
 [ -f "$CONFIG_SRC" ] || { echo "ERROR: opencode.json not found next to this script — run it from a clone of the repo." >&2; exit 1; }
 
+if ! command -v python3 >/dev/null 2>&1; then
+    pkg install -y python
+fi
+
 # --- 1. Android OpenCode build (skip if already installed) ---
 if command -v opencode >/dev/null 2>&1; then
     echo "opencode already installed: $(opencode --version)"

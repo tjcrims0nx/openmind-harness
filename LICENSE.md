@@ -4,8 +4,10 @@ OpenMind Harness is licensed under the **GNU General Public License v3.0** (see
 [LICENSE](LICENSE)), because it compiles and statically links the
 [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64)
 emulator, which is GPLv3 with the additional App Store terms in
-[`ish-arm64/LICENSE.IOS`](ish-arm64/LICENSE.IOS). Those additional terms
+[`ish-arm64/LICENSE.IOS`](ios/ish-arm64/LICENSE.IOS). Those additional terms
 apply to OpenMind Harness as well.
+
+The native iOS shell is adapted from [DSH-iOS](https://github.com/everettjf/dsh-ios).
 
 Third-party components:
 

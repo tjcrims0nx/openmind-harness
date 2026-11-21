@@ -15,10 +15,10 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="DSH" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LS-label">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="OpenMind Harness" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="YES" minimumScaleFactor="0.65" translatesAutoresizingMaskIntoConstraints="NO" id="LS-label">
                                 <rect key="frame" x="0.0" y="400" width="393" height="52"/>
-                                <fontDescription key="fontDescription" name="Menlo-Bold" family="Menlo" pointSize="40"/>
-                                <color key="textColor" systemColor="labelColor"/>
+                                <fontDescription key="fontDescription" name="Menlo-Bold" family="Menlo" pointSize="27"/>
+                                <color key="textColor" red="0" green="0.898039216" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
@@ -39,7 +39,7 @@
     </scenes>
     <resources>
         <namedColor name="DSHBackground">
-            <color red="0.067" green="0.071" blue="0.086" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.0196078431" green="0.0313725490" blue="0.0862745098" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <systemColor name="labelColor">
             <color red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

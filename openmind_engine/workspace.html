@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenMind Harness</title>
+<style>
+:root{color-scheme:dark;font:16px/1.55 system-ui;background:#050816;color:#e7eef8}
+body{max-width:48rem;margin:auto;padding:clamp(1rem,4vw,3rem)}
+header{border-bottom:1px solid #334062;padding-bottom:1rem}
+h1{font-size:1.5rem;letter-spacing:-.035em;color:#00e5ff;margin:0}
+small{color:#bac7dc}article{padding:1rem 0;border-bottom:1px solid #243047}
+article b{color:#9effc8}article:nth-child(odd) b{color:#ff3bd4}
+p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.35rem 0}
+form{display:grid;gap:.65rem;margin-top:1.5rem}
+textarea,button{font:inherit;border-radius:.5rem;padding:.7rem}
+textarea{background:#0b1026;border:1px solid #677595;color:inherit}
+button{justify-self:end;background:#00e5ff;color:#050816;border:0;font-weight:650}
+:focus-visible{outline:3px solid #beafff;outline-offset:2px}
+</style>
+<header><h1>OpenMind Harness</h1><small>{{model}}</small></header>
+<main>{{turns}}<form id="composer" action="/chat" method="post">
+<label for="prompt">Message</label><textarea id="prompt" name="prompt" rows="3" required></textarea>
+<button>Send</button></form></main></html>

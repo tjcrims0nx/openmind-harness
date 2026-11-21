@@ -1,0 +1,12 @@
+# Commands requiring sandbox support fail closed when the guest lacks it.
+- id: sandbox-policy
+  config:
+    mode: workspace-write
+    workspaceRoot: !!js process.env.DSH_WORKSPACE ?? process.cwd()
+- id: permission
+  config:
+    defaultPreset: guest-ask
+    presets:
+      guest-ask:
+        sandbox: workspace-write
+        approval: ask

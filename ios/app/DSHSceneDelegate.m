@@ -19,6 +19,7 @@
         ((AboutViewController *) vc.topViewController).recoveryMode = YES;
         self.window.rootViewController = vc;
     } else {
+        self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
         self.window.rootViewController = [[DSHRootViewController alloc] init];
     }
     [self.window makeKeyAndVisible];

@@ -8,7 +8,7 @@ project.
 ## Providers — one config, eighteen providers
 
 `opencode.json` declares eighteen providers. The default model is
-`openai/gpt-5`; the working out-of-the-box fallback is
+`openai/gpt-5`; the alternative model is
 `experientiallabs/deepseek-v4.1-flash:free`. Switch in the web UI's model
 picker or with the model flag — no restart, no config edit. Small jobs
 (session titles and other one-line calls) always use the free fallback
@@ -18,7 +18,7 @@ models are not on every key's access list.
 | Provider | Key | Notes |
 |---|---|---|
 | OpenAI (default) | ChatGPT Plus/Pro OAuth (`opencode auth login --provider openai`) or `OPENAI_API_KEY` | Default `openai/gpt-5`. With a Plus/Pro subscription, requests count against the subscription, not API billing. |
-| Experiential Labs (free fallback) | `EXPLABS_API_KEY` | `deepseek-v4.1-flash:free` — free stock route. |
+| Experiential Labs (free fallback) | `EXPLABS_API_KEY` | `deepseek-v4.1-flash:free` — free stock route with an Experiential Labs key. |
 | DeepSeek | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
 | Gemini | `GEMINI_API_KEY` | Google provider. Models pinned in the config: `gemini-3.8-flash`, `gemini-3.5-flash-lite` (`gemini-2.5-flash` is retired by Google). |
 | Antigravity | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. The harness talks to Antigravity through the loopback bridge (`scripts/antigravity-bridge.mjs`, 127.0.0.1:18080); sign in once and the bridge uses the stored OAuth tokens. |
@@ -239,7 +239,8 @@ OpenAI-compatible endpoint works through the `custom` provider
 (`OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY`). There is a
 place to put your own URL and bearer key: run
 `openmind-set-custom-endpoint` (in the guest Terminal, Linux, or
-Termux) or `/custom-endpoint` in the web UI. It asks for the base URL,
+Termux). The web UI’s `/custom-endpoint` command shows the setup steps.
+The terminal helper asks for the base URL,
 the bearer key, and a model id that API serves, then saves the URL and
 key to `~/.config/opencode/.env` (mode 0600 — the key is never printed)
 and records the model in the config so `custom/<model-id>` resolves.

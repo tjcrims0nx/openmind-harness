@@ -61,7 +61,7 @@ NSString *DSHHarnessStateName(DSHHarnessState state) {
     if (self = [super init]) {
         _launcher = launcher;
         _log = [[DSHLogBuffer alloc] initPersistentWithCapacity:1000];
-        _serverExecutable = @"/usr/local/bin/opencode-serve";
+        _serverExecutable = @"/usr/local/bin/openmind-serve";
         _extraEnvironment = @{};
         _preferredPort = 3080;
         _startupTimeout = 240;

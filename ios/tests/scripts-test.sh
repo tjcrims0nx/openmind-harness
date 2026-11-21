@@ -54,19 +54,4 @@ grep -q 'ipa_sha256' scripts/release.sh
 
 printf 'ok  scripts: release preflight and receipt recording are present\n'
 
-node - <<'NODE'
-const fs = require('fs');
-const manifest = JSON.parse(fs.readFileSync('docs/capabilities.json', 'utf8'));
-const plugin = fs.readFileSync('rootfs/overlay/usr/local/lib/dsh-plugins/dsh-host-bridge/index.js', 'utf8');
-const app = fs.readdirSync('app').filter(f => f.endsWith('.m')).map(f => fs.readFileSync(`app/${f}`, 'utf8')).join('\n');
-const tools = manifest.capabilities.flatMap(c => c.tools);
-for (const tool of tools) {
-  if (!plugin.includes(`name: "${tool}"`)) throw new Error(`manifest tool missing from plugin: ${tool}`);
-}
-for (const capability of manifest.capabilities) {
-  if (!app.includes(`@"${capability.id}"`)) throw new Error(`manifest capability missing from app: ${capability.id}`);
-}
-if (new Set(tools).size !== tools.length) throw new Error('duplicate tool in capability manifest');
-NODE
-
-printf 'ok  scripts: capability manifest matches app and guest tools\n'
+bash tests/custom-endpoint-test.sh

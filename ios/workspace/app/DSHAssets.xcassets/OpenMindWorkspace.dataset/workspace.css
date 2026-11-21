@@ -1,0 +1,29 @@
+:root {
+  color-scheme: dark;
+  --om-canvas: #050816;
+  --om-panel: #10162c;
+  --om-text: #e7eef8;
+  --om-line: #354360;
+  --om-accent: #00e5ff;
+  accent-color: var(--om-accent);
+}
+html, body, main, [role="main"] {
+  background-color: var(--om-canvas) !important;
+  color: var(--om-text) !important;
+}
+nav, aside, [role="navigation"], [role="dialog"] {
+  background-color: var(--om-panel) !important;
+  color: var(--om-text) !important;
+  border-color: var(--om-line) !important;
+}
+textarea, [contenteditable="true"] {
+  background-color: var(--om-panel) !important;
+  color: var(--om-text) !important;
+  caret-color: var(--om-accent);
+}
+a[href] { color: var(--om-accent); }
+::selection { background: #563877; color: white; }
+:focus-visible { outline: 2px solid #ab99ff !important; outline-offset: 2px; }
+@media (forced-colors: active) {
+  :focus-visible { outline-color: Highlight !important; }
+}

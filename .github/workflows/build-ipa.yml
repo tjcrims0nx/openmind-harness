@@ -1,7 +1,7 @@
 # Build an UNSIGNED OpenMind Harness IPA on a macOS runner and upload it as
 # an artifact. No signing here — Taylor signs it himself. The bundle id is
 # set to app.jackfruit686.openmind-harness so it lines up when he signs.
-# Guest: Alpine 3.21 + OpenCode (musl arm64) serving its web UI on loopback.
+# The full workspace guest serves its web UI on loopback.
 name: Build unsigned IPA
 
 on:
@@ -13,6 +13,9 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+
+      - name: Test custom endpoint setup
+        run: bash ios/tests/custom-endpoint-test.sh
 
       - name: Select Xcode 27
         run: |
@@ -38,8 +41,8 @@ jobs:
         with:
           path: |
             ios/ish-arm64/build-arm64-release
-            ios/build/root.tar.gz
-          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**', 'scripts/delete-env.sh', 'commands/**') }}
+            ios/workspace/build/root.tar.gz
+          key: omh-workspace-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/workspace/rootfs/**', 'ios/workspace/scripts/build-rootfs.sh', 'ios/workspace/Makefile') }}
 
       - name: Build emulator
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -47,7 +50,7 @@ jobs:
           CFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
           CXXFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
         run: |
-          make -C ios emulator
+          make -C ios/workspace emulator
           ninja -C ios/ish-arm64/build-arm64-release tools/fakefsify
           ls -lh ios/ish-arm64/build-arm64-release/ish ios/ish-arm64/build-arm64-release/tools/fakefsify
 
@@ -59,23 +62,23 @@ jobs:
           sudo hostname ish
           sudo scutil --set HostName ish || true
           hostname
-          make -C ios rootfs
+          make -C ios/workspace rootfs
 
       - name: Regenerate Xcode project
-        run: make -C ios project
+        run: make -C ios/workspace project
 
       - name: Build app (unsigned)
         run: |
-          xcodebuild -project ios/DSH.xcodeproj -scheme DSH -configuration Release \
+          xcodebuild -project ios/workspace/DSH.xcodeproj -scheme DSH -configuration Release \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             PRODUCT_BUNDLE_IDENTIFIER=app.jackfruit686.openmind-harness \
             build
-          ls -lh ios/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app 2>/dev/null || ls -lh ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app
+          ls -lh ios/workspace/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app 2>/dev/null || ls -lh ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app
 
       - name: Package IPA
         run: |
-          APP=$(ls -dt ios/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app 2>/dev/null | head -1)
+          APP=$(ls -dt ios/workspace/build/Release-iphoneos/DSH.app build/Release-iphoneos/DSH.app ~/Library/Developer/Xcode/DerivedData/DSH-*/Build/Products/Release-iphoneos/DSH.app 2>/dev/null | head -1)
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -r -y OpenMind-Harness-unsigned.ipa Payload
@@ -121,8 +124,8 @@ jobs:
         with:
           path: |
             ios/ish-arm64/build-arm64-release
-            ios/build/root.tar.gz
-          key: omh-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/rootfs/overlay/**', 'ios/scripts/build-rootfs.sh', 'ios/Makefile', 'opencode.json', 'plugins/**', 'skills/**', 'scripts/delete-env.sh', 'commands/**') }}
+            ios/workspace/build/root.tar.gz
+          key: omh-workspace-v1-${{ hashFiles('ios/ish-arm64/**', 'ios/workspace/rootfs/**', 'ios/workspace/scripts/build-rootfs.sh', 'ios/workspace/Makefile') }}
 
       - name: Build emulator
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -130,7 +133,7 @@ jobs:
           CFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
           CXXFLAGS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
         run: |
-          make -C ios emulator
+          make -C ios/workspace emulator
           ninja -C ios/ish-arm64/build-arm64-release tools/fakefsify
 
       - name: Build guest rootfs
@@ -138,16 +141,16 @@ jobs:
         run: |
           sudo hostname ish
           sudo scutil --set HostName ish || true
-          make -C ios rootfs
+          make -C ios/workspace rootfs
 
       - name: Regenerate Xcode project
-        run: make -C ios project
+        run: make -C ios/workspace project
 
       - name: Simulator smoke test (iPad)
         run: |
-          SIM="$(ios/scripts/pick-simulator.sh)"
+          SIM="$(ios/workspace/scripts/pick-simulator.sh)"
           echo "Simulator: $SIM"
-          xcodebuild -project ios/DSH.xcodeproj -scheme DSH -configuration Release \
+          xcodebuild -project ios/workspace/DSH.xcodeproj -scheme DSH -configuration Release \
             -destination "platform=iOS Simulator,name=$SIM" \
             -only-testing:DSHUITests/DSHLaunchUITests/testHarnessBootsAndShowsWebUI \
             test
