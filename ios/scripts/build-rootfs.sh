@@ -96,6 +96,10 @@ cp -R "$ROOT/../plugins/." payload/root/.config/opencode/plugins/
 install -m 0755 "$ROOT/../scripts/delete-env.sh" payload/usr/local/bin/openmind-delete-env
 mkdir -p payload/root/.config/opencode/command
 cp "$ROOT/../commands/delete-env.md" payload/root/.config/opencode/command/delete-env.md
+# Same for the custom endpoint: the script on the guest PATH (guest
+# Terminal) and the /custom-endpoint command (web UI slash menu).
+install -m 0755 "$ROOT/../scripts/set-custom-endpoint.sh" payload/usr/local/bin/openmind-set-custom-endpoint
+cp "$ROOT/../commands/custom-endpoint.md" payload/root/.config/opencode/command/custom-endpoint.md
 # Same for Antigravity: the loopback bridge (the antigravity provider in
 # opencode.json points at it) and the Google sign-in script (guest Terminal).
 # Node.js is installed in the guest image above (apk add nodejs).

@@ -60,6 +60,8 @@ SKILLS_SRC="$SCRIPT_DIR/skills"
 PLUGINS_SRC="$SCRIPT_DIR/plugins"
 DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
 COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
+SET_CUSTOM_ENDPOINT_SRC="$SCRIPT_DIR/scripts/set-custom-endpoint.sh"
+CUSTOM_ENDPOINT_COMMAND_SRC="$SCRIPT_DIR/commands/custom-endpoint.md"
 ANTIGRAVITY_BRIDGE_SRC="$SCRIPT_DIR/scripts/antigravity-bridge.mjs"
 ANTIGRAVITY_LOGIN_SRC="$SCRIPT_DIR/scripts/antigravity-login.mjs"
 [ -f "$CONFIG_SRC" ] || { echo "ERROR: opencode.json not found next to this script — run it from a clone of the repo." >&2; exit 1; }
@@ -107,6 +109,9 @@ mkdir -p "$PREFIX/bin" ~/.config/opencode/command
 install -m 0755 "$DELETE_ENV_SRC" "$PREFIX/bin/openmind-delete-env"
 cp "$COMMAND_SRC" ~/.config/opencode/command/delete-env.md
 echo "delete-env installed: $PREFIX/bin/openmind-delete-env (/delete-env in the web UI)"
+install -m 0755 "$SET_CUSTOM_ENDPOINT_SRC" "$PREFIX/bin/openmind-set-custom-endpoint"
+cp "$CUSTOM_ENDPOINT_COMMAND_SRC" ~/.config/opencode/command/custom-endpoint.md
+echo "custom-endpoint installed: $PREFIX/bin/openmind-set-custom-endpoint (/custom-endpoint in the web UI)"
 install -m 0755 "$ANTIGRAVITY_BRIDGE_SRC" "$PREFIX/bin/openmind-antigravity-bridge.mjs"
 install -m 0755 "$ANTIGRAVITY_LOGIN_SRC" "$PREFIX/bin/openmind-antigravity-login.mjs"
 echo "antigravity installed: $PREFIX/bin/openmind-antigravity-login.mjs (sign in with your Google account)"

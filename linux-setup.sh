@@ -46,6 +46,8 @@ SKILLS_SRC=""
 PLUGINS_SRC=""
 DELETE_ENV_SRC=""
 COMMAND_SRC=""
+SET_CUSTOM_ENDPOINT_SRC=""
+CUSTOM_ENDPOINT_COMMAND_SRC=""
 ANTIGRAVITY_BRIDGE_SRC=""
 ANTIGRAVITY_LOGIN_SRC=""
 if [ -f "$SCRIPT_DIR/opencode.json" ]; then
@@ -54,6 +56,8 @@ if [ -f "$SCRIPT_DIR/opencode.json" ]; then
     [ -d "$SCRIPT_DIR/plugins" ] && PLUGINS_SRC="$SCRIPT_DIR/plugins"
     [ -f "$SCRIPT_DIR/scripts/delete-env.sh" ] && DELETE_ENV_SRC="$SCRIPT_DIR/scripts/delete-env.sh"
     [ -f "$SCRIPT_DIR/commands/delete-env.md" ] && COMMAND_SRC="$SCRIPT_DIR/commands/delete-env.md"
+    [ -f "$SCRIPT_DIR/scripts/set-custom-endpoint.sh" ] && SET_CUSTOM_ENDPOINT_SRC="$SCRIPT_DIR/scripts/set-custom-endpoint.sh"
+    [ -f "$SCRIPT_DIR/commands/custom-endpoint.md" ] && CUSTOM_ENDPOINT_COMMAND_SRC="$SCRIPT_DIR/commands/custom-endpoint.md"
     [ -f "$SCRIPT_DIR/scripts/antigravity-bridge.mjs" ] && ANTIGRAVITY_BRIDGE_SRC="$SCRIPT_DIR/scripts/antigravity-bridge.mjs"
     [ -f "$SCRIPT_DIR/scripts/antigravity-login.mjs" ] && ANTIGRAVITY_LOGIN_SRC="$SCRIPT_DIR/scripts/antigravity-login.mjs"
 else
@@ -129,6 +133,13 @@ if [ -n "$DELETE_ENV_SRC" ]; then
 else
     echo "delete-env skipped (run from a repo clone to install it: scripts/delete-env.sh -> ~/.local/bin/openmind-delete-env)"
 fi
+if [ -n "$SET_CUSTOM_ENDPOINT_SRC" ]; then
+    mkdir -p ~/.local/bin
+    install -m 0755 "$SET_CUSTOM_ENDPOINT_SRC" ~/.local/bin/openmind-set-custom-endpoint
+    echo "custom-endpoint installed: ~/.local/bin/openmind-set-custom-endpoint (your own API URL + bearer key)"
+else
+    echo "custom-endpoint skipped (run from a repo clone to install it: scripts/set-custom-endpoint.sh -> ~/.local/bin/openmind-set-custom-endpoint)"
+fi
 if [ -n "$ANTIGRAVITY_BRIDGE_SRC" ] && [ -n "$ANTIGRAVITY_LOGIN_SRC" ]; then
     mkdir -p ~/.local/bin
     install -m 0755 "$ANTIGRAVITY_BRIDGE_SRC" ~/.local/bin/openmind-antigravity-bridge.mjs
@@ -145,6 +156,13 @@ if [ -n "$COMMAND_SRC" ]; then
     echo "command installed: ~/.config/opencode/command/delete-env.md (/delete-env in the web UI)"
 else
     echo "command skipped (run from a repo clone to install it: commands/delete-env.md -> ~/.config/opencode/command/)"
+fi
+if [ -n "$CUSTOM_ENDPOINT_COMMAND_SRC" ]; then
+    mkdir -p ~/.config/opencode/command
+    cp "$CUSTOM_ENDPOINT_COMMAND_SRC" ~/.config/opencode/command/custom-endpoint.md
+    echo "command installed: ~/.config/opencode/command/custom-endpoint.md (/custom-endpoint in the web UI)"
+else
+    echo "command skipped (run from a repo clone to install it: commands/custom-endpoint.md -> ~/.config/opencode/command/)"
 fi
 
 # --- 3. Launch (unless asked not to) ---
