@@ -97,6 +97,31 @@
         "baseURL": "http://127.0.0.1:18080/v1"
       }
     },
+    "apinex": {
+      "models": {
+        "free/deepseek-v4.1-flash": {
+          "name": "DeepSeek V4.1 Flash (free)"
+        },
+        "free/glm-5.3-flash": {
+          "name": "GLM 5.3 Flash (free)"
+        },
+        "free/gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash (free)"
+        },
+        "free/gpt-6-luna": {
+          "name": "GPT-6 Luna (free)"
+        },
+        "free/claude-sonnet-4.6": {
+          "name": "Claude Sonnet 4.6 (free)"
+        }
+      },
+      "name": "APInex",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:APINEX_API_KEY}",
+        "baseURL": "https://api.apinex.bond/v1"
+      }
+    },
     "together": {
       "options": {
         "apiKey": "{env:TOGETHER_API_KEY}"

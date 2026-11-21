@@ -35,6 +35,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
 | OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
 | Antigravity | `antigravity/gemini-3-flash` | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. Needs the loopback bridge (starts automatically in the iOS app; start it by hand on Linux/Termux). |
+| APInex | pinned free (`free/deepseek-v4.1-flash`, `free/glm-5.3-flash`, `free/gemini-3.8-flash`, `free/gpt-6-luna`, `free/claude-sonnet-4.6`) | `APINEX_API_KEY` | Gateway: Claude, GPT, Gemini, DeepSeek, GLM, Qwen, Kimi, Grok on one key (22 free models listed live). **Needs a one-time $5 top-up to unlock the free tier** — until then every model call returns a billing error ("Make a single top-up of $5 or more to unlock 25M free tokens daily for life"). The key itself works (the model list answers); the account just has no usable free tokens yet. |
 | Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
 | LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
 | Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. |
