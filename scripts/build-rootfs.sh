@@ -86,30 +86,49 @@ COPYFILE_DISABLE=1 tar czf payload.tgz -C payload .
 "$ISH_BUILD/ish" -f "$WORK/fakefs" /bin/sh -c 'cd / && tar xzf -' < payload.tgz 2>&1 | filter
 
 log "Guest phase 3: verify opencode boots and serves"
+# Part 1 — in-guest: binary runs, config resolves, models present.
 ish <<'EOF'
 set -e
 export HOME=/root
 chmod +x /usr/local/bin/opencode /usr/local/bin/opencode-serve /usr/local/bin/opencode-selftest
 mkdir -p /root/workspace
 opencode --version
-# The web UI must answer on loopback with the stock config (no API key yet —
-# the UI prompts for one when the model is first used).
-opencode serve --hostname 127.0.0.1 --port 4099 >/tmp/opencode-smoke.log 2>&1 &
-SERVER_PID=$!
-trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-CODE=""
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://127.0.0.1:4099/" || true)
-  [ "$CODE" = "200" ] && break
-  sleep 2
-done
-echo "guest opencode web UI HTTP status: $CODE"
-[ "$CODE" = "200" ] || { cat /tmp/opencode-smoke.log; exit 1; }
 opencode models | grep -q "openai/gpt-5"
 opencode models | grep -q "experientiallabs/deepseek-v4.1-flash:free"
 echo "guest opencode: $(opencode --version), default + fallback models present"
 rm -rf /var/cache/apk/* /tmp/*
 EOF
+
+# Part 2 — boot the server in its own emulator session and probe it from the
+# host loopback, the same pattern rootfs-test.sh uses for dsh-serve (and the
+# same path the iOS app uses: WKWebView + readiness probe hit the forwarded
+# loopback port). Probing from inside the guest does not work reliably in the
+# CLI emulator — the first build failed here with HTTP 000 after ~35s even
+# though the binary runs fine — so the host probe is authoritative.
+PORT=4099
+"$ISH_BUILD/ish" -f "$WORK/fakefs" /bin/sh -c "DSH_PORT=$PORT /usr/local/bin/opencode-serve" > "$WORK/opencode-serve.log" 2>&1 &
+SERVER_ISH_PID=$!
+stop_server() {
+    kill "$SERVER_ISH_PID" 2>/dev/null || true
+    pkill -f "$ISH_BUILD/ish -f $WORK/fakefs" 2>/dev/null || true
+    wait "$SERVER_ISH_PID" 2>/dev/null || true
+    sleep 1
+}
+up=0
+for _ in $(seq 1 180); do
+    sleep 1
+    if curl -fs -o "$WORK/opencode-index.html" --max-time 3 "http://127.0.0.1:$PORT/"; then up=1; break; fi
+done
+echo "host probe of guest opencode web UI on :$PORT: up=$up"
+if [ "$up" != 1 ]; then
+    echo "--- opencode-serve.log ---"
+    cat "$WORK/opencode-serve.log"
+    stop_server
+    die "guest opencode web UI did not answer on 127.0.0.1:$PORT within 180s"
+fi
+grep -o '<title>[^<]*</title>' "$WORK/opencode-index.html" | head -1
+stop_server
+echo "guest opencode serves its web UI on 127.0.0.1:$PORT"
 
 log "Export root.tar.gz"
 rm -f "$OUT"
