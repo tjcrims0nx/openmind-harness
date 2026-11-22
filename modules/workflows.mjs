@@ -6,6 +6,10 @@ export function validateWorkflow(def,registeredKinds){
 }
 export class WorkflowRunner {
   constructor(queue){this.queue=queue;}
-  async submit(def){const clean=validateWorkflow(def,Object.keys(this.queue.handlers));const ids=[];for(const step of clean.steps){const task=await this.queue.enqueue(step.kind,step.input);ids.push(task.id);}return {name:clean.name,taskIds:ids};}
+  async submit(def){
+    const clean=validateWorkflow(def,Object.keys(this.queue.handlers));
+    const tasks=await this.queue.enqueueSequence(clean.steps);
+    return {name:clean.name,taskIds:tasks.map(task=>task.id)};
+  }
   async executeSequential(def){const clean=validateWorkflow(def,Object.keys(this.queue.handlers));const results=[];for(const step of clean.steps){const task=await this.queue.enqueue(step.kind,step.input);const result=await this.queue.runById(task.id);results.push(result);if(result?.status!=='completed')break;}return {name:clean.name,results};}
 }

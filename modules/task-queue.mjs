@@ -39,10 +39,26 @@ export class TaskQueue {
   finally{await h.close();await rm(lock,{force:true});}
  }
  async enqueue(kind,input={}){
-  if(typeof kind!=='string'||!Object.hasOwn(this.handlers,kind)||typeof this.handlers[kind]!=='function')throw TypeError('Unregistered task kind');
+  const [task]=await this.#enqueue([{kind,input}],false);
+  return task;
+ }
+ async enqueueSequence(steps){
+  return this.#enqueue(steps,true);
+ }
+ async #enqueue(steps,sequential){
+  for(const {kind} of steps){
+   if(typeof kind!=='string'||!Object.hasOwn(this.handlers,kind)||typeof this.handlers[kind]!=='function')throw TypeError('Unregistered task kind');
+  }
   return this.#locked(async()=>{
-   const t={id:randomUUID(),kind,input:structuredClone(input),status:'queued',createdAt:new Date().toISOString(),attempts:0};
-   this.tasks.push(t);await this.#persist();return structuredClone(t);
+   const tasks=[];
+   for(const {kind,input} of steps){
+    const task={id:randomUUID(),kind,input:structuredClone(input),status:'queued',createdAt:new Date().toISOString(),attempts:0};
+    if(sequential&&tasks.length)task.dependsOn=tasks.at(-1).id;
+    tasks.push(task);
+   }
+   this.tasks.push(...tasks);
+   await this.#persist();
+   return structuredClone(tasks);
   });
  }
  list(){return structuredClone(this.tasks);}
@@ -77,10 +93,16 @@ export class TaskQueue {
  }
 
  async refresh(){return this.load();}
- async runNext(){await this.refresh();const t=this.tasks.find(t=>t.status==='queued');return t?this.runById(t.id):null;}
+ async runNext(){return this.#run();}
  async runById(id){
+  if(typeof id!=='string')return null;
+  return this.#run(id);
+ }
+ async #run(id){
   const task=await this.#locked(async()=>{
-   const t=this.tasks.find(x=>x.id===id&&x.status==='queued');
+   const completed=new Set(this.tasks.filter(t=>t.status==='completed').map(t=>t.id));
+   const t=this.tasks.find(x=>(id===undefined||x.id===id)&&x.status==='queued'&&
+    (x.dependsOn===undefined||completed.has(x.dependsOn)));
    if(!t)return null;
    t.status='running';t.startedAt=new Date().toISOString();t.attempts=(t.attempts||0)+1;
    await this.#persist();return structuredClone(t);

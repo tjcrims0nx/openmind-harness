@@ -4,20 +4,31 @@ import {runAgent} from './agent-runner.mjs';
 import {ToolPolicy} from './tool-policy.mjs';
 import {prepareAgentTask,summarizeAgentEvents} from './agent-integration.mjs';
 import {readFile,writeFile,mkdir,realpath} from 'node:fs/promises';
-import {resolve,dirname,sep,join} from 'node:path';
+import {resolve,dirname,basename,sep,join} from 'node:path';
 const SENSITIVE = /^(?:\.omh|\.git|\.env(?:\..*)?|\.ssh|\.gnupg|\.npmrc|auth\.json|credentials(?:\..*)?|id_[^/]+)$/i;
+function denySensitivePath(root, path) {
+ if(path.slice(root.length).split(sep).some(part=>SENSITIVE.test(part)||/\.(?:pem|key|p12)$/i.test(part))) {
+  throw new Error('Sensitive path denied');
+ }
+}
 const rootPath = (root,relative='') => {
  if(typeof relative!=='string'||relative.includes('\0'))throw new TypeError('Invalid path');
  const path=resolve(root,relative);
  if(path!==root&&!path.startsWith(root+sep))throw new Error('Path escapes workspace');
- if(path.slice(root.length).split(sep).some(x=>SENSITIVE.test(x)||/\.(?:pem|key|p12)$/i.test(x)))throw new Error('Sensitive path denied');
+ denySensitivePath(root, path);
  return path;
 };
 export function makeHandlers(workspace){
  if(typeof workspace!=='string')throw new TypeError('Workspace required');
  const root=resolve(workspace);
  const policy=new ToolPolicy({allow:['workspace.read'],ask:['workspace.write','sandbox.exec','agent.run']});
- const verified=async (path,existing=false)=>{const rootReal=await realpath(root);const check=await realpath(existing?path:dirname(path));if(check!==rootReal&&!check.startsWith(rootReal+sep))throw new Error('Symlink escapes workspace');return path;};
+ const verified=async (path,existing=false)=>{
+  const rootReal=await realpath(root);
+  const target=await realpath(existing?path:dirname(path));
+  if(target!==rootReal&&!target.startsWith(rootReal+sep))throw new Error('Symlink escapes workspace');
+  denySensitivePath(rootReal, target);
+  return existing ? target : join(target, basename(path));
+ };
  return {
   'workspace.read':async ({path})=>{policy.require('workspace.read');const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
   'workspace.write':async ({path,content,approved})=>{policy.require('workspace.write',{approved});if(approved!==true)throw Error('Write approval required');if(typeof content!=='string'||content.length>100000)throw TypeError('Invalid content');await mkdir(root,{recursive:true});const p=await verified(rootPath(root,path));await writeFile(p,content,{flag:'wx',mode:0o600});return {path};},
