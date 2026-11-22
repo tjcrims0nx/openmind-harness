@@ -1,0 +1,23 @@
+name: OMH module tests
+on:
+  push:
+    paths:
+      - 'modules/**'
+      - '.github/workflows/omh-modules.yml'
+  pull_request:
+    paths:
+      - 'modules/**'
+      - '.github/workflows/omh-modules.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test OMH modules
+        run: node --test modules/*.test.mjs
