@@ -6,7 +6,7 @@ import {withStateLock} from './state-lock.mjs';
 const valid=x=>typeof x==='string'&&/^[a-z][a-z0-9.-]{1,63}$/.test(x);
 export class PluginRegistry {
  constructor(file){if(!file)throw TypeError('Plugin registry path required');this.file=file;this.plugins=[];}
- async load(){try{const d=JSON.parse(await readFile(this.file,'utf8'));if(!Array.isArray(d.plugins))throw Error('Invalid plugin manifest store');this.plugins=d.plugins;}catch(e){if(e.code!=='ENOENT')throw e;}return this;}
+ async load(){try{const d=JSON.parse(await readFile(this.file,'utf8'));if(!Array.isArray(d.plugins))throw Error('Invalid plugin manifest store');this.plugins=d.plugins;}catch(e){if(e.code!=='ENOENT')throw e;this.plugins=[];}return this;}
  async save(){await mkdir(dirname(this.file),{recursive:true});const tmp=this.file+'.'+randomUUID()+'.tmp';await writeFile(tmp,JSON.stringify({version:1,plugins:this.plugins},null,2),{mode:0o600});await rename(tmp,this.file);}
  async #transaction(change){return withStateLock(this.file,async()=>{await this.load();const result=await change();await this.save();return result;});}
  async register({name,version,description='',capabilities=[],approved=false}={}){
