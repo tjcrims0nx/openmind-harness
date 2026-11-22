@@ -38,7 +38,9 @@ node scripts/omh-runtime.mjs workflow:submit '{"name":"inspect-later","steps":[{
 
 `workflow:submit` stores all steps together and returns their task IDs. A worker starts each step only after its predecessor completes. A failed predecessor blocks later steps until a retry succeeds. A cancelled predecessor leaves later steps queued and blocked, so cancel those tasks separately when abandoning the workflow. Use `task:list` to inspect each step and its `dependsOn` field.
 
-Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue uses short-lived filesystem locks to prevent simultaneous claims across local workers. Stale running tasks become eligible for recovery after 15 minutes. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
+Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. Sequential workflows now settle dependent queued tasks as **cancelled with a recorded dependency reason** when a prerequisite fails or is cancelled. Downstream steps do not stay stranded in the pending queue or execute despite their failed predecessor. Resubmit the entire workflow if you need a fresh attempt; retrying only an earlier step does not automatically resurrect skipped descendants.
+
+The queue uses short-lived filesystem locks to prevent simultaneous claims across local workers. Stale running tasks become eligible for recovery after 15 minutes. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
 
 `task:cancel` cancels queued work immediately. For a running Bubblewrap task, it records `cancelRequestedAt` and the worker confirms `cancelled` once the sandbox process closes. A task that finishes before the request takes effect keeps its result. If the worker disappears before confirming, recovery reports the request as failed. For a running native agent, the worker asks OpenCode to abort the task’s own session and checks its status. An unconfirmed abort fails the task. Running filesystem handlers currently reject cancellation.
 
@@ -119,6 +121,8 @@ Scheduling is tick-based for interactive use. To process tasks and schedules con
 
 If the scheduler stops after writing a task but before saving the next due time, the next tick reuses the task for that occurrence.
 
+
+Agent workspace snapshots exclude symbolic links, `.env` variants, key files and known private directories. Snapshots are a convenience/recovery mechanism, **not** an operating-system security isolation boundary.
 
 ### OpenCode native MCP integration
 
