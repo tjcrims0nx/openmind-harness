@@ -181,7 +181,7 @@ if [ "${1:-}" = "--no-launch" ]; then
 fi
 echo
 echo "Starting the web UI — open http://127.0.0.1:4097 (Ctrl-C to stop)."
-echo "Model picker (top of the UI) switches providers; default is openai/gpt-5,"
+echo "Model picker (top of the UI) switches providers; default is google/gemini-3.5-flash-lite,"
 echo "free fallback is experientiallabs/deepseek-v4.1-flash:free."
 echo "ChatGPT Plus? Sign in once first: opencode auth login --provider openai"
 echo "— GPT-5 then uses your subscription, no API credits needed."
