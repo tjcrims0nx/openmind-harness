@@ -5,7 +5,9 @@ import {verifyWebAccess,upstreamConfig,bridgeRequest} from '../lib/omh-vercel-pr
 const env={OMH_WEB_ACCESS_TOKEN:'web-access-key-'.repeat(3),OMH_LIVE_URL:'https://omh-runtime.example.test',
  OMH_LIVE_TOKEN:'runtime-transport-key-'.repeat(2)};
 function request(overrides={}){
- return {method:'GET',headers:{host:'omh.vercel.app',authorization:'Bearer '+env.OMH_WEB_ACCESS_TOKEN,...overrides.headers},body:overrides.body,...overrides};
+ const {headers={},...rest}=overrides;
+ return {method:'GET',body:undefined,...rest,
+  headers:{host:'omh.vercel.app',authorization:'Bearer '+env.OMH_WEB_ACCESS_TOKEN,...headers}};
 }
 function response(){
  const r={statusCode:200,headers:{},payload:undefined};
