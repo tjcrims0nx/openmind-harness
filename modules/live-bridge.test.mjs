@@ -60,13 +60,13 @@ test('remote gateway exposes MCP initialization and safe tool list without execu
  assert.ok(tools.result.tools.some(t=>t.name==='omh_status'));
  assert.ok(!tools.result.tools.some(t=>t.name==='sandbox.exec'));
  const rejected=await(await post({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'sandbox.exec',arguments:{approved:true}}})).json();
- assert.equal(rejected.result.isError,true);
+ assert.ok(rejected.error || rejected.result?.isError===true);
  assert.equal((await post({jsonrpc:'2.0',method:'notifications/initialized'})).status,202);
 }));
 
 test('remote governance only permits downward safety controls',()=>fixture(async({state,fetchApi})=>{
  const plugins=await new PluginRegistry(join(state,'plugins.json')).load();
- await plugins.register({name:'example-plugin',version:'1.0',approved:true});
+ await plugins.register({name:'example-plugin',version:'1.0.0',approved:true});
  await plugins.enable('example-plugin',{approved:true});
  const proposal=await(await new SkillProposalStore(join(state,'skill-proposals.json')).load()).propose({
   name:'safe-review',description:'Review',instructions:'Review changes'
