@@ -21,6 +21,8 @@ Both bind `127.0.0.1` by default (this device only) and run with no password (`O
 
 OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. A **read-mostly MCP bridge** now exposes selected status, memory, trace, task-inspection and skill-proposal tools inside OpenCode after running `node scripts/install-omh-runtime.mjs`. Privileged execution remains in the separate CLI/daemon; this is not a full OpenCode UI integration. See [usage, security boundaries and limitations](docs/omh-runtime.md).
 
+Run `node scripts/omh-dashboard.mjs` to open the locally hosted midnight-blue dashboard at `http://127.0.0.1:4177`. Its live controls can cancel queued tasks, retry failed read-only jobs, pause schedules, disable plugins and reject skill proposals; a separate opt-in administrator token enables approved governance actions without exposing arbitrary shell or agent execution. The daemon emits a monitored heartbeat, and the state stores serialize concurrent writes. The dashboard must remain bound to loopback, not exposed publicly.
+
 Run `node scripts/omh-runtime.mjs status` or `node scripts/omh-runtime.mjs doctor` to check the runtime and sandbox prerequisites. Use `node scripts/install-omh-runtime.mjs` to install the OpenCode MCP bridge, or `node --test modules/*.test.mjs` for module tests. The queue now supports `task:cancel` for pending work and `task:retry` for explicitly retrying failed work (limited attempts); active jobs are not falsely reported as cancelled.
 
 ## Providers
