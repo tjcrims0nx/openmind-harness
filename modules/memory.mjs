@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {withStateLock} from './state-lock.mjs';
 export class MemoryStore {
   constructor(file,{maxEntries=1000}={}) {if(!file||!Number.isInteger(maxEntries)||maxEntries<1)throw new TypeError('Invalid memory configuration');this.file=file;this.maxEntries=maxEntries;this.entries=[];}
-  async load(){try{const obj=JSON.parse(await readFile(this.file,'utf8'));if(obj.version!==1||!Array.isArray(obj.entries))throw Error('Invalid memory file');this.entries=obj.entries;}catch(e){if(e.code!=='ENOENT')throw e;}return this;}
+  async load(){try{const obj=JSON.parse(await readFile(this.file,'utf8'));if(obj.version!==1||!Array.isArray(obj.entries))throw Error('Invalid memory file');this.entries=obj.entries;}catch(e){if(e.code!=='ENOENT')throw e;this.entries=[];}return this;}
   async save(){await mkdir(dirname(this.file),{recursive:true});const tmp=`${this.file}.${randomUUID()}.tmp`;await writeFile(tmp,JSON.stringify({version:1,entries:this.entries},null,2),{mode:0o600});await rename(tmp,this.file);}
   async #transaction(change){return withStateLock(this.file,async()=>{await this.load();const result=await change();await this.save();return result;});}
   list({scope}={}){return structuredClone(this.entries.filter(e=>!scope||e.scope===scope));}
