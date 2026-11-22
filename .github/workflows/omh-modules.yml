@@ -21,6 +21,10 @@ on:
       - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
+concurrency:
+  group: omh-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
