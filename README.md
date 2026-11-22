@@ -30,6 +30,10 @@ Two ways to run it on any platform:
 Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
 
 
+## Live Vercel dashboard + remote MCP (experimental)
+
+The same neon dashboard can run as a **Vercel frontend connected to a real Linux OMH worker**, with an authenticated remote MCP endpoint and live task, schedule, plugin, and proposal controls. No demo state is substituted for the worker: unconfigured or unreachable Linux backends report offline. The Linux daemon, execution sandbox, and OpenCode sessions remain on a trusted Linux host; Vercel is the UI and protected API gateway. Setup, required secrets, tunnel guidance, transport tests, and limitations: **[Live Vercel + MCP connector guide](docs/vercel-live.md)**.
+
 ## OMH local runtime (experimental)
 
 OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. A **read-mostly MCP bridge** now exposes selected status, memory, trace, task-inspection and skill-proposal tools inside OpenCode after running `node scripts/install-omh-runtime.mjs`. Privileged execution remains in the separate CLI/daemon; this is not a full OpenCode UI integration. See [usage, security boundaries and limitations](docs/omh-runtime.md).
