@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+mode="${1:-live}"
+if [[ "$mode" != live && "$mode" != fixture ]]; then
+  echo "Usage: smoke-gemini.sh [live|fixture]" >&2
+  exit 1
+fi
+if [[ "$mode" == live && -z "${GEMINI_API_KEY:-}" ]]; then
   echo "GEMINI_API_KEY is required" >&2
   exit 1
 fi
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 profile="$(mktemp -d)"
-trap 'rm -rf "$profile"' EXIT
+fixture_pid=
+cleanup() {
+  if [[ -n "$fixture_pid" ]]; then kill "$fixture_pid" 2>/dev/null || true; fi
+  rm -rf "$profile"
+}
+trap cleanup EXIT
 
 export HOME="$profile"
 export XDG_CONFIG_HOME="$profile/.config"
@@ -22,19 +32,34 @@ export OMH_STATE_DIR="$profile/runtime"
 mkdir -p "$XDG_CONFIG_HOME/opencode" "$OMH_WORKSPACE"
 echo 'OMH MCP smoke test fixture' > "$OMH_WORKSPACE/fixture.txt"
 
-node --input-type=module - "$repo/opencode.json" "$XDG_CONFIG_HOME/opencode/opencode.json" <<'NODE'
+fixture_url=
+if [[ "$mode" == fixture ]]; then
+  export GEMINI_API_KEY=fixture-only
+  python3 "$repo/scripts/smoke-gemini-fixture.py" "$profile/fixture.port" > "$profile/fixture.log" 2>&1 &
+  fixture_pid=$!
+  for ((attempt = 0; attempt < 50; attempt++)); do
+    if [[ -s "$profile/fixture.port" ]]; then break; fi
+    sleep 0.1
+  done
+  fixture_url="http://127.0.0.1:$(cat "$profile/fixture.port")/v1beta"
+fi
+
+node --input-type=module - "$repo/opencode.json" "$XDG_CONFIG_HOME/opencode/opencode.json" "$fixture_url" <<'NODE'
 import {readFileSync, writeFileSync} from 'node:fs';
-const [source, destination] = process.argv.slice(2);
+const [source, destination, fixtureUrl] = process.argv.slice(2);
 const {model, provider: {google}} = JSON.parse(readFileSync(source, 'utf8'));
 if (!model.startsWith('google/')) throw new Error('Expected a configured Gemini model');
+if (fixtureUrl) google.options = {...google.options, baseURL: fixtureUrl};
 writeFileSync(destination, JSON.stringify({
   model,
+  small_model: model,
   provider: {google},
   enabled_providers: ['google'],
   permission: {'*': 'deny', 'omh-runtime_omh_queue_read': 'allow'},
 }));
 NODE
 
+if [[ "$mode" == live ]]; then
 python3 - "$XDG_CONFIG_HOME/opencode/opencode.json" <<'PY'
 import json
 import os
@@ -65,6 +90,9 @@ for model in models:
         if error.code in (429, 503):
             continue
         raise SystemExit(1)
+    except (TimeoutError, urllib.error.URLError) as error:
+        print(f"Gemini generation preflight for {model} failed ({type(error).__name__}).", flush=True)
+        continue
     except (OSError, ValueError) as error:
         sys.exit(f"Gemini generation preflight failed ({type(error).__name__})")
     config["model"] = config["small_model"] = f"google/{model}"
@@ -75,6 +103,7 @@ for model in models:
 else:
     sys.exit("Configured Gemini models are temporarily unavailable for generation.")
 PY
+fi
 
 node "$repo/scripts/install-omh-runtime.mjs" > /dev/null
 cd "$OMH_WORKSPACE"
@@ -126,4 +155,4 @@ if (task.status !== 'completed' || task.result !== 'OMH MCP smoke test fixture\n
   throw new Error('The OMH worker did not return the expected fixture');
 }
 NODE
-echo "Gemini called OMH through OpenCode and the worker completed the queued fixture read."
+echo "The Gemini $mode test called OMH through OpenCode and the worker completed the queued fixture read."

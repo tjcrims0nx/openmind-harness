@@ -121,6 +121,8 @@ The Linux and Termux setup scripts run the installer automatically when invoked 
 
 The installed bridge connected over stdio to the pinned OpenCode 1.19.6 binary on Linux. Run `opencode mcp list` or check the UI's MCP status after installation. The automated transport tests cover tool discovery and rejection of privileged calls.
 
+The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and tries the configured Google models. Both jobs require OpenCode to call the installed MCP read tool and the worker to return the expected file.
+
 ## Remaining hardening
 
 - Verify provider-driven MCP tool invocation and wire live tool events and UI panels to the runtime.

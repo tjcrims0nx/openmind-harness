@@ -1,6 +1,6 @@
 /** Approved built-in task handlers. No arbitrary host process execution. */
 import {runSandbox} from './sandbox.mjs';
-import {runAgent} from './agent-runner.mjs';
+import {requireSuccessfulAgentRun,runAgent} from './agent-runner.mjs';
 import {ToolPolicy} from './tool-policy.mjs';
 import {prepareAgentTask,summarizeAgentEvents} from './agent-integration.mjs';
 import {readFile,writeFile,mkdir,realpath} from 'node:fs/promises';
@@ -49,6 +49,12 @@ export function makeHandlers(workspace){
    const workspace=await prepareSandboxWorkspace(root,workspaceId);
    return runSandbox({workspace,command,args,timeoutMs});
   },
-  'agent.run':async (input)=>{policy.require('agent.run',{approved:input.approved});const args=await prepareAgentTask(input,{workspace:root});const result=await runAgent(args);return {...result,events:summarizeAgentEvents(result.stdout)};}
+  'agent.run':async (input)=>{
+   policy.require('agent.run',{approved:input.approved});
+   const args=await prepareAgentTask(input,{workspace:root});
+   const result=await runAgent(args);
+   requireSuccessfulAgentRun(result);
+   return {...result,events:summarizeAgentEvents(result.stdout)};
+  }
  };
 }

@@ -9,6 +9,18 @@ export function agentArgs({agent,prompt,workspace,model}={}){
  if(model!==undefined&&(typeof model!=='string'||!/^[\w.-]+\/[\w.:-]+$/.test(model)))throw new TypeError('Invalid model');
  return ['run','--format','json','--agent',agent,'--dir',resolve(workspace),...(model?['--model',model]:[]),'--',prompt];
 }
+export function requireSuccessfulAgentRun(result) {
+ if(result.timedOut)throw new Error('OpenCode agent timed out');
+ if(result.outputTruncated)throw new Error('OpenCode agent exceeded its output limit');
+ if(result.signal)throw new Error(`OpenCode agent was terminated by ${result.signal}`);
+ if(result.exitCode!==0)throw new Error(`OpenCode agent exited with code ${result.exitCode}`);
+ for(const line of result.stdout.split('\n')){
+  let event;
+  try{event=JSON.parse(line);}
+  catch{continue;}
+  if(event?.type==='error')throw new Error('OpenCode reported a session error');
+ }
+}
 export async function runAgent({agent,prompt,workspace,model,approved=false,timeoutMs=180000}={}){
  if(approved!==true)throw new Error('Native agent execution requires approval; it runs outside bubblewrap');
  if(!Number.isInteger(timeoutMs)||timeoutMs<1000||timeoutMs>600000)throw new RangeError('Invalid agent timeout');

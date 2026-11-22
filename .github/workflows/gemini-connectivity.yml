@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/gemini-connectivity.yml'
       - 'scripts/smoke-gemini.sh'
+      - 'scripts/smoke-gemini-fixture.py'
 
 permissions:
   contents: read
@@ -14,6 +15,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [fixture, live]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,5 +43,5 @@ jobs:
           echo "$release" >> "$GITHUB_PATH"
       - name: Verify Gemini calls an installed OMH MCP tool through OpenCode
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: bash scripts/smoke-gemini.sh
+          GEMINI_API_KEY: ${{ matrix.mode == 'live' && secrets.GEMINI_API_KEY || '' }}
+        run: bash scripts/smoke-gemini.sh ${{ matrix.mode }}
