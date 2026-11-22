@@ -38,21 +38,27 @@ export class TaskQueue {
   try{this.tasks=await this.#read();return await fn();}
   finally{await h.close();await rm(lock,{force:true});}
  }
- async enqueue(kind,input={}){
-  const [task]=await this.#enqueue([{kind,input}],false);
+ async enqueue(kind,input={}, {idempotencyKey}={}){
+  if(idempotencyKey!==undefined&&(typeof idempotencyKey!=='string'||!idempotencyKey))throw TypeError('Invalid idempotency key');
+  const [task]=await this.#enqueue([{kind,input}],false,idempotencyKey);
   return task;
  }
  async enqueueSequence(steps){
   return this.#enqueue(steps,true);
  }
- async #enqueue(steps,sequential){
+ async #enqueue(steps,sequential,idempotencyKey){
   for(const {kind} of steps){
    if(typeof kind!=='string'||!Object.hasOwn(this.handlers,kind)||typeof this.handlers[kind]!=='function')throw TypeError('Unregistered task kind');
   }
   return this.#locked(async()=>{
+   if(idempotencyKey!==undefined){
+    const existing=this.tasks.find(task=>task.idempotencyKey===idempotencyKey);
+    if(existing)return [structuredClone(existing)];
+   }
    const tasks=[];
    for(const {kind,input} of steps){
     const task={id:randomUUID(),kind,input:structuredClone(input),status:'queued',createdAt:new Date().toISOString(),attempts:0};
+    if(idempotencyKey!==undefined)task.idempotencyKey=idempotencyKey;
     if(sequential&&tasks.length)task.dependsOn=tasks.at(-1).id;
     tasks.push(task);
    }

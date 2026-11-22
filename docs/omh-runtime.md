@@ -53,6 +53,8 @@ node scripts/omh-runtime.mjs task:run
 
 Sandbox implementation is in `modules/sandbox.mjs`. Linux `bubblewrap` (`bwrap`) is required. It runs commands with separate mount/pid/user/network namespaces, read-only system folders, a read-write dedicated `.omh/sandboxes/<workspaceId>` workspace, a temporary `/tmp`, a strict environment, output cap and execution timeout. **It fails closed** if Linux/bwrap is unavailable; it never falls back to an unsandboxed shell. Supported executable commands are currently `node`, `python3`, `git`, and `sh`. Sandbox execution **does not mount the project root or `.omh` state directory**; it only mounts its dedicated sandbox directory. The sandbox has **no network access**. Because real sandboxing depends on host kernel configuration and installation, test it on each supported Linux environment before production use. CPU quotas, memory quotas, and macOS/iOS sandbox backends **are not yet implemented**. Workspaces and snapshots alone are not a security boundary.
 
+The Ubuntu 22.04 GitHub Actions sandbox job runs `node scripts/smoke-sandbox.mjs` with Bubblewrap. It verifies workspace writes, denial of host paths and inherited environment variables, process and network namespace isolation, exit status, timeout, and output limits.
+
 ### Memory, skills, snapshots, agent teams
 
 ```sh
@@ -103,6 +105,8 @@ node scripts/omh-runtime.mjs trace:list
 
 Scheduling is tick-based for interactive use. To process tasks and schedules continuously, launch `node scripts/omh-daemon.mjs` as a **single worker** under systemd/launchd/supervisor. The daemon holds a lock file under `.omh/daemon.lock`; if a process crashes, verify that no worker remains before removing the lock. An OS service is **not** installed automatically. For manual runs, use `schedule:tick`. Trace journaling is opt-in, and secrets in known fields/token patterns are redacted; keep its data directory private. Tool permissions are implemented as a policy object; integration with actual MCP tool invocation is still outstanding.
 
+If the scheduler stops after writing a task but before saving the next due time, the next tick reuses the task for that occurrence.
+
 
 ### OpenCode native MCP integration
 
@@ -121,6 +125,6 @@ The installed bridge connected over stdio to the pinned OpenCode 1.19.6 binary o
 
 - Verify provider-driven MCP tool invocation and wire live tool events and UI panels to the runtime.
 - Add tamper-resistant approval and credential isolation, and enforce policy at the actual OpenCode/MCP tool call boundary. The task queue and schedule store now use short-lived filesystem locks; the mailbox, memory, skill proposal and plugin stores do not yet support concurrent writers.
-- Implement macOS/iOS sandbox backends, OS-level CPU/memory quotas, and sandbox integration tests.
+- Implement macOS/iOS sandbox backends and OS-level CPU and memory quotas.
 - Add distributed workflow execution, OS service installation and health checks, and running-task cancellation.
 - Validate installed tool paths and agent configuration on each target platform before claiming full parity.

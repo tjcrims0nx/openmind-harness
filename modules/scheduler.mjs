@@ -22,7 +22,18 @@ export class Scheduler{
  }
  async tick(now=Date.now()){
   if(!Number.isFinite(now))throw TypeError('Invalid timestamp');
-  return this.#locked(async()=>{const ready=[];for(const job of this.jobs){if(job.enabled&&job.nextAt<=now){const task=await this.queue.enqueue(job.kind,job.input);ready.push(task);job.nextAt=now+job.everyMs;}}if(ready.length)await this.save();return ready;});
+  return this.#locked(async()=>{
+   const ready=[];
+   for(const job of this.jobs){
+    if(!job.enabled||job.nextAt>now)continue;
+    // If the queue write succeeded before the schedule write failed, reuse that occurrence.
+    const idempotencyKey=`schedule:${job.id}:${job.nextAt}`;
+    ready.push(await this.queue.enqueue(job.kind,job.input,{idempotencyKey}));
+    job.nextAt=now+job.everyMs;
+   }
+   if(ready.length)await this.save();
+   return ready;
+  });
  }
  list(){return structuredClone(this.jobs);}
 }
