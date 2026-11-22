@@ -26,6 +26,10 @@ jobs:
           node-version: '22'
       - name: Run complete OMH module suite
         run: node --test modules/*.test.mjs
+      - name: Validate Linux and Termux installers
+        run: |
+          bash -n linux-setup.sh
+          bash -n termux-setup.sh
       - name: Validate dashboard build and runtime syntax
         run: |
           node scripts/build-vercel-dashboard.mjs
