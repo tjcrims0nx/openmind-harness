@@ -177,48 +177,48 @@
   "experimental": {
     "home_memory": true
   },
-  "agents": {
+  "agent": {
     "fast": {
       "description": "Fast, free model for small jobs — quick questions, small edits, summaries. Use when the work is small and speed matters more than maximum capability.",
       "mode": "primary",
       "model": "experientiallabs/deepseek-v4.1-flash:free",
-      "system": "You are a fast coding assistant. Keep answers short and do only the small task asked."
+      "prompt": "You are a fast coding assistant. Keep answers short and do only the small task asked."
     },
     "reviewer": {
       "description": "Reviews current changes for correctness and regressions. Read-only.",
-      "mode": "subagent",
+      "mode": "all",
       "model": "google/gemini-3.8-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny"
       },
-      "system": "Review only. Do not modify files. List findings in severity order with file and line references."
+      "prompt": "Review only. Do not modify files. List findings in severity order with file and line references."
     },
     "planner": {
       "description": "Read-only architecture planner. Delegated by an OMH user or coordinating agent.",
-      "mode": "subagent",
+      "mode": "all",
       "model": "google/gemini-3.8-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny"
       },
-      "system": "Produce a scoped implementation plan with acceptance criteria. Do not modify files or execute commands."
+      "prompt": "Produce a scoped implementation plan with acceptance criteria. Do not modify files or execute commands."
     },
     "implementer": {
       "description": "Scoped code implementer; filesystem/tool permissions remain enforced by OpenCode.",
-      "mode": "subagent",
+      "mode": "all",
       "model": "google/gemini-3.8-flash",
-      "system": "Implement only the explicitly assigned change. Prefer minimal patches and include exact files changed. Do not claim testing without running tests."
+      "prompt": "Implement only the explicitly assigned change. Prefer minimal patches and include exact files changed. Do not claim testing without running tests."
     },
     "tester": {
       "description": "Read-only test analyst; does not execute shell or modify source.",
-      "mode": "subagent",
+      "mode": "all",
       "model": "google/gemini-3.8-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny"
       },
-      "system": "Review test coverage, propose reproducible test commands, and highlight failures without editing or executing commands."
+      "prompt": "Review test coverage, propose reproducible test commands, and highlight failures without editing or executing commands."
     }
   }
 }

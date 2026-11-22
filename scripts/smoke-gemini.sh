@@ -47,7 +47,7 @@ fi
 node --input-type=module - "$repo/opencode.json" "$XDG_CONFIG_HOME/opencode/opencode.json" "$fixture_url" <<'NODE'
 import {readFileSync, writeFileSync} from 'node:fs';
 const [source, destination, fixtureUrl] = process.argv.slice(2);
-const {model, provider: {google}} = JSON.parse(readFileSync(source, 'utf8'));
+const {model, agent: {reviewer}, provider: {google}} = JSON.parse(readFileSync(source, 'utf8'));
 if (!model.startsWith('google/')) throw new Error('Expected a configured Gemini model');
 if (fixtureUrl) google.options = {...google.options, baseURL: fixtureUrl};
 writeFileSync(destination, JSON.stringify({
@@ -56,6 +56,7 @@ writeFileSync(destination, JSON.stringify({
   provider: {google},
   enabled_providers: ['google'],
   permission: {'*': 'deny', 'omh-runtime_omh_queue_read': 'allow'},
+  agent: {reviewer},
 }));
 NODE
 
@@ -119,11 +120,16 @@ fi
 echo "OpenCode 1.19.6 connected to the installed OMH MCP server."
 
 run_status=0
-timeout 75s opencode run --print-logs --format json -- \
+model="$(node -p 'require(process.argv[1]).model' "$XDG_CONFIG_HOME/opencode/opencode.json")"
+timeout 75s opencode run --print-logs --format json --agent reviewer --model "$model" -- \
   'Use the available OMH queue read tool with path fixture.txt. Its queued status means success. As soon as it returns a task ID, reply done without polling or making another call.' \
   > "$profile/events.jsonl" 2> "$profile/opencode.err" || run_status=$?
 if (( run_status != 0 )); then
   echo "OpenCode exited with status $run_status. Checking for a completed MCP tool call."
+fi
+if ! grep -q 'agent=reviewer ' "$profile/opencode.err"; then
+  echo "OpenCode did not start the configured reviewer agent" >&2
+  exit 1
 fi
 
 task_count="$(node --input-type=module - "$profile/events.jsonl" "$OMH_STATE_DIR/tasks.json" <<'NODE'

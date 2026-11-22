@@ -7,6 +7,7 @@ on:
       - '.github/workflows/gemini-connectivity.yml'
       - 'scripts/smoke-gemini.sh'
       - 'scripts/smoke-gemini-fixture.py'
+      - 'opencode.json'
 
 permissions:
   contents: read

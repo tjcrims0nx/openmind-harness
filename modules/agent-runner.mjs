@@ -14,6 +14,9 @@ export function requireSuccessfulAgentRun(result) {
  if(result.outputTruncated)throw new Error('OpenCode agent exceeded its output limit');
  if(result.signal)throw new Error(`OpenCode agent was terminated by ${result.signal}`);
  if(result.exitCode!==0)throw new Error(`OpenCode agent exited with code ${result.exitCode}`);
+ if(result.stderr?.includes('Falling back to default agent')){
+  throw new Error('OpenCode did not select the requested OMH agent');
+ }
  for(const line of result.stdout.split('\n')){
   let event;
   try{event=JSON.parse(line);}

@@ -10,6 +10,10 @@ test('native agent failures cannot be recorded as completed tasks', () => {
  assert.throws(() => requireSuccessfulAgentRun({...success, timedOut: true}), /timed out/);
  assert.throws(() => requireSuccessfulAgentRun({...success, outputTruncated: true}), /output limit/);
  assert.throws(() => requireSuccessfulAgentRun({...success, signal: 'SIGTERM'}), /terminated/);
+ assert.throws(
+  () => requireSuccessfulAgentRun({...success, stderr: 'agent "reviewer" not found. Falling back to default agent'}),
+  /did not select the requested OMH agent/,
+ );
  const stdout = 'non-JSON output\n{"type":"error","error":{"message":"private provider details"}}\n';
  assert.throws(
   () => requireSuccessfulAgentRun({...success, stdout}),

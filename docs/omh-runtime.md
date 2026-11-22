@@ -38,7 +38,7 @@ node scripts/omh-runtime.mjs task:run
 node scripts/omh-runtime.mjs workflow:run '{"name":"review-cycle","steps":[{"kind":"agent.run","input":{"agent":"planner","prompt":"Plan a bounded review","approved":true}},{"kind":"agent.run","input":{"agent":"reviewer","prompt":"Review the plan and code","approved":true}}]}'
 ```
 
-Agents `planner`, `implementer`, `tester`, and `reviewer` are registered in `opencode.json`. The native runner does not pass `--auto` and captures JSON event output. It needs an installed OpenCode binary and working model credentials. The API-level `approved:true` flag is not a substitute for OS permission controls or an authenticated human approval system. On production hosts, invoke this only from trusted workspaces.
+Agents `planner`, `implementer`, `tester`, and `reviewer` use OpenCode's `agent` configuration with `mode: "all"`, so OpenCode accepts them both through `run --agent` and through delegation. The native runner captures JSON events and marks a task failed when OpenCode reports an error or switches to its default agent. It needs an installed OpenCode binary and working model credentials. Run native agent tasks from trusted workspaces with appropriate OpenCode permissions.
 
 ### Runtime diagnostics
 
@@ -121,7 +121,7 @@ The Linux and Termux setup scripts run the installer automatically when invoked 
 
 The installed bridge connected over stdio to the pinned OpenCode 1.19.6 binary on Linux. Run `opencode mcp list` or check the UI's MCP status after installation. The automated transport tests cover tool discovery and rejection of privileged calls.
 
-The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and tries the configured Google models. Both jobs require OpenCode to call the installed MCP read tool and the worker to return the expected file.
+The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and tries the configured Google models. Both jobs verify the reviewer runs, OpenCode calls the installed MCP read tool, and the worker returns the expected file.
 
 ## Remaining hardening
 
