@@ -158,7 +158,11 @@ The installer copies the OMH Node modules and CLI under `~/.config/opencode/omh-
 ```sh
 node scripts/install-omh-runtime.mjs --dry-run
 node scripts/install-omh-runtime.mjs
+node scripts/install-omh-runtime.mjs --check
+opencode mcp list
 ```
+
+The repository's shared `opencode.json` deliberately contains provider/agent settings without a machine-specific MCP executable path. The installer populates the **effective installed** `opencode.json` with an absolute Node executable and copied OMH bridge path; copying the shared JSON alone is **not** a runtime installation. The installer honors `XDG_CONFIG_HOME/opencode` when set, otherwise `~/.config/opencode`, preserves existing MCP registrations, and `--check` fails if the registration or installed entrypoint is missing/stale. Re-run installation after upgrading Node or relocating the config directory. The iOS guest has a separate packaged MCP configuration and is validated by its own rootfs build.
 
 The Linux and Termux setup scripts run the installer automatically when invoked from a repository checkout and Node.js 22+ is available. The MCP bridge exposes **read-mostly** `omh_status`, `omh_memory_search`, `omh_task_list`, `omh_queue_read`, `omh_trace_recent`, `omh_skill_propose`, `omh_skill_proposals`, `omh_agent_send`, and `omh_agent_inbox`. It deliberately exposes **no direct shell execution, agent invocation, workspace writing, or approval override** to model-generated tool calls. A trusted CLI/daemon remains responsible for executing pending work. This is an explicit runtime boundary, not a guarantee that stock OpenCode tool permissions are enforced by the bridge.
 
