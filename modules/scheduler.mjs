@@ -35,6 +35,19 @@ export class Scheduler{
    return ready;
   });
  }
+ /** Explicitly resume a paused schedule, starting its next occurrence in the future. */
+ async resume(id){
+  if(typeof id!=='string'||!id)throw new TypeError('Schedule id required');
+  return this.#locked(async()=>{
+   const job=this.jobs.find(j=>j.id===id);
+   if(!job)throw Error('Schedule unknown');
+   if(job.enabled)throw Error('Schedule already enabled');
+   job.enabled=true;
+   job.nextAt=Date.now()+job.everyMs;
+   await this.save();
+   return structuredClone(job);
+  });
+ }
  /** Prevent future schedule ticks; already-enqueued tasks are unaffected. */
  async pause(id){
   if(typeof id!=='string'||!id)throw new TypeError('Schedule id required');
