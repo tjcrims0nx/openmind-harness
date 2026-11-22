@@ -160,7 +160,7 @@ function renderView() {
 function renderFeeds() {
   $('#agent-count').textContent = state.agents.length;
   $('#task-count').textContent = taskCount();
-  $('#health-detail').textContent = state.agents.length + ' roles   ·   ' + taskCount() + ' tasks · ' + (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown');
+  $('#health-detail').textContent = state.agents.length + ' roles · ' + taskCount() + ' tasks · Worker ' + (state.worker?.online?'online':'offline') + ' · ' + (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown');
   const feeds = [
     ['#agent-feed', records('agents').map(r => row(title(r.name), r.status))],
     ['#task-feed', records('tasks').slice(0, 4)],
