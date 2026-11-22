@@ -122,6 +122,16 @@ Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signe
 3. Test the connection: `opencode run --model experientiallabs/deepseek-v4.1-flash:free "Say only ok."` — a one-line answer proves the provider, the key, and the model ID all work.
 4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. That is the whole setup; there is no account and no signup.
 
+## Portable harness runtime packages (experimental)
+
+[Portable packages CI](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) creates downloadable artifacts for **Linux x64**, **macOS Apple Silicon**, **Windows x64**, and **Termux aarch64 scripts**. These packages contain the OMH Node.js runtime modules, local dashboard assets, configuration, and platform-specific command launchers. They **are not self-contained native executables**: install Node.js **22+** separately. They do not bundle OpenCode, provider credentials, or any paid API access.
+
+On Linux, macOS or Termux, unpack an artifact and run `sh bin/omh status` or `sh bin/omh-dashboard` from its extracted package folder. On Windows, run `bin\\omh.cmd status` or `bin\\omh-dashboard.cmd` from Command Prompt. The runtime stores state in the current workspace unless `OMH_WORKSPACE` or `OMH_STATE_DIR` is set. Run only within a trusted workspace. The dashboard binds loopback.
+
+CI runs a **clean temporary-workspace smoke test** and checks runtime status/diagnostics and host-compatible launchers before artifacts upload. The Termux archive is assembled on Linux and is **not a verified Android device binary**. End-to-end OpenCode model calls, provider logins, physical devices, and kernel isolation require separate tests. See [the workflow](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for current success/failure and download links; only use an artifact after its relevant job passes.
+
+For a full OpenCode installation, use the Linux or Termux setup scripts below, which handle the platform-specific engine installation. Portable OMH runtime packages supplement these rather than replace them.
+
 ## Platforms — the same harness, three shells
 
 | Platform | Shell | Setup |
