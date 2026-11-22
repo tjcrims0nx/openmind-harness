@@ -21,3 +21,15 @@ test('workspace aliases cannot expose or write into sensitive paths', async t =>
  );
  assert.equal(await handlers['workspace.read']({ path: 'readme' }), 'public');
 });
+
+test('sandbox workspace aliases are refused before mounting the guest directory', async t => {
+ const workspace = await mkdtemp(join(tmpdir(), 'omh-'));
+ t.after(() => rm(workspace, {recursive: true, force: true}));
+ await mkdir(join(workspace, '.omh', 'sandboxes'), {recursive: true});
+ await symlink(workspace, join(workspace, '.omh', 'sandboxes', 'alias'));
+ const run = makeHandlers(workspace)['sandbox.exec'];
+ await assert.rejects(
+  run({command: 'sh', workspaceId: 'alias', approved: true}),
+  /Sandbox workspace symlink denied/,
+ );
+});

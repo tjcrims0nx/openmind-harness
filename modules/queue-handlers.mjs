@@ -18,6 +18,17 @@ const rootPath = (root,relative='') => {
  denySensitivePath(root, path);
  return path;
 };
+async function prepareSandboxWorkspace(root, workspaceId) {
+ await mkdir(root, {recursive:true});
+ let directory=await realpath(root);
+ for(const part of ['.omh','sandboxes',workspaceId]){
+  directory=join(directory,part);
+  try{await mkdir(directory,{mode:0o700});}
+  catch(error){if(error.code!=='EEXIST')throw error;}
+  if(await realpath(directory)!==directory)throw new Error('Sandbox workspace symlink denied');
+ }
+ return directory;
+}
 export function makeHandlers(workspace){
  if(typeof workspace!=='string')throw new TypeError('Workspace required');
  const root=resolve(workspace);
@@ -32,7 +43,12 @@ export function makeHandlers(workspace){
  return {
   'workspace.read':async ({path})=>{policy.require('workspace.read');const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
   'workspace.write':async ({path,content,approved})=>{policy.require('workspace.write',{approved});if(approved!==true)throw Error('Write approval required');if(typeof content!=='string'||content.length>100000)throw TypeError('Invalid content');await mkdir(root,{recursive:true});const p=await verified(rootPath(root,path));await writeFile(p,content,{flag:'wx',mode:0o600});return {path};},
-  'sandbox.exec':async ({command,args=[],timeoutMs=30000,workspaceId='default',approved})=>{policy.require('sandbox.exec',{approved});if(!/^[a-zA-Z0-9_-]{1,64}$/.test(workspaceId))throw TypeError('Invalid sandbox workspace id');return runSandbox({workspace:join(root,'.omh','sandboxes',workspaceId),command,args,timeoutMs});},
+  'sandbox.exec':async ({command,args=[],timeoutMs=30000,workspaceId='default',approved})=>{
+   policy.require('sandbox.exec',{approved});
+   if(typeof workspaceId!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(workspaceId))throw TypeError('Invalid sandbox workspace id');
+   const workspace=await prepareSandboxWorkspace(root,workspaceId);
+   return runSandbox({workspace,command,args,timeoutMs});
+  },
   'agent.run':async (input)=>{policy.require('agent.run',{approved:input.approved});const args=await prepareAgentTask(input,{workspace:root});const result=await runAgent(args);return {...result,events:summarizeAgentEvents(result.stdout)};}
  };
 }

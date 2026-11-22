@@ -31,7 +31,7 @@ writeFileSync(destination, JSON.stringify({
   model,
   provider: {google},
   enabled_providers: ['google'],
-  permission: {'*': 'deny', '*omh_queue_read': 'allow'},
+  permission: {'*': 'deny', 'omh-runtime_omh_queue_read': 'allow'},
 }));
 NODE
 
@@ -43,25 +43,37 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-with open(sys.argv[1]) as config:
-    model = json.load(config)["model"].split("/", 1)[1]
-url = "https://generativelanguage.googleapis.com/v1beta/models/"
-url += urllib.parse.quote(model, safe="") + ":generateContent"
-request = urllib.request.Request(
-    url,
-    data=json.dumps({"contents": [{"parts": [{"text": "Reply with OK."}]}],
-                     "generationConfig": {"maxOutputTokens": 256}}).encode(),
-    headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"},
-)
-try:
-    with urllib.request.urlopen(request, timeout=35) as response:
-        if not json.load(response).get("candidates"):
-            sys.exit("Gemini returned no generation candidates")
-except urllib.error.HTTPError as error:
-    sys.exit(f"Gemini generation preflight failed (HTTP {error.code})")
-except (OSError, ValueError) as error:
-    sys.exit(f"Gemini generation preflight failed ({type(error).__name__})")
-print("Gemini generated a response with the configured model.")
+with open(sys.argv[1]) as file:
+    config = json.load(file)
+primary = config["model"].split("/", 1)[1]
+models = dict.fromkeys([primary, *config["provider"]["google"].get("models", {})])
+for model in models:
+    url = "https://generativelanguage.googleapis.com/v1beta/models/"
+    url += urllib.parse.quote(model, safe="") + ":generateContent"
+    request = urllib.request.Request(
+        url,
+        data=json.dumps({"contents": [{"parts": [{"text": "Reply with OK."}]}],
+                         "generationConfig": {"maxOutputTokens": 256}}).encode(),
+        headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=25) as response:
+            if not json.load(response).get("candidates"):
+                sys.exit(f"Gemini returned no generation candidates for {model}")
+    except urllib.error.HTTPError as error:
+        print(f"Gemini generation preflight for {model} failed (HTTP {error.code}).", flush=True)
+        if error.code in (429, 503):
+            continue
+        raise SystemExit(1)
+    except (OSError, ValueError) as error:
+        sys.exit(f"Gemini generation preflight failed ({type(error).__name__})")
+    config["model"] = config["small_model"] = f"google/{model}"
+    with open(sys.argv[1], "w") as file:
+        json.dump(config, file)
+    print(f"Gemini generated a response with {model}.", flush=True)
+    break
+else:
+    sys.exit("Configured Gemini models are temporarily unavailable for generation.")
 PY
 
 node "$repo/scripts/install-omh-runtime.mjs" > /dev/null
