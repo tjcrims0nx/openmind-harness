@@ -64,6 +64,10 @@ jobs:
         run: |
           node scripts/omh-runtime.mjs status
           node scripts/omh-runtime.mjs doctor
+      - name: Ensure unsupported platforms fail closed for sandbox execution
+        shell: bash
+        run: |
+          node --input-type=module -e "import assert from 'node:assert/strict'; import {runSandbox} from './modules/sandbox.mjs'; await assert.rejects(runSandbox({workspace:process.cwd(),command:'node',args:['-v']}), /Sandbox unavailable/);"
 
   dashboard:
     strategy:
