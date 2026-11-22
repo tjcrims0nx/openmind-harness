@@ -5,6 +5,14 @@ shipped config, the guard plugin, the setup scripts, or the stock OpenCode
 behavior the harness is built on. No feature here depends on any other
 project.
 
+## iOS/iPadOS native client status (November 22, 2026)
+
+The harness and the Apple app are separate repositories. In [omh-iOS](https://github.com/tjcrims0nx/omh-iOS), the in-progress [native iPad workspace PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4) replaces the iPad **home screen** with a native UIKit sidebar and detail pane showing local OMH runtime state from `/api/state`. The iPhone remains a native navigation shell around a WebKit dashboard. The OpenCode editor and optional web dashboard still use embedded web views; the runtime itself remains in the on-device Linux guest.
+
+The iPad home exposes Overview, Agent teams, Tasks, Workflows, Skills, Plugins, Trace, Sandbox, Schedules, Workspaces and Memory sections. **Visibility of a section does not mean its backend has implemented execution or full UI controls.** Native list/detail views currently read runtime records; capability and write operations remain subject to their existing CLI, bridge, approval and sandbox limits.
+
+See the [iPad UI guide](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/IPAD_WORKSPACE.md) and [verification guide](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/BUILD_AND_VERIFY.md). Confirm green iPad/iPhone simulator jobs **on the intended commit** and a signed physical iPad launch before declaring the client release-ready. This document describes harness features, not proof of app compatibility.
+
 ## Providers — one config, eighteen providers
 
 `opencode.json` declares eighteen providers. The default model is
