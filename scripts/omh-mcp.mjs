@@ -8,12 +8,14 @@ import {MemoryStore} from '../modules/memory.mjs';
 import {TraceJournal} from '../modules/trace-journal.mjs';
 import {SkillProposalStore} from '../modules/skill-proposals.mjs';
 import {AgentBus} from '../modules/agent-bus.mjs';
+import {diagnose} from '../modules/doctor.mjs';
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
 const spec=(name,description,properties,required=[])=>({name,description,inputSchema:{type:'object',properties,required,additionalProperties:false}});
 const str={type:'string'};
 const TOOLS=[
  spec('omh_status','Read OMH task status.',{}),
+ spec('omh_doctor','Check runtime prerequisites and whether Linux sandbox isolation works; does not execute user-provided commands.',{}),
  spec('omh_memory_search','Search approved, scoped OMH memory.',{query:str,scope:str},['query']),
  spec('omh_task_list','List queued OMH tasks and their statuses.',{}),
  spec('omh_queue_read','Queue a read-only workspace inspection task. A trusted worker processes it.',{path:str},['path']),
@@ -28,6 +30,7 @@ export async function callTool(name,args={}){
  const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace)).load();
  switch(name){
   case 'omh_status':return {queued:queue.list().filter(x=>x.status==='queued').length,taskCount:queue.list().length};
+  case 'omh_doctor':return diagnose();
   case 'omh_memory_search':return (await new MemoryStore(join(state,'memory.json')).load()).search(args.query,{scope:args.scope||'project'});
   case 'omh_task_list':return queue.list().map(({id,kind,status,createdAt,finishedAt})=>({id,kind,status,createdAt,finishedAt}));
   case 'omh_queue_read':return queue.enqueue('workspace.read',{path:args.path});
