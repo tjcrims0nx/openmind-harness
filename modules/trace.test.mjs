@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {redact, TraceBuffer} from './trace.mjs';
+test('disabled by default',()=>assert.equal(new TraceBuffer().record('turn.started',{}),null));
+test('secret key and nested data redaction',()=>assert.deepEqual(redact({apiKey:'xyz',nested:{authorization:'Bearer xyz',note:'ok'}}),{apiKey:'[REDACTED]',nested:{authorization:'[REDACTED]',note:'ok'}}));
+test('inline bearer and token redaction',()=>assert.equal(redact('Bearer abcdef123 sk-123456789'), '[REDACTED] [REDACTED]'));
+test('bounded retention',()=>{const t=new TraceBuffer({enabled:true,capacity:2});t.record('turn.started',{n:1});t.record('turn.started',{n:2});t.record('turn.started',{n:3});assert.deepEqual(t.list().map(e=>e.data.n),[2,3]);});
+test('invalid events rejected',()=>assert.throws(()=>new TraceBuffer({enabled:true}).record('secret.leak')));
+test('export and clear',()=>{const t=new TraceBuffer({enabled:true});t.record('tool.denied',{reason:'permission'});assert.equal(JSON.parse(t.exportJSON()).events.length,1);t.clear();assert.equal(t.list().length,0)});
+test('export is detached from callers',()=>{const t=new TraceBuffer({enabled:true});t.record('turn.started',{a:{b:1}});const x=t.list();x[0].data.a.b=99;assert.equal(t.list()[0].data.a.b,1)});
