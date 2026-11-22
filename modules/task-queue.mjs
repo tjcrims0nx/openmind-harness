@@ -3,7 +3,7 @@ import {readFile,writeFile,rename,mkdir,open,rm,stat} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
-const STATES=new Set(['queued','running','completed','failed']);
+const STATES=new Set(['queued','running','completed','failed','cancelled']);
 const STALE_MS=15*60*1000;
 export class TaskQueue {
  constructor(file,handlers={}){if(typeof file!=='string'||!file)throw TypeError('File required');this.file=file;this.handlers=handlers;this.tasks=[];}
@@ -46,6 +46,36 @@ export class TaskQueue {
   });
  }
  list(){return structuredClone(this.tasks);}
+ /**
+  * Cancel a queued task. Running tasks cannot be cancelled safely by changing
+  * queue metadata because the handler may still be mutating the workspace.
+  */
+ async cancel(id){
+  if(typeof id!=='string'||!id)throw new TypeError('Task id required');
+  return this.#locked(async()=>{
+   const t=this.tasks.find(x=>x.id===id);
+   if(!t)return null;
+   if(t.status==='running')throw new Error('Cannot cancel a running task; stop its worker first');
+   if(t.status!=='queued')return structuredClone(t);
+   t.status='cancelled';
+   t.finishedAt=new Date().toISOString();
+   await this.#persist();return structuredClone(t);
+  });
+ }
+ /** Explicit retry of a failed task; no unbounded automatic retries. */
+ async retry(id,{maxAttempts=3}={}){
+  if(typeof id!=='string'||!id)throw new TypeError('Task id required');
+  if(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>10)throw new RangeError('Invalid retry limit');
+  return this.#locked(async()=>{
+   const t=this.tasks.find(x=>x.id===id);
+   if(!t)return null;
+   if(t.status!=='failed')throw new Error('Only failed tasks can be retried');
+   if(t.attempts>=maxAttempts)throw new Error('Retry limit reached');
+   t.status='queued';delete t.error;delete t.finishedAt;
+   await this.#persist();return structuredClone(t);
+  });
+ }
+
  async refresh(){return this.load();}
  async runNext(){await this.refresh();const t=this.tasks.find(t=>t.status==='queued');return t?this.runById(t.id):null;}
  async runById(id){
