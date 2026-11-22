@@ -48,7 +48,7 @@ test('live remote state is actual local state and actions cancel queued work',()
  assert.equal((await action.json()).status,'cancelled');
  assert.equal((await new TaskQueue(join(state,'tasks.json')).load()).list()[0].status,'cancelled');
  assert.equal((await fetchApi('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'agent.run',id:task.id})})).status,403);
- assert.equal((await fetchApi('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enable',name:'test'})) .then(r=>r.status)),403);
+ assert.equal((await fetchApi('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enable',name:'test'})})).status,403);
 }));
 
 test('remote gateway exposes MCP initialization and safe tool list without execution',()=>fixture(async({fetchApi})=>{
