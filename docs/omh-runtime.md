@@ -20,7 +20,7 @@ Set `OMH_WORKSPACE` to a dedicated absolute workspace if you don't want to use y
 node scripts/omh-runtime.mjs task:add '{"kind":"workspace.read","input":{"path":"README.md"}}'
 node scripts/omh-runtime.mjs task:run
 node scripts/omh-runtime.mjs task:list
-node scripts/omh-runtime.mjs task:cancel '{"id":"<queued-task-id>"}'
+node scripts/omh-runtime.mjs task:cancel '{"id":"<task-id>"}'
 node scripts/omh-runtime.mjs task:retry '{"id":"<failed-task-id>","maxAttempts":3}'
 node scripts/omh-runtime.mjs workflow:run '{"name":"inspect","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
 node scripts/omh-runtime.mjs workflow:submit '{"name":"inspect-later","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
@@ -28,7 +28,9 @@ node scripts/omh-runtime.mjs workflow:submit '{"name":"inspect-later","steps":[{
 
 `workflow:submit` stores all steps together and returns their task IDs. A worker starts each step only after its predecessor completes. A failed predecessor blocks later steps until a retry succeeds. A cancelled predecessor leaves later steps queued and blocked, so cancel those tasks separately when abandoning the workflow. Use `task:list` to inspect each step and its `dependsOn` field.
 
-Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue persists tasks and marks interrupted `running` tasks as `queued` on restart. The queue uses short-lived filesystem locks to prevent simultaneous task claims across local workers. A cancelled **queued** task is never executed; cancellation of an already running handler is refused rather than falsely claiming the process has stopped. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
+Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue uses short-lived filesystem locks to prevent simultaneous claims across local workers. Stale running tasks become eligible for recovery after 15 minutes. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
+
+`task:cancel` cancels queued work immediately. For a running Bubblewrap task, it records `cancelRequestedAt` and the worker confirms `cancelled` once the sandbox process closes. A task that finishes before the request takes effect keeps its result. If the worker disappears before confirming, recovery reports the request as failed. Running native OpenCode and filesystem tasks currently reject cancellation.
 
 ### Native agent teams
 

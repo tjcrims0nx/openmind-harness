@@ -43,12 +43,17 @@ export function makeHandlers(workspace){
  return {
   'workspace.read':async ({path})=>{policy.require('workspace.read');const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
   'workspace.write':async ({path,content,approved})=>{policy.require('workspace.write',{approved});if(approved!==true)throw Error('Write approval required');if(typeof content!=='string'||content.length>100000)throw TypeError('Invalid content');await mkdir(root,{recursive:true});const p=await verified(rootPath(root,path));await writeFile(p,content,{flag:'wx',mode:0o600});return {path};},
-  'sandbox.exec':async ({command,args=[],timeoutMs=30000,workspaceId='default',approved})=>{
+  'sandbox.exec':Object.assign(async ({command,args=[],timeoutMs=30000,workspaceId='default',approved},{signal}={})=>{
    policy.require('sandbox.exec',{approved});
    if(typeof workspaceId!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(workspaceId))throw TypeError('Invalid sandbox workspace id');
    const workspace=await prepareSandboxWorkspace(root,workspaceId);
-   return runSandbox({workspace,command,args,timeoutMs});
-  },
+   const result=await runSandbox({workspace,command,args,timeoutMs,signal});
+   if(result.timedOut)throw new Error('Sandbox command timed out');
+   if(result.outputTruncated)throw new Error('Sandbox command exceeded its output limit');
+   if(result.signal)throw new Error(`Sandbox command was terminated by ${result.signal}`);
+   if(result.exitCode!==0)throw new Error(`Sandbox exited with code ${result.exitCode}`);
+   return result;
+  },{cancellable:true}),
   'agent.run':async (input)=>{
    policy.require('agent.run',{approved:input.approved});
    const args=await prepareAgentTask(input,{workspace:root});

@@ -32,6 +32,47 @@ test('running tasks reject metadata-only cancellation',()=>fixture(async file=>{
  resume();
  assert.equal((await running).status,'completed');
 }));
+test('a second queue can request cancellation and the worker confirms it',()=>fixture(async file=>{
+ let entered;
+ const started=new Promise(resolve=>{entered=resolve;});
+ const handler=Object.assign(async (_input,{signal})=>{
+  entered();
+  await new Promise((_,reject)=>{
+   signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+  });
+ },{cancellable:true});
+ const worker=new TaskQueue(file,{work:handler});
+ const client=new TaskQueue(file);
+ const task=await worker.enqueue('work');
+ const running=worker.runNext();
+ await started;
+ const requested=await client.cancel(task.id);
+ assert.equal(requested.status,'running');
+ assert.ok(requested.cancelRequestedAt);
+ const finished=await running;
+ assert.equal(finished.status,'cancelled');
+ assert.ok(finished.finishedAt);
+ assert.equal((await client.load()).list()[0].status,'cancelled');
+}));
+test('a handler that completed during a cancellation request keeps its result',()=>fixture(async file=>{
+ let entered,resume;
+ const started=new Promise(resolve=>{entered=resolve;});
+ const waiting=new Promise(resolve=>{resume=resolve;});
+ const handler=Object.assign(async ()=>{
+  entered();
+  await waiting;
+  return 'written';
+ },{cancellable:true});
+ const worker=new TaskQueue(file,{work:handler});
+ const task=await worker.enqueue('work');
+ const running=worker.runNext();
+ await started;
+ await new TaskQueue(file).cancel(task.id);
+ resume();
+ const finished=await running;
+ assert.equal(finished.status,'completed');
+ assert.equal(finished.result,'written');
+}));
 test('failed task can retry at most requested count',()=>fixture(async file=>{
  let attempts=0;
  const q=await new TaskQueue(file,{work:async()=>{attempts++;throw Error('fail');}}).load();

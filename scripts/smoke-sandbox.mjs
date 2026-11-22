@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {access, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
+import {makeHandlers} from '../modules/queue-handlers.mjs';
 import {runSandbox} from '../modules/sandbox.mjs';
+import {TaskQueue} from '../modules/task-queue.mjs';
 
 const workspace = await mkdtemp(join(tmpdir(), 'omh-sandbox-'));
 const privateRoot = await mkdtemp(join(tmpdir(), 'omh-host-'));
@@ -42,6 +45,38 @@ Path('/workspace/result.txt').write_text('isolated')
   assert.ok(Buffer.byteLength(overflow.stdout) + Buffer.byteLength(overflow.stderr) <= 1024);
   await assert.rejects(runSandbox({workspace, command: 'bash'}), /not allowed/);
   console.log('Bubblewrap verified workspace writes, private host paths, process/network namespaces, exit status, timeout, and output limits.');
+
+  const file = join(workspace, '.omh', 'tasks.json');
+  const worker = new TaskQueue(file, makeHandlers(workspace));
+  const client = new TaskQueue(file);
+  const failed = await worker.enqueue('sandbox.exec', {
+    command: 'sh', args: ['-c', 'exit 7'], approved: true,
+  });
+  assert.match((await worker.runById(failed.id)).error, /exited with code 7/);
+  const task = await worker.enqueue('sandbox.exec', {
+    command: 'sh', args: ['-c', 'while true; do echo running >> heartbeat; sleep 0.05; done'],
+    approved: true, timeoutMs: 8000, workspaceId: 'cancel',
+  });
+  const running = worker.runById(task.id);
+  const sandbox = join(workspace, '.omh', 'sandboxes', 'cancel');
+  try {
+    let started = false;
+    for (let attempt = 0; attempt < 40 && !started; attempt++) {
+      started = await access(join(sandbox, 'heartbeat')).then(() => true, () => false);
+      if (!started) await delay(50);
+    }
+    assert.equal(started, true);
+    const requested = await client.cancel(task.id);
+    assert.equal(requested.status, 'running');
+    assert.ok(requested.cancelRequestedAt);
+    assert.equal((await running).status, 'cancelled');
+    const heartbeat = await readFile(join(sandbox, 'heartbeat'), 'utf8');
+    await delay(300);
+    assert.equal(await readFile(join(sandbox, 'heartbeat'), 'utf8'), heartbeat);
+    console.log('The queue cancelled a running Bubblewrap task after the sandbox process closed.');
+  } finally {
+    await running;
+  }
 } finally {
   await rm(workspace, {recursive: true, force: true});
   await rm(privateRoot, {recursive: true, force: true});

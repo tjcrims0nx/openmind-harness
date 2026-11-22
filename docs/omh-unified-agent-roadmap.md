@@ -8,7 +8,21 @@ Research references (feature inspiration only):
 
 No proprietary code, UI assets, trademarks, or undocumented APIs should be copied. Review licenses and retain required notices for any open-source code actually reused. Build original OMH modules around the existing OpenCode runtime. Existing iOS GPL-3.0 obligations remain.
 
-## Priority 0 — reliable full harness on iOS
+## Completion checklist
+
+Work through the harness on Linux and verify it through the installed runtime. Continue the separate iOS project after the harness release checks pass.
+
+- [x] Verify OpenCode installer, MCP registration, reviewer selection and a live provider-backed tool call.
+- [x] Exercise queue persistence, dependency order, scheduler restart recovery and Linux sandbox isolation in CI.
+- [ ] Verify cancellation of running sandbox work and define the contract for native OpenCode session interruption.
+- [ ] Ship a local runtime dashboard with task, schedule, memory, trace, workspace and sandbox views.
+- [ ] Verify stock OpenCode subagent delegation and scoped, durable memory across real sessions.
+- [ ] Verify concurrent writes and recovery for runtime state stores. Exercise reviewed skill publication and plugin permissions.
+- [ ] Verify authenticated approvals and session permissions for privileged actions and document the supported sandbox limits.
+- [ ] Run the release smoke suite against the packaged Linux and Termux entry points.
+- [ ] Verify iOS guest boot and the OpenCode interface on the simulator and device after harness stabilization.
+
+## Follow-on — reliable full harness on iOS
 
 - Boot the real OpenCode workspace; verify workspace selection, file tools, terminal, sessions, model picker, and settings on simulator/device.
 - Fix app launch crashes and reconnect logic before adding complex services.

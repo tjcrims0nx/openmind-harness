@@ -1,7 +1,7 @@
 /** Linux Bubblewrap sandbox. Fail closed when isolation cannot be enforced. */
 import {spawn,spawnSync} from 'node:child_process';
 import {realpath,mkdir} from 'node:fs/promises';
-import {resolve,isAbsolute} from 'node:path';
+import {isAbsolute} from 'node:path';
 const COMMANDS=new Set(['node','python3','git','sh']);
 export function sandboxArgs({workspace,command,args=[],network=false}={}) {
   if(!isAbsolute(workspace||''))throw new TypeError('Workspace must be absolute');
@@ -11,17 +11,31 @@ export function sandboxArgs({workspace,command,args=[],network=false}={}) {
 }
 export function isolatedArgs(opts){return sandboxArgs(opts);}
 export function sandboxAvailable(){return process.platform==='linux'&&spawnSync('bwrap',['--version'],{stdio:'ignore'}).status===0;}
-export async function runSandbox({workspace,command,args=[],timeoutMs=30000,maxOutputBytes=65536}={}) {
+export async function runSandbox({workspace,command,args=[],timeoutMs=30000,maxOutputBytes=65536,signal}={}) {
+  signal?.throwIfAborted();
   if(!sandboxAvailable())throw new Error('Sandbox unavailable: Linux and bubblewrap required; refusing unsandboxed execution');
   if(!Number.isInteger(timeoutMs)||timeoutMs<100||timeoutMs>300000||!Number.isInteger(maxOutputBytes)||maxOutputBytes<1||maxOutputBytes>1048576)throw new RangeError('Invalid sandbox limits');
   await mkdir(workspace,{recursive:true});const path=await realpath(workspace);const argv=isolatedArgs({workspace:path,command,args});
+  signal?.throwIfAborted();
   return new Promise((ok,fail)=>{
     const child=spawn('bwrap',argv,{stdio:['ignore','pipe','pipe'],env:{PATH:'/usr/bin:/bin'},detached:false});
-    let stdout='',stderr='',bytes=0,settled=false,timedOut=false,overflow=false;
+    let stdout='',stderr='',bytes=0,timedOut=false,overflow=false,cancelling=false;
     const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL')},timeoutMs);
+    const abort=()=>{
+      if(child.exitCode===null&&child.signalCode===null)cancelling=child.kill('SIGKILL');
+    };
+    signal?.addEventListener('abort',abort,{once:true});
+    const cleanup=()=>{
+      clearTimeout(timer);
+      signal?.removeEventListener('abort',abort);
+    };
     const onData=(type)=>buf=>{bytes+=buf.length;if(bytes>maxOutputBytes){overflow=true;child.kill('SIGKILL');return;}if(type==='out')stdout+=buf.toString();else stderr+=buf.toString();};
     child.stdout.on('data',onData('out'));child.stderr.on('data',onData('err'));
-    child.on('error',e=>{clearTimeout(timer);if(!settled){settled=true;fail(e)}});
-    child.on('close',(code,signal)=>{clearTimeout(timer);if(!settled){settled=true;ok({exitCode:code,signal,stdout,stderr,timedOut,outputTruncated:overflow});}});
+    child.once('error',e=>{cleanup();fail(e);});
+    child.once('close',(code,processSignal)=>{
+      cleanup();
+      if(cancelling&&processSignal==='SIGKILL')fail(signal.reason);
+      else ok({exitCode:code,signal:processSignal,stdout,stderr,timedOut,outputTruncated:overflow});
+    });
   });
 }

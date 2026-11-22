@@ -5,16 +5,21 @@ import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 const STATES=new Set(['queued','running','completed','failed','cancelled']);
 const STALE_MS=15*60*1000;
+const CANCELLATION_POLL_MS=250;
 export class TaskQueue {
  constructor(file,handlers={}){if(typeof file!=='string'||!file)throw TypeError('File required');this.file=file;this.handlers=handlers;this.tasks=[];}
- async #read(){
+ async #read({recover=true}={}){
   try{
    const data=JSON.parse(await readFile(this.file,'utf8'));
    if(!Array.isArray(data.tasks))throw Error('Invalid queue');
    return data.tasks.map(t=>{
     if(!t||!STATES.has(t.status)||typeof t.id!=='string'||typeof t.kind!=='string')throw Error('Invalid task');
-    if(t.status==='running'&&(!t.startedAt||Date.now()-Date.parse(t.startedAt)>STALE_MS))
-      return {...t,status:'queued',recovered:true};
+    if(recover&&t.status==='running'&&(!Number.isFinite(Date.parse(t.startedAt))||
+       Date.now()-Date.parse(t.startedAt)>STALE_MS)){
+     if(t.cancelRequestedAt)return {...t,status:'failed',recovered:true,
+      error:'Worker stopped before confirming cancellation'};
+     return {...t,status:'queued',recovered:true};
+    }
     return t;
    });
   }catch(e){if(e.code==='ENOENT')return [];throw e;}
@@ -68,19 +73,20 @@ export class TaskQueue {
   });
  }
  list(){return structuredClone(this.tasks);}
- /**
-  * Cancel a queued task. Running tasks cannot be cancelled safely by changing
-  * queue metadata because the handler may still be mutating the workspace.
-  */
+ /** Cancel queued work or record a request for a running, cancellable handler. */
  async cancel(id){
   if(typeof id!=='string'||!id)throw new TypeError('Task id required');
   return this.#locked(async()=>{
    const t=this.tasks.find(x=>x.id===id);
    if(!t)return null;
-   if(t.status==='running')throw new Error('Cannot cancel a running task; stop its worker first');
-   if(t.status!=='queued')return structuredClone(t);
-   t.status='cancelled';
-   t.finishedAt=new Date().toISOString();
+   if(t.status==='running'){
+    if(t.cancellable!==true)throw new Error('Cannot cancel a running task of this kind');
+    if(t.cancelRequestedAt)return structuredClone(t);
+    t.cancelRequestedAt=new Date().toISOString();
+   }else if(t.status==='queued'){
+    t.status='cancelled';
+    t.finishedAt=new Date().toISOString();
+   }else return structuredClone(t);
    await this.#persist();return structuredClone(t);
   });
  }
@@ -93,7 +99,7 @@ export class TaskQueue {
    if(!t)return null;
    if(t.status!=='failed')throw new Error('Only failed tasks can be retried');
    if(t.attempts>=maxAttempts)throw new Error('Retry limit reached');
-   t.status='queued';delete t.error;delete t.finishedAt;
+   t.status='queued';delete t.error;delete t.finishedAt;delete t.cancelRequestedAt;
    await this.#persist();return structuredClone(t);
   });
  }
@@ -111,24 +117,50 @@ export class TaskQueue {
     (x.dependsOn===undefined||completed.has(x.dependsOn)));
    if(!t)return null;
    t.status='running';t.startedAt=new Date().toISOString();t.attempts=(t.attempts||0)+1;
+   t.cancellable=this.handlers[t.kind]?.cancellable===true;
    await this.#persist();return structuredClone(t);
   });
   if(!task)return null;
-  let result,error;
+  const cancellation=new AbortController();
+  const stopPolling=new AbortController();
+  const monitor=task.cancellable?this.#watchCancellation(task,cancellation,stopPolling.signal):null;
+  let result,error,cancelled=false;
   try{
    const fn=this.handlers[task.kind];
    if(typeof fn!=='function')throw Error('Handler unavailable');
-   result=await fn(structuredClone(task.input));
-  }catch(e){error=String(e?.message||e);}
+   result=await fn(structuredClone(task.input),{signal:cancellation.signal});
+  }catch(e){
+   cancelled=cancellation.signal.aborted&&e===cancellation.signal.reason;
+   if(!cancelled)error=String(e?.message||e);
+  }finally{
+   stopPolling.abort();
+   await monitor;
+  }
   return this.#locked(async()=>{
    const t=this.tasks.find(x=>x.id===task.id);
    if(!t)throw Error('Task disappeared');
    // A stale lease may have been recovered/reclaimed by another worker.
-   if(t.status!=='running'||t.startedAt!==task.startedAt)return structuredClone(t);
-   if(error){t.error=error;t.status='failed';}
+   if(t.status!=='running'||t.attempts!==task.attempts)return structuredClone(t);
+   if(cancelled){t.status='cancelled';}
+   else if(error!==undefined){t.error=error;t.status='failed';}
    else{t.result=result;t.status='completed';delete t.error;}
    t.finishedAt=new Date().toISOString();
    await this.#persist();return structuredClone(t);
   });
+ }
+ async #watchCancellation(task,controller,stop){
+  while(!stop.aborted){
+   try{
+    await delay(CANCELLATION_POLL_MS,undefined,{signal:stop});
+    const tasks=await this.#read({recover:false});
+    const current=tasks.find(item=>item.id===task.id);
+    if(!stop.aborted&&current?.status==='running'&&current.attempts===task.attempts&&current.cancelRequestedAt){
+     controller.abort();
+     return;
+    }
+   }catch{
+    // An unavailable snapshot can be retried on the next poll.
+   }
+  }
  }
 }
