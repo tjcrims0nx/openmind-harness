@@ -19,9 +19,9 @@ Both bind `127.0.0.1` by default (this device only) and run with no password (`O
 
 ## OMH local runtime (experimental)
 
-OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. These features are **not automatically active inside the stock OpenCode agent interface**. See [usage, security boundaries and limitations](docs/omh-runtime.md).
+OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. A **read-mostly MCP bridge** now exposes selected status, memory, trace, task-inspection and skill-proposal tools inside OpenCode after running `node scripts/install-omh-runtime.mjs`. Privileged execution remains in the separate CLI/daemon; this is not a full OpenCode UI integration. See [usage, security boundaries and limitations](docs/omh-runtime.md).
 
-Run `node scripts/omh-runtime.mjs status` from the repository root, or `node --test modules/*.test.mjs` for module tests.
+Run `node scripts/omh-runtime.mjs status` from the repository root, `node scripts/install-omh-runtime.mjs` to install the OpenCode MCP bridge, or `node --test modules/*.test.mjs` for module tests.
 
 ## Providers
 
