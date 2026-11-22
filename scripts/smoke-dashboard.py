@@ -160,6 +160,22 @@ def run(root):
                 page.set_viewport_size({"width": width, "height": 800})
                 assert page.evaluate("document.documentElement.scrollWidth === innerWidth"), width
 
+            # Dashboard actions are wired to the real queue and retain confirmation gates.
+            page.set_viewport_size({"width": 1280, "height": 720})
+            page.locator("#navigation [data-view=tasks]").click()
+            page.on("dialog", lambda dialog: dialog.accept())
+            retry = page.locator("#activity button[data-action=retry]").first
+            expect(retry).to_be_visible()
+            retry_id = retry.get_attribute("data-task-id")
+            retry.click()
+            expect(page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")).to_be_visible()
+            cancel = page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")
+            cancel.click()
+            assert cli("task:list") and next(t for t in cli("task:list") if t["id"] == retry_id)["status"] == "cancelled"
+            page.locator("#navigation [data-view=workspace]").click()
+            page.locator("#refresh").click()
+            expect(page.locator("#connection")).to_have_text("Connected")
+
             # A damaged store must produce an offline state, preserve the last snapshot,
             # then recover after the operator repairs the file and refreshes.
             path = root / "state/tasks.json"
