@@ -25,8 +25,21 @@ const TOOLS=[
  spec('omh_agent_send','Send an informational agent mailbox message.',{from:str,to:str,content:str},['from','to','content']),
  spec('omh_agent_inbox','Read mailbox messages addressed to an agent.',{agent:str},['agent']),
 ];
+function validateToolArguments(name,args){
+ const tool=TOOLS.find(item=>item.name===name);
+ if(!tool)throw new Error('Unknown or forbidden MCP tool');
+ if(!args||typeof args!=='object'||Array.isArray(args))throw new TypeError('Arguments must be an object');
+ const schema=tool.inputSchema;
+ for(const key of schema.required)if(!Object.hasOwn(args,key))throw new TypeError('Missing required argument: '+key);
+ for(const [key,value] of Object.entries(args)){
+  const property=schema.properties[key];
+  if(!property)throw new TypeError('Unexpected argument: '+key);
+  if(property.type==='string'&&typeof value!=='string')throw new TypeError('Expected string: '+key);
+  if(property.type==='integer'&&(!Number.isInteger(value)||(property.minimum!==undefined&&value<property.minimum)||(property.maximum!==undefined&&value>property.maximum)))throw new TypeError('Invalid integer: '+key);
+ }
+}
 export async function callTool(name,args={}){
- if(!args||typeof args!=='object'||Array.isArray(args))throw TypeError('Arguments must be an object');
+ validateToolArguments(name,args);
  const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace,{stateDir:state})).load();
  switch(name){
   case 'omh_status':return {queued:queue.list().filter(x=>x.status==='queued').length,taskCount:queue.list().length};
@@ -53,7 +66,6 @@ export async function handleRPC(msg){
   else if(msg.method==='tools/list')result={tools:TOOLS};
   else if(msg.method==='tools/call'){
    const {name,arguments:args={}}=msg.params||{};
-   if(!TOOLS.some(t=>t.name===name))throw Error('Unknown MCP tool');
    try{const output=await callTool(name,args);result={content:[{type:'text',text:JSON.stringify(output)}],isError:false};}
    catch(e){result={content:[{type:'text',text:String(e.message)}],isError:true};}
   }else return {jsonrpc:'2.0',id,error:{code:-32601,message:'Method not found'}};
