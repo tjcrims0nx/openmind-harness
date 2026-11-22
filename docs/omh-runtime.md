@@ -1,6 +1,6 @@
 # OMH runtime modules (experimental)
 
-The independent OMH runtime is a **real local CLI** on top of the existing OpenCode configuration. It does **not** replace OpenCode's native agent loop, and it is **not yet plugged into OpenCode's UI**. It is deliberately a separate entry point while testing native integration.
+The independent OMH runtime is a **real local CLI** on top of the existing OpenCode configuration. It does **not** replace OpenCode's native agent loop or patch the upstream OpenCode frontend. The OMH-specific dashboard is a separate, locally hosted runtime interface that reads the same task, memory, policy and trace stores; a restricted MCP bridge connects selected functions to OpenCode.
 
 ## Start
 
@@ -29,7 +29,7 @@ node scripts/omh-dashboard.mjs
 
 The optional administrator channel must only be used from the trusted local browser. **Do not publish the dashboard on a public interface or through an unauthenticated tunnel.** Browser-origin checks, CSRF protection, and tokens are not replacements for OS user isolation or a hardened remotely hosted authentication service. Each action requires a confirmation and calls a local same-origin JSON API guarded by a per-process anti-CSRF token, strict Origin and Host checks, and bounded request bodies. Without the administrator token it cannot enable plugins, publish skills, or resume schedules. Even with the token it cannot execute shell commands, restart native agents, or grant arbitrary filesystem permissions. Pausing a schedule does not cancel tasks already queued. Running tasks must still be managed through a trusted CLI and their existing cancellation policy. This browser-local token is not a defense against malware or other processes running as the same OS user.
 
-The dashboard's health panel now displays the actual server OS and CPU architecture. `/api/state` also reports the Node.js version and whether the Linux Bubblewrap binary is installed; installation alone **does not** prove the sandbox can enforce isolation. Run `omh-runtime.mjs doctor` and inspect the Linux sandbox CI job for real enforcement tests.
+The dashboard's health panel now displays the actual server OS, CPU architecture and observed worker heartbeat status. The daemon writes a 2-second heartbeat during long-running jobs; it is considered stale after 15 seconds and removed on clean shutdown. A heartbeat establishes recent liveness, **not** that every provider or agent task is healthy. CLI `status` reports the same worker observation. `/api/state` also reports the Node.js version and whether the Linux Bubblewrap binary is installed; installation alone **does not** prove the sandbox can enforce isolation. Run `omh-runtime.mjs doctor` and inspect the Linux sandbox CI job for real enforcement tests.
 
 The dashboard reads the same state as the CLI and daemon. Workspace search covers the displayed records for agent roles, dependent workflow steps, tasks, memory titles, skill proposals, plugin manifests, traces, sandbox jobs, schedules and workspaces. Task, workflow and sandbox views support status filtering. The console reports queue totals, and the other inspector tabs show workspaces, schedules and logs. Refresh reads a new snapshot. After a failed refresh the dashboard labels the previous snapshot as stale. Use the CLI to submit work, grant approvals or inspect private record contents.
 
@@ -158,10 +158,21 @@ The Gemini connectivity workflow runs two smoke tests. The fixture streams a det
 
 GitHub Actions exercises Linux module tests, the real Linux Bubblewrap sandbox, and Chromium/WebKit dashboard smoke tests. Separate macOS and Windows CI smoke jobs check portable runtime status, provider routing, MCP interfaces and diagnostic output; **neither platform has an OS-level execution sandbox backend** in OMH. Any request for `sandbox.exec` on an unsupported host must fail closed rather than execute without isolation. iOS has not been changed, and iOS launch or sandbox behavior must not be inferred from desktop results.
 
+## Local production deployment checklist
+
+1. Install Node.js 22+, the pinned OpenCode binary, and the runtime. Validate with `node scripts/omh-runtime.mjs doctor` and confirm OpenCode MCP discovery. Configure provider API keys outside of source control and never put credentials in task inputs.
+2. Run the dashboard on **127.0.0.1 only**. Keep `.omh` owner-restricted, use a private state directory and do not mount it into sandboxes. For high-risk governance changes, set a separate random `OMH_DASHBOARD_ADMIN_TOKEN` of at least 32 bytes. Browser controls never grant arbitrary shell/agent execution.
+3. On Linux, install Bubblewrap and run `node scripts/smoke-sandbox.mjs`. A successful `bwrap --version` check is insufficient. Unsupported systems fail closed; macOS/Windows currently support only the portable runtime.
+4. Supervise `node scripts/omh-daemon.mjs` with a local process manager. Check `worker.online` in dashboard state; if a lock remains after a crash, verify the process has exited before removing it. Never run multiple daemons against the same writable workspace.
+5. Use a dedicated backup procedure for `.omh` during downtime. Restore a consistent copy of the state files rather than copying while the daemon performs writes. The current JSON stores use local file locks, not a distributed database or multi-store atomic transaction.
+6. Monitor GitHub Actions jobs for module tests, Linux sandbox, Chromium, WebKit, macOS and Windows. Test actual provider credentials independently through the guarded Gemini workflow. Do not equate a fixture run with every remote provider being reachable.
+7. Keep access to the model-facing MCP bridge separate from the trusted CLI, and require operator review before any privileged automation. Retain state backups and redact logs before sharing.
+
 ## Remaining hardening
 
-- Verify provider-driven MCP tool invocation and wire live tool events and UI panels to the runtime.
-- Add tamper-resistant approval and credential isolation, and enforce policy at the actual OpenCode/MCP tool call boundary. The task queue and schedule store now use short-lived filesystem locks; the mailbox, memory, skill proposal and plugin stores do not yet support concurrent writers.
-- Implement macOS/iOS sandbox backends and OS-level CPU and memory quotas.
-- Add distributed workflow execution, OS service installation and health checks, and worker-crash cleanup for native sessions.
-- Validate installed tool paths and agent configuration on each target platform before claiming full parity.
+- A fully authenticated remote multi-user dashboard and hosted deployment are **not** implemented. Current dashboard authorization is opt-in and appropriate only for a trusted local user.
+- Native agent execution is still governed by OpenCode's permissions and the trusted CLI, rather than by a separately authenticated OS service. MCP continues to expose only restricted tools; it cannot approve execution.
+- The local task/agent stores use bounded exclusive locks for individual changes, but **cross-store atomic transactions, distributed workers, and distributed locks** are not supported.
+- Linux Bubblewrap isolation is tested in CI. **CPU/memory cgroup quotas and macOS/Windows/iOS OS-level sandbox backends remain unavailable**; no unisolated fallback is permitted.
+- Remote provider endpoints require actual credentials. Gemini's fixture/live checks have been exercised, but not every configured provider or infrastructure environment has been verified end-to-end.
+- A managed OS service installer, authenticated deployment, disaster recovery drills and completed iOS simulator compatibility are still required before a broad production launch.
