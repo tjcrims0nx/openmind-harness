@@ -32,13 +32,25 @@ async function prepareSandboxWorkspace(root, workspaceId) {
 export function makeHandlers(workspace,{stateDir}={}){
  if(typeof workspace!=='string')throw new TypeError('Workspace required');
  const root=resolve(workspace);
+ const configuredState=stateDir&&resolve(stateDir);
  const policy=new ToolPolicy({allow:['workspace.read'],ask:['workspace.write','sandbox.exec','agent.run']});
  const verified=async (path,existing=false)=>{
   const rootReal=await realpath(root);
   const target=await realpath(existing?path:dirname(path));
   if(target!==rootReal&&!target.startsWith(rootReal+sep))throw new Error('Symlink escapes workspace');
   denySensitivePath(rootReal, target);
-  return existing ? target : join(target, basename(path));
+  const resolved=existing ? target : join(target, basename(path));
+  if(configuredState){
+   const stateReal=await realpath(configuredState).catch(error=>{
+    if(error.code==='ENOENT')return configuredState;
+    throw error;
+   });
+   if((stateReal===rootReal||stateReal.startsWith(rootReal+sep))&&
+      (resolved===stateReal||resolved.startsWith(stateReal+sep))){
+    throw new Error('Runtime state path denied');
+   }
+  }
+  return resolved;
  };
  return {
   'workspace.read':async ({path})=>{policy.require('workspace.read');const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
