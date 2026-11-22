@@ -45,7 +45,7 @@ export async function handleRPC(msg){
  const id=msg.id;
  try{
   let result;
-  if(msg.method==='initialize')result={protocolVersion:'2025-11-25',capabilities:{tools:{listChanged:false}},serverInfo:{name:'omh-runtime',version:'0.1.0'}};
+  if(msg.method==='initialize'){const offered=msg.params?.protocolVersion;const version=['2024-11-05','2025-03-26','2025-06-18','2025-11-25'].includes(offered)?offered:'2025-11-25';result={protocolVersion:version,capabilities:{tools:{listChanged:false}},serverInfo:{name:'omh-runtime',version:'0.1.0'}};}
   else if(msg.method==='ping')result={};
   else if(msg.method==='tools/list')result={tools:TOOLS};
   else if(msg.method==='tools/call'){
