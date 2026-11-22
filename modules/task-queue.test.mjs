@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm,writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {TaskQueue} from './task-queue.mjs';
+test('enqueue, execute, persist and reload',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const file=join(d,'queue.json');const q=await new TaskQueue(file,{echo:async x=>x}).load();await q.enqueue('echo',{a:1});assert.equal((await q.runNext()).status,'completed');const next=await new TaskQueue(file,{echo:async x=>x}).load();assert.deepEqual(next.list()[0].result,{a:1});}finally{await rm(d,{recursive:true,force:true});}});
+test('reject unregistered tasks',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const q=await new TaskQueue(join(d,'q.json')).load();await assert.rejects(q.enqueue('shell',{command:'rm -rf /'}),TypeError);}finally{await rm(d,{recursive:true,force:true});}});
+test('failure captured',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const q=await new TaskQueue(join(d,'q.json'),{fail:async()=>{throw Error('bad')}}).load();await q.enqueue('fail');assert.equal((await q.runNext()).status,'failed');}finally{await rm(d,{recursive:true,force:true});}});
+test('interrupted running task recovered',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const f=join(d,'q.json');await writeFile(f,JSON.stringify({tasks:[{id:'a',kind:'echo',status:'running',input:{a:1}}]}));const q=await new TaskQueue(f,{echo:async x=>x}).load();assert.equal(q.list()[0].status,'queued');}finally{await rm(d,{recursive:true,force:true});}});
