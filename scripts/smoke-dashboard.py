@@ -121,7 +121,7 @@ def run(root):
     config = home / ".config/opencode"
     config.mkdir(parents=True)
     shutil.copy(ROOT / "opencode.json", config)
-    env = {**os.environ, "HOME": str(home), "OMH_STATE_DIR": str(root / "state"),
+    env = {**os.environ, "HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config"), "OMH_STATE_DIR": str(root / "state"),
            "OMH_WORKSPACE": str(root), "OMH_TRACE": "1", "OMH_DASHBOARD_PORT": "0",
            "OMH_DASHBOARD_ADMIN_TOKEN": "test-only-admin-token-00000000000000000000"}
     subprocess.run(["node", ROOT / "scripts/install-omh-runtime.mjs"], env=env, check=True, capture_output=True)
