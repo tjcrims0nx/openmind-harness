@@ -17,6 +17,8 @@ let active = 'workspace';
 let tab = 'console';
 let query;
 let refreshed;
+let csrf;
+let actionBusy = false;
 
 function el(tag, text, className) {
   const node = document.createElement(tag);
@@ -61,6 +63,7 @@ function records(view) {
       ...row(t.kind, t.blocked ? 'Blocked' : t.cancelRequestedAt && t.status === 'running' ? 'Cancelling' : title(t.status),
         [t.id, (t.attempts || 0) + ' attempts', t.dependsOn && 'Depends on ' + t.dependsOn, date(t.finishedAt || t.createdAt)].filter(Boolean).join(' · '), t.id),
       queueStatus: t.status,
+      kind: t.kind,
     }));
   }
   switch (view) {
@@ -87,6 +90,17 @@ function showRows(container, rows, empty) {
     item.append(el('b', r.name));
     if (r.status) item.append(el('span', r.status, 'status'));
     if (r.detail) item.append(el('small', r.detail));
+    if (r.id && r.queueStatus === 'queued') {
+      const cancel=el('button','Cancel queued task','task-action');
+      cancel.type='button';cancel.dataset.action='cancel';cancel.dataset.taskId=r.id;
+      cancel.disabled=actionBusy;cancel.setAttribute('aria-label','Cancel task '+r.id);
+      item.append(cancel);
+    } else if (r.id && r.queueStatus === 'failed' && r.kind === 'workspace.read') {
+      const retry=el('button','Retry read','task-action');
+      retry.type='button';retry.dataset.action='retry';retry.dataset.taskId=r.id;
+      retry.disabled=actionBusy;retry.setAttribute('aria-label','Retry task '+r.id);
+      item.append(retry);
+    }
     list.append(item);
   }
   container.append(list);
@@ -167,6 +181,33 @@ document.addEventListener('click', event => {
   toggleMenu(false);
   renderView();
   if (active !== 'workspace') $('#view-heading').focus({preventScroll: true});
+});
+document.addEventListener('click', async event => {
+  const button=event.target.closest('button[data-action][data-task-id]');
+  if(!button || actionBusy)return;
+  const action=button.dataset.action;
+  if(action!=='cancel' && action!=='retry')return;
+  if(!confirm(action==='cancel'?'Cancel this queued task?':'Retry this failed read-only task?'))return;
+  actionBusy=true;
+  button.disabled=true;
+  try {
+    if(!csrf){
+      const session=await fetch('/api/session',{signal:AbortSignal.timeout(10000)});
+      if(!session.ok)throw Error('Dashboard session unavailable');
+      csrf=(await session.json()).csrf;
+    }
+    const response=await fetch('/api/tasks/'+action,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf},
+      body:JSON.stringify({id:button.dataset.taskId}),
+      signal:AbortSignal.timeout(10000),
+    });
+    if(!response.ok)throw Error((await response.text()).slice(0,160));
+    await load();
+  }catch(error){
+    $('#error').textContent='Task action failed: '+error.message;
+    $('#error').hidden=false;
+  }finally{actionBusy=false;button.disabled=false;}
 });
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && document.body.classList.contains('menu-open')) {
