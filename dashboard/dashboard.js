@@ -18,6 +18,7 @@ let tab = 'console';
 let query;
 let refreshed;
 let csrf;
+let adminToken;
 let actionBusy = false;
 
 function el(tag, text, className) {
@@ -69,9 +70,9 @@ function records(view) {
   switch (view) {
     case 'agents': return state.agents.map(a => row(a.name, a.running ? 'Running' : a.queued ? 'Queued' : 'Idle', a.running + ' running · ' + a.queued + ' queued'));
     case 'memory': return state.memory.map(n => row(n.title, n.scope, date(n.createdAt), n.id));
-    case 'skills': return state.skills.map(s => ({...row(s.name, title(s.status), date(s.createdAt), s.id), governanceAction: s.status === 'pending' ? 'reject' : null}));
-    case 'plugins': return state.plugins.map(p => ({...row(p.name, p.enabled ? 'Enabled' : 'Disabled', 'Version ' + p.version, p.name), governanceAction: p.enabled ? 'disable' : null}));
-    case 'schedules': return state.schedules.map(s => ({...row(s.kind, s.enabled ? 'Enabled' : 'Disabled', 'Every ' + s.everyMs / 1000 + ' s · Next ' + date(s.nextAt), s.id), governanceAction: s.enabled ? 'pause' : null}));
+    case 'skills': return state.skills.map(s => ({...row(s.name, title(s.status), date(s.createdAt), s.id), governanceAction: s.status === 'pending' ? 'reject' : null, adminAction: state.adminActionsAvailable && s.status === 'pending' ? 'accept' : null}));
+    case 'plugins': return state.plugins.map(p => ({...row(p.name, p.enabled ? 'Enabled' : 'Disabled', 'Version ' + p.version, p.name), governanceAction: p.enabled ? 'disable' : null, adminAction: state.adminActionsAvailable && !p.enabled ? 'enable' : null}));
+    case 'schedules': return state.schedules.map(s => ({...row(s.kind, s.enabled ? 'Enabled' : 'Disabled', 'Every ' + s.everyMs / 1000 + ' s · Next ' + date(s.nextAt), s.id), governanceAction: s.enabled ? 'pause' : null, adminAction: state.adminActionsAvailable && !s.enabled ? 'resume' : null}));
     case 'traces': return state.traces.map(t => row(t.type, t.status, [date(t.at), t.kind, t.id].filter(Boolean).join(' · '), t.id));
     case 'workspaces': return state.workspaces.map(name => row(name, 'Workspace'));
     default: return [];
@@ -101,12 +102,13 @@ function showRows(container, rows, empty) {
       retry.disabled=actionBusy;retry.setAttribute('aria-label','Retry task '+r.id);
       item.append(retry);
     }
-    if(r.governanceAction) {
-      const labels={pause:'Pause schedule',disable:'Disable plugin',reject:'Reject proposal'};
-      const control=el('button',labels[r.governanceAction],'task-action');
-      control.type='button';control.dataset.action=r.governanceAction;
+    const labels={pause:'Pause schedule',disable:'Disable plugin',reject:'Reject proposal',
+      resume:'Resume schedule (admin)',enable:'Enable plugin (admin)',accept:'Accept proposal (admin)'};
+    for(const action of [r.governanceAction,r.adminAction].filter(Boolean)){
+      const control=el('button',labels[action],'task-action');
+      control.type='button';control.dataset.action=action;
       control.dataset.taskId=r.id;control.disabled=actionBusy;
-      control.setAttribute('aria-label',labels[r.governanceAction]+' '+r.name);
+      control.setAttribute('aria-label',labels[action]+' '+r.name);
       item.append(control);
     }
     list.append(item);
@@ -194,15 +196,23 @@ document.addEventListener('click', async event => {
   const button=event.target.closest('button[data-action][data-task-id]');
   if(!button || actionBusy)return;
   const action=button.dataset.action;
-  if(!['cancel','retry','pause','disable','reject'].includes(action))return;
+  if(!['cancel','retry','pause','disable','reject','resume','enable','accept'].includes(action))return;
   const confirmations={
     cancel:'Cancel this queued task?',
     retry:'Retry this failed read-only task?',
     pause:'Pause this schedule? Already queued tasks will not be cancelled.',
     disable:'Disable this plugin?',
-    reject:'Reject this skill proposal?'
+    reject:'Reject this skill proposal?',
+    resume:'Resume this schedule with a new next-run time?',
+    enable:'Enable this plugin manifest?',
+    accept:'Accept and publish this skill proposal?'
   };
   if(!confirm(confirmations[action]))return;
+  const privileged=['resume','enable','accept'].includes(action);
+  if(privileged&&!adminToken){
+    adminToken=prompt('Enter the administrator token configured for this local OMH dashboard:') || undefined;
+    if(!adminToken)return;
+  }
   actionBusy=true;
   button.disabled=true;
   try {
@@ -213,16 +223,17 @@ document.addEventListener('click', async event => {
     }
     const endpoint={
       cancel:'/api/tasks/cancel',retry:'/api/tasks/retry',
-      pause:'/api/schedules/pause',disable:'/api/plugins/disable',reject:'/api/skills/reject'
+      pause:'/api/schedules/pause',disable:'/api/plugins/disable',reject:'/api/skills/reject',
+      resume:'/api/schedules/resume',enable:'/api/plugins/enable',accept:'/api/skills/accept'
     }[action];
-    const payload=action==='disable'?{name:button.dataset.taskId}:{id:button.dataset.taskId};
+    const payload=['disable','enable'].includes(action)?{name:button.dataset.taskId}:{id:button.dataset.taskId};
     const response=await fetch(endpoint,{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf},
+      headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf,...(privileged?{'X-OMH-Admin-Token':adminToken}:{})},
       body:JSON.stringify(payload),
       signal:AbortSignal.timeout(10000),
     });
-    if(!response.ok)throw Error((await response.text()).slice(0,160));
+    if(!response.ok){if(privileged&&response.status===403)adminToken=undefined;throw Error((await response.text()).slice(0,160));}
     // Re-enable actions before rebuilding the records; otherwise the new
     // buttons inherit the busy state and stay disabled after the old node
     // is detached from the DOM.
