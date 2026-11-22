@@ -6,16 +6,25 @@ import {homedir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 const source=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const configHome=join(homedir(),'.config','opencode');
+const configHome=join(process.env.XDG_CONFIG_HOME||join(homedir(),'.config'),'opencode');
 const dest=join(configHome,'omh-runtime');
 const configPath=join(configHome,'opencode.json');
 const dryRun=process.argv.includes('--dry-run');
+const check=process.argv.includes('--check');
 if(!Number(process.versions.node.split('.')[0])||Number(process.versions.node.split('.')[0])<22)throw Error('Node.js 22+ required for OMH runtime');
 const config=JSON.parse(await readFile(configPath,'utf8'));
 if(!config||typeof config!=='object'||Array.isArray(config))throw Error('Invalid OpenCode config');
 const command=[process.execPath,join(dest,'scripts','omh-mcp.mjs')];
 const merged={...config,mcp:{...(config.mcp||{}),'omh-runtime':{type:'local',command,enabled:true,timeout:10000}}};
-if(dryRun){process.stdout.write(JSON.stringify({destination:dest,mcp:merged.mcp['omh-runtime']},null,2)+'\n');}
+if(check){
+ const registered=config.mcp?.['omh-runtime'];
+ if(!registered||registered.enabled!==true||registered.type!=='local'||
+    JSON.stringify(registered.command)!==JSON.stringify(command)){
+  throw new Error('OMH MCP registration missing or stale; run node scripts/install-omh-runtime.mjs');
+ }
+ await readFile(command[1],'utf8');
+ process.stdout.write('OMH MCP registration verified: '+command[1]+'\n');
+}else if(dryRun){process.stdout.write(JSON.stringify({destination:dest,mcp:merged.mcp['omh-runtime']},null,2)+'\n');}
 else{
  await mkdir(join(dest,'scripts'),{recursive:true});
  await cp(join(source,'modules'),join(dest,'modules'),{recursive:true,force:true});
