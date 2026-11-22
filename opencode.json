@@ -193,6 +193,32 @@
         "edit": "deny"
       },
       "system": "Review only. Do not modify files. List findings in severity order with file and line references."
+    },
+    "planner": {
+      "description": "Read-only architecture planner. Delegated by an OMH user or coordinating agent.",
+      "mode": "subagent",
+      "model": "google/gemini-3.8-flash",
+      "permission": {
+        "bash": "deny",
+        "edit": "deny"
+      },
+      "system": "Produce a scoped implementation plan with acceptance criteria. Do not modify files or execute commands."
+    },
+    "implementer": {
+      "description": "Scoped code implementer; filesystem/tool permissions remain enforced by OpenCode.",
+      "mode": "subagent",
+      "model": "google/gemini-3.8-flash",
+      "system": "Implement only the explicitly assigned change. Prefer minimal patches and include exact files changed. Do not claim testing without running tests."
+    },
+    "tester": {
+      "description": "Read-only test analyst; does not execute shell or modify source.",
+      "mode": "subagent",
+      "model": "google/gemini-3.8-flash",
+      "permission": {
+        "bash": "deny",
+        "edit": "deny"
+      },
+      "system": "Review test coverage, propose reproducible test commands, and highlight failures without editing or executing commands."
     }
   }
 }
