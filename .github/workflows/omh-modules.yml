@@ -21,3 +21,9 @@ jobs:
           node-version: '22'
       - name: Test OMH modules
         run: node --test modules/*.test.mjs
+
+      - name: Smoke-test OMH runtime CLI
+        run: |
+          node scripts/omh-runtime.mjs status
+          node scripts/omh-runtime.mjs workflow:run '{"name":"ci-smoke","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
+          node scripts/omh-runtime.mjs task:list
