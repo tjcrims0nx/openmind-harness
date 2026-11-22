@@ -2,6 +2,7 @@
 import {runSandbox} from './sandbox.mjs';
 import {runAgent} from './agent-runner.mjs';
 import {ToolPolicy} from './tool-policy.mjs';
+import {prepareAgentTask,summarizeAgentEvents} from './agent-integration.mjs';
 import {readFile,writeFile,mkdir,realpath} from 'node:fs/promises';
 import {resolve,dirname,sep,join} from 'node:path';
 const SENSITIVE = /^(?:\.omh|\.git|\.env(?:\..*)?|\.ssh|\.gnupg|\.npmrc|auth\.json|credentials(?:\..*)?|id_[^/]+)$/i;
@@ -21,6 +22,6 @@ export function makeHandlers(workspace){
   'workspace.read':async ({path})=>{policy.require('workspace.read');const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
   'workspace.write':async ({path,content,approved})=>{policy.require('workspace.write',{approved});if(approved!==true)throw Error('Write approval required');if(typeof content!=='string'||content.length>100000)throw TypeError('Invalid content');await mkdir(root,{recursive:true});const p=await verified(rootPath(root,path));await writeFile(p,content,{flag:'wx',mode:0o600});return {path};},
   'sandbox.exec':async ({command,args=[],timeoutMs=30000,workspaceId='default',approved})=>{policy.require('sandbox.exec',{approved});if(!/^[a-zA-Z0-9_-]{1,64}$/.test(workspaceId))throw TypeError('Invalid sandbox workspace id');return runSandbox({workspace:join(root,'.omh','sandboxes',workspaceId),command,args,timeoutMs});},
-  'agent.run':async ({agent,prompt,model,approved,timeoutMs})=>{policy.require('agent.run',{approved});return runAgent({agent,prompt,model,approved,timeoutMs,workspace:root});}
+  'agent.run':async (input)=>{policy.require('agent.run',{approved:input.approved});const args=await prepareAgentTask(input,{workspace:root});const result=await runAgent(args);return {...result,events:summarizeAgentEvents(result.stdout)};}
  };
 }
