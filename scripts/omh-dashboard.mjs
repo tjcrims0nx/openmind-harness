@@ -105,7 +105,7 @@ export async function createDashboardServer(state) {
          request.headers['sec-fetch-site'] !== 'none')) {
       return send(403, 'Local dashboard requests only');
     }
-    if (request.method === 'POST' && (request.url === '/api/tasks/cancel' || request.url === '/api/tasks/retry')) {
+    if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject'].includes(request.url)) {
       const port=server.address().port;
       if(request.headers.origin !== `http://${HOST}:${port}` ||
          !safeEqual(request.headers['x-omh-csrf'],csrf) ||
@@ -114,7 +114,30 @@ export async function createDashboardServer(state) {
       }
       try{
         const body=await readJson(request);
-        if(typeof body.id!=='string'||!/^[a-f0-9-]{36}$/i.test(body.id))return send(400,'Invalid task identifier');
+        if(request.url==='/api/plugins/disable'){
+          if(typeof body.name!=='string'||!/^[-a-z0-9.]{2,64}$/.test(body.name))return send(400,'Invalid plugin name');
+          const registry=await new PluginRegistry(join(state,'plugins.json')).load();
+          const plugin=registry.list().find(item=>item.name===body.name&&item.enabled===true);
+          if(!plugin)return send(409,'Plugin not enabled');
+          const result=await registry.disable(body.name);
+          return send(200,JSON.stringify({name:result.name,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
+        if(typeof body.id!=='string'||!/^[a-f0-9-]{36}$/i.test(body.id))return send(400,'Invalid identifier');
+        if(request.url==='/api/schedules/pause'){
+          const queue=new TaskQueue(join(state,'tasks.json'));
+          const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
+          const scheduled=scheduler.list().find(item=>item.id===body.id&&item.enabled===true);
+          if(!scheduled)return send(409,'Schedule not enabled');
+          const result=await scheduler.pause(body.id);
+          return send(200,JSON.stringify({id:result.id,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
+        if(request.url==='/api/skills/reject'){
+          const proposals=await new SkillProposalStore(join(state,'skill-proposals.json')).load();
+          const pending=proposals.list('pending').find(item=>item.id===body.id);
+          if(!pending)return send(409,'Proposal not pending');
+          const result=await proposals.review(body.id,{decision:'reject',approved:true});
+          return send(200,JSON.stringify({id:result.id,status:result.status}),'application/json; charset=utf-8');
+        }
         const queue=await new TaskQueue(join(state,'tasks.json')).load();
         const task=queue.list().find(item=>item.id===body.id);
         if(!task)return send(404,'Task not found');
