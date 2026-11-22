@@ -1,4 +1,4 @@
-import {bridgeRequest} from './_bridge.mjs';
+import {bridgeRequest} from '../lib/omh-vercel-proxy.mjs';
 const allowed=new Set(['cancel','retry','pause','disable','reject']);
 export default async function handler(req,res){
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
