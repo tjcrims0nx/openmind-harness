@@ -8,7 +8,7 @@ on:
       - 'scripts/smoke-gemini.sh'
       - 'scripts/smoke-gemini-fixture.py'
       - 'opencode.json'
-      - 'scripts/smoke-opencode-cancellation.mjs'
+      - 'scripts/smoke-native-agents.mjs'
       - 'modules/opencode-session.mjs'
       - 'modules/agent-runner.mjs'
 
@@ -49,6 +49,6 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ matrix.mode == 'live' && secrets.GEMINI_API_KEY || '' }}
         run: bash scripts/smoke-gemini.sh ${{ matrix.mode }}
-      - name: Verify native session cancellation and scoped memory
+      - name: Verify native delegation, cancellation and scoped memory
         if: matrix.mode == 'fixture'
-        run: node scripts/smoke-opencode-cancellation.mjs
+        run: node scripts/smoke-native-agents.mjs

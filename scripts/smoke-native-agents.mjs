@@ -12,7 +12,10 @@ import {TaskQueue} from '../modules/task-queue.mjs';
 const root=await mkdtemp(join(tmpdir(),'omh-agent-cancel-'));
 const workspace=join(root,'workspace');
 const heartbeat=join(workspace,'heartbeat');
-let callTool=false;
+let scenario='ordinary';
+let reviewed=false;
+let childCanRunShell=false;
+let receivedReview=false;
 let readProjectNote=false;
 let disclosedPrivateNote=false;
 const fixture=createServer(async (request,response)=>{
@@ -23,12 +26,30 @@ const fixture=createServer(async (request,response)=>{
  if(contents.includes('fixture-project-note'))readProjectNote=true;
  if(contents.includes('fixture-private-note'))disclosedPrivateNote=true;
  const tools=body.tools?.flatMap(tool=>tool.functionDeclarations??[])??[];
- const part=callTool&&tools.some(tool=>tool.name==='bash')
-  ? {functionCall:{name:'bash',args:{
+ let part={text:'OpenCode smoke fixture response.'};
+ if(scenario==='heartbeat'&&tools.some(tool=>tool.name==='bash')){
+  part={functionCall:{name:'bash',args:{
    command:'while true; do echo running >> heartbeat; sleep 0.05; done',
    description:'Write a temporary smoke test heartbeat',timeout:30000,workdir:workspace,
-  }}}
-  : {text:'OpenCode smoke fixture response.'};
+  }}};
+ }
+ if(scenario==='delegation'){
+  const toolReplies=body.contents.flatMap(turn=>turn.parts??[]).filter(item=>item.functionResponse);
+  if(toolReplies.some(item=>JSON.stringify(item.functionResponse).includes('review-fixture-confirmed'))){
+   receivedReview=true;
+   part={text:'Received the fixture review.'};
+  }else if(contents.includes('Inspect the fixture readme marker')&&
+           JSON.stringify(body.systemInstruction).includes('Review only')){
+   reviewed=true;
+   childCanRunShell=tools.some(tool=>tool.name==='bash');
+   part={text:'review-fixture-confirmed'};
+  }else if(tools.some(tool=>tool.name==='task')&&!toolReplies.length){
+   part={functionCall:{name:'task',args:{
+    description:'Review fixture',prompt:'Inspect the fixture readme marker',
+    subagent_type:'reviewer',
+   }}};
+  }
+ }
  const event={candidates:[{content:{role:'model',parts:[part]},finishReason:'STOP',index:0}]};
  response.writeHead(200,{'Content-Type':'text/event-stream'});
  response.end(`data: ${JSON.stringify(event)}\n\n`);
@@ -44,13 +65,13 @@ try{
   XDG_CACHE_HOME:join(root,'cache'),OPENCODE_DISABLE_AUTOUPDATE:'true',
   OPENCODE_DISABLE_MODELS_FETCH:'true',
  });
- const {model,agent:{implementer},provider:{google}}=JSON.parse(
+ const {model,agent:{implementer,reviewer},provider:{google}}=JSON.parse(
   await readFile(new URL('../opencode.json',import.meta.url),'utf8'),
  );
  const baseURL=`http://127.0.0.1:${fixture.address().port}/v1beta`;
  await writeFile(join(config,'opencode','opencode.json'),JSON.stringify({
   model,small_model:model,enabled_providers:['google'],
-  agent:{implementer},permission:{'*':'deny',bash:'allow'},
+  agent:{implementer,reviewer},permission:{'*':'deny',bash:'allow',task:{'*':'deny',reviewer:'allow'}},
   provider:{google:{...google,options:{apiKey:'local-fixture',baseURL}}},
  }));
  const queueFile=join(root,'tasks.json');
@@ -67,7 +88,17 @@ try{
 
  assert.equal(readProjectNote,false);
  assert.equal(disclosedPrivateNote,false);
- callTool=true;
+ scenario='delegation';
+ const parent=await worker.enqueue('agent.run',{...input,prompt:'Delegate the short fixture review.'});
+ const delegated=await worker.runById(parent.id);
+ assert.equal(delegated.status,'completed',delegated.error);
+ assert.ok(reviewed,'Reviewer received its delegated fixture prompt');
+ assert.equal(childCanRunShell,false,'Reviewer must keep its shell restriction');
+ assert.ok(receivedReview,'Parent received the reviewer result through OpenCode');
+ const events=delegated.result.stdout.trim().split('\n').map(JSON.parse);
+ assert.ok(events.some(event=>event.part?.tool==='task'&&event.part.state?.status==='completed'));
+ console.log('The implementer received a result from the restricted reviewer using the native task tool.');
+ scenario='heartbeat';
  const task=await worker.enqueue('agent.run',{...input,useMemory:true});
  const running=worker.runById(task.id);
  try{

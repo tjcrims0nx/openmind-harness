@@ -19,7 +19,7 @@ Work through the harness on Linux and verify it through the installed runtime. C
 - [x] Verify native OpenCode session interruption while a shell tool is active on Linux.
 - [ ] Design and verify authenticated dashboard task controls.
 - [x] Verify opt-in scoped memory in separate native sessions using a local provider fixture.
-- [ ] Verify stock OpenCode subagent delegation.
+- [x] Verify the stock OpenCode task tool delegates to the configured read-only reviewer and returns its result with a local provider fixture.
 - [ ] Verify concurrent writes and recovery for runtime state stores. Exercise reviewed skill publication and plugin permissions.
 - [ ] Verify authenticated approvals and session permissions for privileged actions and document the supported sandbox limits.
 - [ ] Run the release smoke suite against the packaged Linux and Termux entry points.
