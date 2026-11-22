@@ -13,3 +13,6 @@ ish-arm64/deps/build/
 # Vercel static frontend build output
 public/
 .vercel/
+
+# Portable runtime archive staging
+dist/
