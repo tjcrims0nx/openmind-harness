@@ -69,9 +69,9 @@ function records(view) {
   switch (view) {
     case 'agents': return state.agents.map(a => row(a.name, a.running ? 'Running' : a.queued ? 'Queued' : 'Idle', a.running + ' running · ' + a.queued + ' queued'));
     case 'memory': return state.memory.map(n => row(n.title, n.scope, date(n.createdAt), n.id));
-    case 'skills': return state.skills.map(s => row(s.name, title(s.status), date(s.createdAt), s.id));
-    case 'plugins': return state.plugins.map(p => row(p.name, p.enabled ? 'Enabled' : 'Disabled', 'Version ' + p.version));
-    case 'schedules': return state.schedules.map(s => row(s.kind, s.enabled ? 'Enabled' : 'Disabled', 'Every ' + s.everyMs / 1000 + ' s · Next ' + date(s.nextAt), s.id));
+    case 'skills': return state.skills.map(s => ({...row(s.name, title(s.status), date(s.createdAt), s.id), governanceAction: s.status === 'pending' ? 'reject' : null}));
+    case 'plugins': return state.plugins.map(p => ({...row(p.name, p.enabled ? 'Enabled' : 'Disabled', 'Version ' + p.version, p.name), governanceAction: p.enabled ? 'disable' : null}));
+    case 'schedules': return state.schedules.map(s => ({...row(s.kind, s.enabled ? 'Enabled' : 'Disabled', 'Every ' + s.everyMs / 1000 + ' s · Next ' + date(s.nextAt), s.id), governanceAction: s.enabled ? 'pause' : null}));
     case 'traces': return state.traces.map(t => row(t.type, t.status, [date(t.at), t.kind, t.id].filter(Boolean).join(' · '), t.id));
     case 'workspaces': return state.workspaces.map(name => row(name, 'Workspace'));
     default: return [];
@@ -100,6 +100,14 @@ function showRows(container, rows, empty) {
       retry.type='button';retry.dataset.action='retry';retry.dataset.taskId=r.id;
       retry.disabled=actionBusy;retry.setAttribute('aria-label','Retry task '+r.id);
       item.append(retry);
+    }
+    if(r.governanceAction) {
+      const labels={pause:'Pause schedule',disable:'Disable plugin',reject:'Reject proposal'};
+      const control=el('button',labels[r.governanceAction],'task-action');
+      control.type='button';control.dataset.action=r.governanceAction;
+      control.dataset.taskId=r.id;control.disabled=actionBusy;
+      control.setAttribute('aria-label',labels[r.governanceAction]+' '+r.name);
+      item.append(control);
     }
     list.append(item);
   }
@@ -186,8 +194,15 @@ document.addEventListener('click', async event => {
   const button=event.target.closest('button[data-action][data-task-id]');
   if(!button || actionBusy)return;
   const action=button.dataset.action;
-  if(action!=='cancel' && action!=='retry')return;
-  if(!confirm(action==='cancel'?'Cancel this queued task?':'Retry this failed read-only task?'))return;
+  if(!['cancel','retry','pause','disable','reject'].includes(action))return;
+  const confirmations={
+    cancel:'Cancel this queued task?',
+    retry:'Retry this failed read-only task?',
+    pause:'Pause this schedule? Already queued tasks will not be cancelled.',
+    disable:'Disable this plugin?',
+    reject:'Reject this skill proposal?'
+  };
+  if(!confirm(confirmations[action]))return;
   actionBusy=true;
   button.disabled=true;
   try {
@@ -196,10 +211,15 @@ document.addEventListener('click', async event => {
       if(!session.ok)throw Error('Dashboard session unavailable');
       csrf=(await session.json()).csrf;
     }
-    const response=await fetch('/api/tasks/'+action,{
+    const endpoint={
+      cancel:'/api/tasks/cancel',retry:'/api/tasks/retry',
+      pause:'/api/schedules/pause',disable:'/api/plugins/disable',reject:'/api/skills/reject'
+    }[action];
+    const payload=action==='disable'?{name:button.dataset.taskId}:{id:button.dataset.taskId};
+    const response=await fetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf},
-      body:JSON.stringify({id:button.dataset.taskId}),
+      body:JSON.stringify(payload),
       signal:AbortSignal.timeout(10000),
     });
     if(!response.ok)throw Error((await response.text()).slice(0,160));
