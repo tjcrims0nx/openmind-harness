@@ -31,6 +31,7 @@ def seed(cli):
     cli("workspace:create", {"id": "reviewer"})
     cli("memory:add", {"title": "Build conventions", "content": "private-note", "approved": True})
     cli("skill:propose", {"name": "build-review", "description": "Build checks", "instructions": "private-skill"})
+    cli("skill:propose", {"name": "approve-check", "description": "Safe review", "instructions": "Validate build output"})
     cli("plugin:register", {"name": "trace-index", "version": "1.0.0", "description": "private-plugin", "approved": True})
     cli("plugin:enable", {"name": "trace-index", "approved": True})
 
@@ -121,7 +122,8 @@ def run(root):
     config.mkdir(parents=True)
     shutil.copy(ROOT / "opencode.json", config)
     env = {**os.environ, "HOME": str(home), "OMH_STATE_DIR": str(root / "state"),
-           "OMH_WORKSPACE": str(root), "OMH_TRACE": "1", "OMH_DASHBOARD_PORT": "0"}
+           "OMH_WORKSPACE": str(root), "OMH_TRACE": "1", "OMH_DASHBOARD_PORT": "0",
+           "OMH_DASHBOARD_ADMIN_TOKEN": "test-only-admin-token-00000000000000000000"}
     subprocess.run(["node", ROOT / "scripts/install-omh-runtime.mjs"], env=env, check=True, capture_output=True)
     scripts = config / "omh-runtime/scripts"
 
@@ -164,7 +166,7 @@ def run(root):
             # Dashboard actions are wired to the real queue and retain confirmation gates.
             page.set_viewport_size({"width": 1280, "height": 720})
             page.locator("#navigation [data-view=tasks]").click()
-            page.on("dialog", lambda dialog: dialog.accept())
+            page.on("dialog", lambda dialog: dialog.accept("test-only-admin-token-00000000000000000000" if dialog.type == "prompt" else None))
             retry = page.locator("#activity button[data-action=retry]").first
             expect(retry).to_be_visible()
             retry_id = retry.get_attribute("data-task-id")
@@ -180,8 +182,18 @@ def run(root):
             page.locator("#activity button[data-action=disable]").click()
             assert cli("plugin:list")[0]["enabled"] is False
             page.locator("#navigation [data-view=skills]").click()
-            page.locator("#activity button[data-action=reject]").click()
-            assert cli("skill:proposals")[0]["status"] == "rejected"
+            page.locator("#activity button[data-action=reject]").first.click()
+            assert any(p["status"] == "rejected" for p in cli("skill:proposals"))
+            # An admin token is needed for restoring paused or disabled capabilities.
+            page.locator("#navigation [data-view=schedules]").click()
+            page.locator("#activity button[data-action=resume]").click()
+            assert cli("schedule:list")[0]["enabled"] is True
+            page.locator("#navigation [data-view=plugins]").click()
+            page.locator("#activity button[data-action=enable]").click()
+            assert cli("plugin:list")[0]["enabled"] is True
+            page.locator("#navigation [data-view=skills]").click()
+            page.locator("#activity button[data-action=accept]").click()
+            assert any(p["status"] == "accepted" for p in cli("skill:proposals"))
             page.locator("#navigation [data-view=workspace]").click()
             page.locator("#refresh").click()
             expect(page.locator("#connection")).to_have_text("Connected")
