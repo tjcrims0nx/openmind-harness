@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Run complete OMH module suite
@@ -52,10 +52,10 @@ jobs:
           - {label: windows-x64, os: windows-2022, target: win32}
           - {label: termux-aarch64-scripts, os: ubuntu-24.04, target: android}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Check package script syntax
@@ -66,7 +66,7 @@ jobs:
         run: node scripts/smoke-portable.mjs ${{ matrix.target }}
       - name: Package platform launchers and runtime
         run: node scripts/package-portable.mjs ${{ matrix.target }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: omh-runtime-${{ matrix.label }}
           path: dist/
