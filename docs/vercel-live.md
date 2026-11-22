@@ -2,6 +2,22 @@
 
 This is an **experimental live connection**, not a replacement for the Linux harness. Vercel hosts the existing OMH cyberpunk dashboard and its API; a trusted Linux machine runs OpenCode, persistent JSON stores, queues, agents, and Bubblewrap. The web UI can inspect the real runtime and issue *restricted* changes. The same Vercel deployment exposes an authenticated, stateless JSON-RPC MCP endpoint for compatible clients.
 
+## Official Vercel MCP (OMH agent → Vercel)
+
+**The official service at [mcp.vercel.com](https://mcp.vercel.com) is a different connection from the Vercel-hosted OMH dashboard described below.** Vercel MCP provides OAuth-authenticated deployment, project, log and preview tools **to OpenCode/OMH**. The dashboard bridge below connects **Vercel → an OMH Linux worker**. You can use either or both.
+
+OMH includes a native OpenCode Vercel MCP registration helper, which preserves the existing `omh-runtime` and any other MCP connections:
+
+```sh
+node scripts/connect-vercel-mcp.mjs --dry-run
+node scripts/connect-vercel-mcp.mjs
+node scripts/connect-vercel-mcp.mjs --check
+opencode mcp auth vercel
+opencode mcp list
+```
+
+To scope Vercel tools to a linked project, use `--project team/project` on each of the first three commands. The helper writes a `type: remote` entry in your **installed** `~/.config/opencode/opencode.json` (or `XDG_CONFIG_HOME/opencode/opencode.json`), pointed at `https://mcp.vercel.com` or the project-scoped endpoint. It never handles or writes OAuth access tokens; the OAuth browser step must be completed in OpenCode by the user. The `vercel mcp` CLI currently configures several other supported clients, but does **not** install Vercel MCP inside OpenCode automatically, so OMH supplies this configuration helper. Neither command deploys your harness; linking and deploying a Vercel project are separate operations.
+
 ## Architecture
 
 ```
