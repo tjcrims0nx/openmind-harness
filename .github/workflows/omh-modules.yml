@@ -3,10 +3,16 @@ on:
   push:
     paths:
       - 'modules/**'
+      - 'scripts/omh-*.mjs'
+      - 'scripts/install-omh-runtime.mjs'
+      - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   pull_request:
     paths:
       - 'modules/**'
+      - 'scripts/omh-*.mjs'
+      - 'scripts/install-omh-runtime.mjs'
+      - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
 jobs:
