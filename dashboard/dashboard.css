@@ -822,3 +822,22 @@ select {
     display: none;
   }
 }
+
+/* Explicit task controls: compact, keyboard-visible, and safe on narrow screens. */
+.records .task-action {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: rgba(0, 190, 235, 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.records .task-action:hover { border-color: #4ed9ff; }
+.records .task-action:focus-visible { outline: 2px solid #4ed9ff; outline-offset: 3px; }
+.records .task-action:disabled { opacity: .45; cursor: not-allowed; }
