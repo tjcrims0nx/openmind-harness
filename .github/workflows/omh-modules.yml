@@ -13,6 +13,7 @@ on:
       - 'lib/**'
       - 'vercel.json'
       - 'scripts/build-vercel-dashboard.mjs'
+      - 'scripts/connect-vercel-mcp.mjs'
       - '.github/workflows/omh-modules.yml'
   pull_request:
     paths:
@@ -27,6 +28,7 @@ on:
       - 'lib/**'
       - 'vercel.json'
       - 'scripts/build-vercel-dashboard.mjs'
+      - 'scripts/connect-vercel-mcp.mjs'
       - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
 concurrency:
@@ -50,6 +52,7 @@ jobs:
         run: |
           node scripts/build-vercel-dashboard.mjs
           node --check scripts/omh-live.mjs
+          node --check scripts/connect-vercel-mcp.mjs
           node --check lib/omh-vercel-proxy.mjs
           node --check api/state.mjs
           node --check api/actions.mjs
