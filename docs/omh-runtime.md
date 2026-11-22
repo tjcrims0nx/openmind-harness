@@ -2,6 +2,14 @@
 
 The independent OMH runtime is a **real local CLI** on top of the existing OpenCode configuration. It does **not** replace OpenCode's native agent loop or patch the upstream OpenCode frontend. The OMH-specific dashboard is a separate, locally hosted runtime interface that reads the same task, memory, policy and trace stores; a restricted MCP bridge connects selected functions to OpenCode.
 
+## Native iPadOS client (separate repository)
+
+The [omh-iOS](https://github.com/tjcrims0nx/omh-iOS) development branch `rebrand/omh` hosts an experimental **native UIKit iPad workspace**, tracked in [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4). It reads this runtime dashboard's loopback `GET /api/state` JSON and displays native sidebar/detail lists. The browser dashboard remains accessible as a secondary diagnostic screen, and the OpenCode editor remains a separate embedded web view. iPhone uses a different WebKit-first home. The native iPad UI does not replace the OMH daemon, sandbox, MCP or OpenCode runtime.
+
+The client presents current state only; task cancellation, writes, plugin controls and approvals must still follow the runtime's existing authorization boundaries. A visible row is not evidence that a task runner or sandbox is operational. The iPad sidebar and header now have adaptive width for rotation and Stage Manager windows, but narrow-window visuals and runtime connectivity require simulator/physical-device testing.
+
+The iOS guest uses a **pinned harness revision** at IPA build time; a new commit here is not automatically deployed into an existing IPA. See the [iPad workspace guide](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/IPAD_WORKSPACE.md) and [build/release verification](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/BUILD_AND_VERIFY.md). GitHub Actions builds an **unsigned** IPA. Simulator smoke results and physical-device signing/launch must be checked separately. Linux Bubblewrap isolation must not be inferred from the binary's presence in the emulated guest.
+
 ## Start
 
 Requires Node.js 22 or newer. From the harness repository root:
