@@ -20,6 +20,23 @@ let refreshed;
 let csrf;
 let adminToken;
 let actionBusy = false;
+const remote = document.documentElement.dataset.omhRemote === 'true';
+let webToken;
+async function runtimeFetch(url,options={}){
+ if(!remote)return fetch(url,options);
+ if(!webToken){
+   const token=prompt('Enter your OMH Vercel dashboard access token (not your provider API key):');
+   if(!token)throw Error('Dashboard access token required');
+   webToken=token;
+ }
+ const response=await fetch(url,{...options,headers:{...options.headers,Authorization:'Bearer '+webToken}});
+ if(response.status===401){
+   webToken=undefined;
+   throw Error('Dashboard token rejected. Select Refresh to try again.');
+ }
+ return response;
+}
+
 
 function el(tag, text, className) {
   const node = document.createElement(tag);
@@ -216,7 +233,7 @@ document.addEventListener('click', async event => {
   actionBusy=true;
   button.disabled=true;
   try {
-    if(!csrf){
+    if(!remote&&!csrf){
       const session=await fetch('/api/session',{signal:AbortSignal.timeout(10000)});
       if(!session.ok)throw Error('Dashboard session unavailable');
       csrf=(await session.json()).csrf;
@@ -227,10 +244,10 @@ document.addEventListener('click', async event => {
       resume:'/api/schedules/resume',enable:'/api/plugins/enable',accept:'/api/skills/accept'
     }[action];
     const payload=['disable','enable'].includes(action)?{name:button.dataset.taskId}:{id:button.dataset.taskId};
-    const response=await fetch(endpoint,{
+    const response=await runtimeFetch(remote?'/api/actions':endpoint,{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf,...(privileged?{'X-OMH-Admin-Token':adminToken}:{})},
-      body:JSON.stringify(payload),
+      headers:remote?{'Content-Type':'application/json'}:{'Content-Type':'application/json','X-OMH-CSRF':csrf,...(privileged?{'X-OMH-Admin-Token':adminToken}:{})},
+      body:JSON.stringify(remote?{action,...payload}:payload),
       signal:AbortSignal.timeout(10000),
     });
     if(!response.ok){if(privileged&&response.status===403)adminToken=undefined;throw Error((await response.text()).slice(0,160));}
@@ -302,7 +319,7 @@ $('#clear').onclick = () => {
 async function load() {
   $('#refresh').disabled = true;
   try {
-    const response = await fetch('/api/state', {signal: AbortSignal.timeout(10000)});
+    const response = await runtimeFetch('/api/state', {signal: AbortSignal.timeout(10000)});
     if (!response.ok) throw Error('State unavailable');
     state = await response.json();
     refreshed = Date.now();
@@ -312,11 +329,11 @@ async function load() {
     $('#health-title').textContent = 'Harness online';
     document.body.dataset.online = 'true';
     $('#error').hidden = true;
-  } catch {
+  } catch (error) {
     $('#connection').textContent = 'Offline';
     $('#health-title').textContent = 'Harness offline';
     document.body.dataset.online = 'false';
-    $('#error').textContent = state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.';
+    $('#error').textContent = remote ? ('Remote runtime unavailable: '+error.message) : (state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.');
     $('#error').hidden = false;
   } finally {
     $('#refresh').disabled = false;
