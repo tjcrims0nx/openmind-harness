@@ -11,6 +11,8 @@ import {publishSkill} from '../modules/skill-studio.mjs';
 import {WorkspaceManager} from '../modules/workspaces.mjs';
 import {AgentBus} from '../modules/agent-bus.mjs';
 import {ToolPolicy} from '../modules/tool-policy.mjs';
+import {SkillProposalStore} from '../modules/skill-proposals.mjs';
+import {PluginRegistry} from '../modules/plugin-registry.mjs';
 const [action,raw='{}']=process.argv.slice(2);
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
@@ -20,6 +22,8 @@ const memory=await new MemoryStore(join(state,'memory.json')).load();
 const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
 const workspaces=new WorkspaceManager(join(state,'team-workspaces'));
 const bus=await new AgentBus(join(state,'agent-bus.json')).load();
+const proposals=await new SkillProposalStore(join(state,'skill-proposals.json')).load();
+const plugins=await new PluginRegistry(join(state,'plugins.json')).load();
 const toolPolicy=new ToolPolicy({allow:['workspace.read'],ask:['workspace.write','sandbox.exec']});
 const trace=new TraceJournal(join(state,'audit.jsonl'),{enabled:process.env.OMH_TRACE==='1'});
 try {
@@ -48,7 +52,15 @@ try {
   case 'agent:inbox':result=bus.inbox(data.agent);break;
   case 'agent:ack':result={acknowledged:await bus.ack(data.agent,data.id)};break;
   case 'tool:check':result=toolPolicy.check(data.name,{approved:data.approved});break;
-  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | task:add | task:run | task:list | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list | workspace:create | workspace:list | workspace:snapshot | workspace:restore | agent:send | agent:inbox | agent:ack | tool:check [JSON]');
+  case 'skill:propose':result=await proposals.propose(data);break;
+  case 'skill:proposals':result=proposals.list(data.status);break;
+  case 'skill:review':result=await proposals.review(data.id,{decision:data.decision,approved:data.approved,root:join(workspace,'skills')});break;
+  case 'plugin:register':result=await plugins.register(data);break;
+  case 'plugin:enable':result=await plugins.enable(data.name,{approved:data.approved});break;
+  case 'plugin:disable':result=await plugins.disable(data.name);break;
+  case 'plugin:list':result=plugins.list();break;
+  case 'plugin:capabilities':result=plugins.allowedCapabilities();break;
+  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | task:add | task:run | task:list | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list | workspace:create | workspace:list | workspace:snapshot | workspace:restore | agent:send | agent:inbox | agent:ack | tool:check | skill:propose | skill:proposals | skill:review | plugin:register | plugin:enable | plugin:disable | plugin:list | plugin:capabilities [JSON]');
  }
  process.stdout.write(JSON.stringify(result,null,2)+'\n');
 } catch(error){process.stderr.write('OMH: '+error.message+'\n');process.exitCode=1;}
