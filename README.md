@@ -24,9 +24,9 @@
 
 OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. OMH also includes experimental local runtime modules for tasks, workflows, memory, isolated execution, team workspaces and traces. They run through a separate CLI and are not yet integrated into the OpenCode UI. Full feature list: [docs/features.md](docs/features.md).
 
-Two ways to run it on any platform:
+Two OpenCode server modes (the OMH iPad home additionally uses its own native UIKit runtime client):
 
-- **`opencode web`** — the full web UI (default port **4097**). This is what the iOS app loads in its WKWebView and what the setup scripts launch.
+- **`opencode web`** — the full web UI (default port **4097**). Linux/Termux setup scripts launch it; the iOS/iPadOS app embeds the OpenCode editor in a WKWebView. The separate OMH runtime dashboard is also available as a secondary web view on iPad.
 - **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
 
 Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
@@ -126,7 +126,7 @@ Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signe
 
 | Platform | Shell | Setup |
 |---|---|---|
-| **iOS / iPadOS** | Native app (iSH-ARM64 guest + WKWebView) | Lives in its own repo: [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS) — sideload the unsigned IPA from its GitHub Actions (sign it yourself); the app boots the guest and loads the web UI. |
+| **iOS / iPadOS** | iPad: native UIKit sidebar/detail workspace; iPhone: native shell with WebKit dashboard; both have embedded OpenCode editor | Separate app repository: [omh-iOS](https://github.com/tjcrims0nx/omh-iOS). Native iPad work is under [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4), pending exact-commit simulator and device verification. GitHub Actions publishes an unsigned IPA that requires signing. |
 | **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
 | **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
 
@@ -149,7 +149,7 @@ Keys go in the machine, not in the repo. Three ways:
 
 ## The iOS app
 
-The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 emulator + Alpine 3.21 guest + WKWebView) that boots the same OpenCode and loads the same web UI. It lives in its own repo: [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS) — that repo has the app, the guest image build, the unsigned IPA (built by its GitHub Actions, sign it yourself), and the iPad test checklist. The app fetches this repo's config at build time, so the harness here stays the single source of truth.
+The iOS/iPadOS app is a separate packaging of this harness: a native UIKit shell running an iSH-ARM64 / Alpine guest, with the embedded OpenCode editor and a loopback OMH runtime dashboard. **On the current development branch**, iPadOS launches a native UIKit sidebar/detail workspace that reads the OMH dashboard's `/api/state` endpoint; the browser-based dashboard remains available as a secondary screen. iPhone keeps a different, WebKit-first home. The app lives in [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS), with [iPad workspace documentation](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/IPAD_WORKSPACE.md), [build and verification guidance](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/BUILD_AND_VERIFY.md), and [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4). The build fetches a **pinned revision** of this harness; changes here reach the app only when that pin is updated and the guest/IPA is rebuilt. An unsigned IPA needs signing, and green compilation alone does not verify a simulator launch, working runtime or physical iPad installation.
 
 ## Eval
 
