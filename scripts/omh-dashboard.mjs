@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {createServer} from 'node:http';
+import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -14,6 +15,16 @@ import {redact} from '../modules/trace.mjs';
 import {WorkspaceManager} from '../modules/workspaces.mjs';
 
 const HOST = '127.0.0.1';
+const JSON_LIMIT = 4096;
+function safeEqual(a,b){if(typeof a!=='string'||typeof b!=='string')return false;const first=Buffer.from(a);const second=Buffer.from(b);return first.length===second.length&&timingSafeEqual(first,second);}
+async function readJson(request){
+ let size=0;const chunks=[];
+ for await(const part of request){size+=part.length;if(size>JSON_LIMIT)throw new Error('Request too large');chunks.push(part);}
+ const value=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+ if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Object required');
+ return value;
+}
+
 const ASSETS = [
   ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/dashboard.css', 'dashboard.css', 'text/css; charset=utf-8'],
@@ -80,6 +91,7 @@ async function readState(state) {
 }
 
 export async function createDashboardServer(state) {
+  const csrf = randomBytes(32).toString('hex');
   const assets = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
     route, {type, body: await readFile(new URL(`../dashboard/${file}`, import.meta.url))},
   ])));
@@ -93,7 +105,38 @@ export async function createDashboardServer(state) {
          request.headers['sec-fetch-site'] !== 'none')) {
       return send(403, 'Local dashboard requests only');
     }
+    if (request.method === 'POST' && (request.url === '/api/tasks/cancel' || request.url === '/api/tasks/retry')) {
+      const port=server.address().port;
+      if(request.headers.origin !== `http://${HOST}:${port}` ||
+         !safeEqual(request.headers['x-omh-csrf'],csrf) ||
+         request.headers['content-type']?.split(';')[0].trim() !== 'application/json'){
+        return send(403,'Dashboard action not authorized');
+      }
+      try{
+        const body=await readJson(request);
+        if(typeof body.id!=='string'||!/^[a-f0-9-]{36}$/i.test(body.id))return send(400,'Invalid task identifier');
+        const queue=await new TaskQueue(join(state,'tasks.json')).load();
+        const task=queue.list().find(item=>item.id===body.id);
+        if(!task)return send(404,'Task not found');
+        // The dashboard is deliberately a restricted local control surface.
+        // Do not grant execution privileges or re-run model-originated jobs.
+        if(request.url==='/api/tasks/cancel'){
+          if(task.status!=='queued')return send(409,'Only queued tasks can be cancelled here');
+          const result=await queue.cancel(body.id);
+          return send(200,JSON.stringify({id:result.id,status:result.status}),'application/json; charset=utf-8');
+        }
+        if(task.kind!=='workspace.read'||task.status!=='failed')return send(409,'Only failed read-only tasks can be retried here');
+        const result=await queue.retry(body.id,{maxAttempts:3});
+        return send(200,JSON.stringify({id:result.id,status:result.status}),'application/json; charset=utf-8');
+      }catch(error){
+        if(error instanceof SyntaxError||error.message==='Request too large'||error.message==='Object required')return send(400,'Malformed dashboard request');
+        if(/Retry limit|Only failed|running task/.test(error.message))return send(409,'Task state changed or retry limit reached');
+        console.error('OMH dashboard action failed:',error.code||error.name);
+        return send(500,'Dashboard action failed');
+      }
+    }
     if (request.method !== 'GET') return send(405, 'Method not allowed');
+    if (request.url === '/api/session') return send(200,JSON.stringify({csrf}), 'application/json; charset=utf-8');
     if (request.url === '/api/state') {
       try {
         return send(200, JSON.stringify(await readState(state)), 'application/json; charset=utf-8');
