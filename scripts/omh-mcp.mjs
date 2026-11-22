@@ -66,7 +66,6 @@ export async function handleRPC(msg){
   else if(msg.method==='tools/list')result={tools:TOOLS};
   else if(msg.method==='tools/call'){
    const {name,arguments:args={}}=msg.params||{};
-   if(!TOOLS.some(t=>t.name===name))throw Error('Unknown MCP tool');
    try{const output=await callTool(name,args);result={content:[{type:'text',text:JSON.stringify(output)}],isError:false};}
    catch(e){result={content:[{type:'text',text:String(e.message)}],isError:true};}
   }else return {jsonrpc:'2.0',id,error:{code:-32601,message:'Method not found'}};
