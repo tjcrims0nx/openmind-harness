@@ -72,7 +72,9 @@ import urllib.request
 with open(sys.argv[1]) as file:
     config = json.load(file)
 primary = config["model"].split("/", 1)[1]
-models = dict.fromkeys([primary, *config["provider"]["google"].get("models", {})])
+# Live CI must test the real pinned default, never silently swap to another
+# candidate after a timeout. A fallback would disguise a broken installation.
+models = [primary]
 for model in models:
     url = "https://generativelanguage.googleapis.com/v1beta/models/"
     url += urllib.parse.quote(model, safe="") + ":generateContent"
@@ -99,10 +101,10 @@ for model in models:
     config["model"] = config["small_model"] = f"google/{model}"
     with open(sys.argv[1], "w") as file:
         json.dump(config, file)
-    print(f"Gemini generated a response with {model}.", flush=True)
+    print(f"Pinned default Gemini generated a response with {model}.", flush=True)
     break
 else:
-    sys.exit("Configured Gemini models are temporarily unavailable for generation.")
+    sys.exit(f"Pinned default Gemini model {primary} was unavailable for generation.")
 PY
 fi
 
