@@ -9,6 +9,9 @@ export async function startOpenCode(workspace, signal) {
  const password=randomBytes(32).toString('hex');
  const auth='Basic '+Buffer.from(username+':'+password).toString('base64');
  const env={...process.env,OPENCODE_SERVER_USERNAME:username,OPENCODE_SERVER_PASSWORD:password};
+ // The dashboard administrator credential is a local UI secret, not a model
+ // provider credential. Never pass it to agent sessions or their tool shells.
+ delete env.OMH_DASHBOARD_ADMIN_TOKEN;
  const child=spawn('opencode',['serve','--hostname','127.0.0.1','--port','0','--no-mdns'],{
   cwd:workspace,env,stdio:['ignore','pipe','ignore'],
  });
