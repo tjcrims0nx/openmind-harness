@@ -102,7 +102,7 @@ mkdir -p ~/.config/opencode/skills ~/.config/opencode/plugins
 cp "$CONFIG_SRC" ~/.config/opencode/opencode.json
 cp -R "$SKILLS_SRC/." ~/.config/opencode/skills/
 cp -R "$PLUGINS_SRC/." ~/.config/opencode/plugins/
-echo "config installed: ~/.config/opencode/opencode.json (default model google/gemini-3.8-flash)"
+echo "config installed: ~/.config/opencode/opencode.json (default model google/gemini-3.5-flash-lite)"
 if [ -f "$SCRIPT_DIR/scripts/install-omh-runtime.mjs" ] && command -v node >/dev/null 2>&1; then
     node "$SCRIPT_DIR/scripts/install-omh-runtime.mjs"
     echo "OMH runtime and MCP tools installed"
@@ -134,7 +134,7 @@ fi
 echo
 echo "Starting the web UI — open http://127.0.0.1:4097 in the phone browser (Ctrl-C to stop)."
 echo "Tip: run 'termux-wake-lock' first so the phone does not kill Termux mid-run."
-echo "Model picker (top of the UI) switches providers; default is google/gemini-3.8-flash,"
+echo "Model picker (top of the UI) switches providers; default is google/gemini-3.5-flash-lite,"
 echo "free fallback is experientiallabs/deepseek-v4.1-flash:free."
 echo "ChatGPT Plus? Sign in once first: opencode auth login --provider openai"
 echo "— GPT-5 then uses your subscription, no API credits needed."
