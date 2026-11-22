@@ -35,7 +35,7 @@ The dashboard's health panel now displays the actual server OS, CPU architecture
 
 The dashboard reads the same state as the CLI and daemon. Workspace search covers the displayed records for agent roles, dependent workflow steps, tasks, memory titles, skill proposals, plugin manifests, traces, sandbox jobs, schedules and workspaces. Task, workflow and sandbox views support status filtering. The console reports queue totals, and the other inspector tabs show workspaces, schedules and logs. Refresh reads a new snapshot. After a failed refresh the dashboard labels the previous snapshot as stale. Use the CLI to submit work, grant approvals or inspect private record contents.
 
-The header uses the icon from the [OMH app icon set](https://github.com/tjcrims0nx/omh-ios/blob/33f526c56faf7a6bb51487b57bb8e69457bd323b/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png). The orbital background was generated for OMH. The bundled Orbitron font includes its SIL Open Font License in `dashboard/Orbitron-LICENSE.txt`.
+The dashboard uses the original electric-cyan, bolt-accented **M inside a neon hexagon** at [`dashboard/app-icon.webp`](../dashboard/app-icon.webp). The orbital background was generated for OMH. The bundled Orbitron font includes its SIL Open Font License in `dashboard/Orbitron-LICENSE.txt`.
 
 To run the installed-dashboard smoke test, install Python Playwright and Chromium, then run `python scripts/smoke-dashboard.py`. Set `CHROME_BIN` to select a Chromium executable. For WebKit, install its Playwright browser and run the same script with `OMH_SMOKE_BROWSER=webkit`. CI exercises both engines. Set `OMH_SCREENSHOT_DIR` to capture desktop and phone-width screenshots with temporary test records. The test uses an isolated home and workspace.
 

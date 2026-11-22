@@ -30,7 +30,7 @@ async function readJson(request){
 const ASSETS = [
   ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/dashboard.css', 'dashboard.css', 'text/css; charset=utf-8'],
-  ['/app-icon.png', 'app-icon.png', 'image/png'],
+  ['/app-icon.webp', 'app-icon.webp', 'image/webp'],
   ['/orbit.webp', 'orbit.webp', 'image/webp'],
   ['/orbitron.ttf', 'orbitron.ttf', 'font/ttf'],
   ['/icons.svg', 'icons.svg', 'image/svg+xml'],

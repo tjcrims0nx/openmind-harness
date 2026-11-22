@@ -4,6 +4,8 @@
 
 <h1 align="center">OpenMind Harness</h1>
 
+<p align="center"><img src="dashboard/app-icon.webp" alt="Official OMH cyberpunk electric-blue hexagon M logo" width="128" height="128"></p>
+
 <p align="center">
   <strong>Local runtime · Multi-provider agents · Workflows · Dashboard · Traces</strong>
 </p>

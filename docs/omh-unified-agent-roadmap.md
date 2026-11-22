@@ -1,7 +1,6 @@
 # OMH Unified Agent Platform — independent feature integration
 
 Research references (feature inspiration only):
-- DeepSeek Harness: https://www.deepseek.com/harness/en/ and https://github.com/deepseek-ai/deepseek-harness
 - OrcaRouter: https://www.orcarouter.ai/
 - Hermes Agent: https://github.com/NousResearch/hermes-agent
 - Shadow: https://shadow.redpillreader.com/

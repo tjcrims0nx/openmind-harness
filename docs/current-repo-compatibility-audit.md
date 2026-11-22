@@ -9,7 +9,7 @@ Checked directly against main of `tjcrims0nx/openmind-harness` and `tjcrims0nx/o
 - `opencode.json` selects `google/gemini-3.8-flash`; `reviewer` selects the same, `fast` and `small_model` select `experientiallabs/deepseek-v4.1-flash:free`.
 - The config declares 18 provider keys including `orcarouter`, `deepseek`, `google`, `openai`, `openrouter`, `ollama`, `lmstudio`, and `custom`.
 - `omh-ios/scripts/build-rootfs.sh` clones the harness, copies `opencode.json`, skills and plugins into the guest image, and installs Antigravity bridge/login scripts. The build-time validator checks Gemini, agents and a subset of providers.
-- `omh-ios/app/DSHHarness.m` starts `/usr/local/bin/opencode-serve`; the guest script launches `opencode web --hostname 127.0.0.1`. The iOS web interface therefore depends on the actual OpenCode guest server.
+- The separate iOS application's guest launcher starts `/usr/local/bin/opencode-serve`; the guest script launches `opencode web --hostname 127.0.0.1`. The iOS web interface therefore depends on the actual OpenCode guest server.
 - `modules/smart-router.mjs` implements pure selection, failover filtering, cost estimation and budget arithmetic; `modules/smart-router.test.mjs` has six node:test cases.
 
 ## Gaps and risks
