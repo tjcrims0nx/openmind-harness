@@ -8,6 +8,7 @@ Requires Node.js 22 or newer. From the harness repository root:
 
 ```sh
 node scripts/omh-runtime.mjs status
+node scripts/omh-runtime.mjs doctor
 node --test modules/*.test.mjs
 ```
 
@@ -35,6 +36,10 @@ node scripts/omh-runtime.mjs workflow:run '{"name":"review-cycle","steps":[{"kin
 ```
 
 Agents `planner`, `implementer`, `tester`, and `reviewer` are registered in `opencode.json`. The native runner does not pass `--auto` and captures JSON event output. It needs an installed OpenCode binary and working model credentials. The API-level `approved:true` flag is not a substitute for OS permission controls or an authenticated human approval system. On production hosts, invoke this only from trusted workspaces.
+
+### Runtime diagnostics
+
+`node scripts/omh-runtime.mjs doctor` checks Node.js 22+, the availability of the `opencode` command, and (on Linux) attempts a **real Bubblewrap mount-namespace smoke test** in a temporary directory. This is stronger than checking whether `bwrap --version` succeeds. It reports whether the isolation check actually ran; a failed probe is **not** reported as a verified sandbox. The probe does not exercise all filesystem, networking, or resource-limit guarantees and does not validate a live model connection.
 
 ### Execution sandbox
 
