@@ -14,6 +14,7 @@ import {TraceJournal} from '../modules/trace-journal.mjs';
 import {redact} from '../modules/trace.mjs';
 import {WorkspaceManager} from '../modules/workspaces.mjs';
 import {sandboxAvailable} from '../modules/sandbox.mjs';
+import {readHeartbeat} from '../modules/runtime-health.mjs';
 
 const HOST = '127.0.0.1';
 const JSON_LIMIT = 4096;
@@ -73,6 +74,7 @@ async function readState(state) {
   });
   return {
     version: 1,
+    worker:await readHeartbeat(join(state,'daemon-health.json')),
     platform: {os:process.platform,arch:process.arch,node:process.versions.node,sandboxBackendInstalled:sandboxAvailable()},
     counts,
     agents,
