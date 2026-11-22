@@ -39,7 +39,7 @@ test('dashboard governance can pause, disable, or reject but cannot grant privil
  assert.equal((await post('/api/skills/reject',{id:proposal.id})).status,200);
  assert.equal((await post('/api/skills/reject',{id:proposal.id})).status,409);
  assert.equal((await new SkillProposalStore(join(dir,'skill-proposals.json')).load()).list()[0].status,'rejected');
- assert.equal((await post('/api/plugins/enable',{name:'review-tools'})).status,405);
- assert.equal((await post('/api/skills/accept',{id:proposal.id})).status,405);
+ assert.equal((await post('/api/plugins/enable',{name:'review-tools'})).status,403);
+ assert.equal((await post('/api/skills/accept',{id:proposal.id})).status,403);
  assert.equal((await post('/api/schedules/pause',{id:'../wrong'})).status,400);
 });
