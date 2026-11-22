@@ -8,6 +8,9 @@ import {WorkflowRunner} from '../modules/workflows.mjs';
 import {Scheduler} from '../modules/scheduler.mjs';
 import {TraceJournal} from '../modules/trace-journal.mjs';
 import {publishSkill} from '../modules/skill-studio.mjs';
+import {WorkspaceManager} from '../modules/workspaces.mjs';
+import {AgentBus} from '../modules/agent-bus.mjs';
+import {ToolPolicy} from '../modules/tool-policy.mjs';
 const [action,raw='{}']=process.argv.slice(2);
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
@@ -15,6 +18,9 @@ const handlers=makeHandlers(workspace);
 const queue=await new TaskQueue(join(state,'tasks.json'),handlers).load();
 const memory=await new MemoryStore(join(state,'memory.json')).load();
 const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
+const workspaces=new WorkspaceManager(join(state,'team-workspaces'));
+const bus=await new AgentBus(join(state,'agent-bus.json')).load();
+const toolPolicy=new ToolPolicy({allow:['workspace.read'],ask:['workspace.write','sandbox.exec']});
 const trace=new TraceJournal(join(state,'audit.jsonl'),{enabled:process.env.OMH_TRACE==='1'});
 try {
  const data=JSON.parse(raw);
@@ -34,7 +40,15 @@ try {
   case 'schedule:tick':result=await scheduler.tick();break;
   case 'schedule:list':result=scheduler.list();break;
   case 'trace:list':result=await trace.read(data);break;
-  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | task:add | task:run | task:list | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list [JSON]');
+  case 'workspace:create':result={path:await workspaces.create(data.id)};break;
+  case 'workspace:list':result=await workspaces.list();break;
+  case 'workspace:snapshot':result={path:await workspaces.snapshot(data.id,data.snapshotId)};break;
+  case 'workspace:restore':result={path:await workspaces.restore(data.id,data.snapshotId,{approved:data.approved})};break;
+  case 'agent:send':result=await bus.send(data);break;
+  case 'agent:inbox':result=bus.inbox(data.agent);break;
+  case 'agent:ack':result={acknowledged:await bus.ack(data.agent,data.id)};break;
+  case 'tool:check':result=toolPolicy.check(data.name,{approved:data.approved});break;
+  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | task:add | task:run | task:list | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list | workspace:create | workspace:list | workspace:snapshot | workspace:restore | agent:send | agent:inbox | agent:ack | tool:check [JSON]');
  }
  process.stdout.write(JSON.stringify(result,null,2)+'\n');
 } catch(error){process.stderr.write('OMH: '+error.message+'\n');process.exitCode=1;}
