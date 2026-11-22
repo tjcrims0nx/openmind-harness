@@ -35,6 +35,35 @@ writeFileSync(destination, JSON.stringify({
 }));
 NODE
 
+python3 - "$XDG_CONFIG_HOME/opencode/opencode.json" <<'PY'
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+with open(sys.argv[1]) as config:
+    model = json.load(config)["model"].split("/", 1)[1]
+url = "https://generativelanguage.googleapis.com/v1beta/models/"
+url += urllib.parse.quote(model, safe="") + ":generateContent"
+request = urllib.request.Request(
+    url,
+    data=json.dumps({"contents": [{"parts": [{"text": "Reply with OK."}]}],
+                     "generationConfig": {"maxOutputTokens": 256}}).encode(),
+    headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"},
+)
+try:
+    with urllib.request.urlopen(request, timeout=35) as response:
+        if not json.load(response).get("candidates"):
+            sys.exit("Gemini returned no generation candidates")
+except urllib.error.HTTPError as error:
+    sys.exit(f"Gemini generation preflight failed (HTTP {error.code})")
+except (OSError, ValueError) as error:
+    sys.exit(f"Gemini generation preflight failed ({type(error).__name__})")
+print("Gemini generated a response with the configured model.")
+PY
+
 node "$repo/scripts/install-omh-runtime.mjs" > /dev/null
 cd "$OMH_WORKSPACE"
 if [[ "$(opencode --version)" != 1.19.6 ]]; then
@@ -48,11 +77,12 @@ if ! timeout 30s opencode mcp list > "$profile/mcp.log" 2>&1 ||
 fi
 echo "OpenCode 1.19.6 connected to the installed OMH MCP server."
 
-if ! timeout 120s opencode run --format json -- \
+run_status=0
+timeout 75s opencode run --print-logs --format json -- \
   'Use the available OMH queue read tool exactly once with path fixture.txt. Then say done.' \
-  > "$profile/events.jsonl" 2> "$profile/opencode.err"; then
-  echo "OpenCode Gemini generation failed or timed out" >&2
-  exit 1
+  > "$profile/events.jsonl" 2> "$profile/opencode.err" || run_status=$?
+if (( run_status != 0 )); then
+  echo "OpenCode exited with status $run_status. Checking for a completed MCP tool call."
 fi
 
 node --input-type=module - "$profile/events.jsonl" "$OMH_STATE_DIR/tasks.json" <<'NODE'
@@ -74,6 +104,7 @@ if (tasks.length !== 1 || tasks[0].kind !== 'workspace.read' ||
   throw new Error('The MCP call did not queue exactly one fixture read');
 }
 NODE
+if (( run_status != 0 )); then exit "$run_status"; fi
 
 node "$repo/scripts/omh-runtime.mjs" task:run > "$profile/result.json"
 node --input-type=module - "$profile/result.json" <<'NODE'
