@@ -32,7 +32,7 @@ try {
  switch(action){
   case 'status':result={workspace,state,handlers:Object.keys(handlers),queued:queue.list().filter(t=>t.status==='queued').length,scheduled:scheduler.list().length,traceEnabled:trace.enabled};break;
   case 'task:add':result=await queue.enqueue(data.kind,data.input);await trace.record('task.queued',{id:result.id,kind:result.kind});break;
-  case 'task:run':await trace.record('task.started',{});result=await queue.runNext();await trace.record('task.finished',{id:result?.id,status:result?.status,error:result?.error});break;
+  case 'task:run':await trace.record('task.started',{});result=await queue.runNext();await trace.record('task.finished',{id:result?.id,status:result?.status,error:result?.error});for(const event of result?.result?.events||[])await trace.record('agent.event',event);break;
   case 'task:list':result=queue.list();break;
   case 'workflow:run':await trace.record('workflow.started',{name:data.name});result=await new WorkflowRunner(queue).executeSequential(data);await trace.record('workflow.finished',{name:data.name,statuses:result.results.map(x=>x.status)});break;
   case 'memory:add':result=await memory.add(data);await trace.record('memory.updated',{id:result.id});break;
