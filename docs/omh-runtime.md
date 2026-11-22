@@ -75,6 +75,16 @@ Agents `planner`, `implementer`, `tester`, and `reviewer` use OpenCode's `agent`
 
 `node scripts/omh-runtime.mjs doctor` checks Node.js 22+, the availability of the `opencode` command, and (on Linux) attempts a **real Bubblewrap mount-namespace smoke test** in a temporary directory. This is stronger than checking whether `bwrap --version` succeeds. It reports whether the isolation check actually ran; a failed probe is **not** reported as a verified sandbox. The probe does not exercise all filesystem, networking, or resource-limit guarantees and does not validate a live model connection.
 
+### Model reliability and host isolation
+
+**Current default:** `google/gemini-3.5-flash-lite`, selected by `opencode.json` for the main agent and the planner, implementer, reviewer and tester roles. On the affected installation the old `gemini-3.8-flash` default produced zero output after separate 120- and 180-second attempts; `gemini-3.5-flash-lite` answered in approximately six seconds with the same key and setup. This is a specific observed failure, not evidence that the model is universally unavailable. Keep 3.8 in the picker only as an **explicit opt-in** until live responsiveness is reverified.
+
+After updating the repository, **reinstall or copy the updated `opencode.json` into your active `~/.config/opencode/opencode.json` and start a new session**. Check both the selected model and the subagent model. Existing sessions, alternate configuration directories, or saved model selections can still select the old model. `small_model` is used for small internal jobs; it **does not automatically fail over** a hanging main model.
+
+On GitHub Actions, `scripts/smoke-gemini.sh live` now probes only the configured default with a bounded generation request, then exercises a full OpenCode-to-MCP round trip. It **fails** rather than quietly picking another Gemini model if the configured default does not respond. The fixture mode still checks deterministic integration behavior without claiming provider availability. No API key is committed to the repository.
+
+**Bubblewrap is dependent on the host kernel**, even if the `bwrap` executable is installed. Some nested VMs and restricted containers block the `/proc` mount or user/mount namespaces, causing startup to fail before an isolated process can run. In those environments, `sandbox.exec` must **fail closed**, not fall back to unsandboxed shell execution or suggest changing security settings to bypass the kernel restriction. Use `node scripts/omh-runtime.mjs doctor` to inspect capability and `node scripts/smoke-sandbox.mjs` for fuller checks on a trusted real Linux host with permitted namespaces. GitHub Actions sandbox successes validate its runner, **not** the blocked VM or a future Oracle/other host. The native OpenCode agent runner is not Bubblewrap-isolated.
+
 ### Execution sandbox
 
 ```sh
@@ -154,7 +164,7 @@ The Linux and Termux setup scripts run the installer automatically when invoked 
 
 The installed bridge connected over stdio to the pinned OpenCode 1.19.6 binary on Linux. Run `opencode mcp list` or check the UI's MCP status after installation. The automated transport tests cover tool discovery and rejection of privileged calls.
 
-The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and tries the configured Google models. Both jobs verify the reviewer runs, OpenCode calls the installed MCP read tool, and the worker returns the expected file.
+The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and probes **only the pinned default Google model**, failing rather than silently substituting another model. Both jobs verify the reviewer runs, OpenCode calls the installed MCP read tool, and the worker returns the expected file.
 
 ## Verified and unverified platforms
 
