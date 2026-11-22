@@ -22,7 +22,17 @@ node scripts/omh-runtime.mjs task:list
 node scripts/omh-runtime.mjs workflow:run '{"name":"inspect","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
 ```
 
-Built-in task kinds are **workspace.read**, **workspace.write**, and **sandbox.exec** only. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue persists tasks and marks interrupted `running` tasks as `queued` on restart. Use a **single worker**; multi-process locking and exactly-once execution are not implemented.
+Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue persists tasks and marks interrupted `running` tasks as `queued` on restart. Use a **single worker**; multi-process locking and exactly-once execution are not implemented.
+
+### Native agent teams
+
+```sh
+node scripts/omh-runtime.mjs task:add '{"kind":"agent.run","input":{"agent":"reviewer","prompt":"Review the current changes","approved":true}}'
+node scripts/omh-runtime.mjs task:run
+node scripts/omh-runtime.mjs workflow:run '{"name":"review-cycle","steps":[{"kind":"agent.run","input":{"agent":"planner","prompt":"Plan a bounded review","approved":true}},{"kind":"agent.run","input":{"agent":"reviewer","prompt":"Review the plan and code","approved":true}}]}'
+```
+
+Agents `planner`, `implementer`, `tester`, and `reviewer` are registered in `opencode.json`. The native runner does not pass `--auto` and captures JSON event output. It needs an installed OpenCode binary and working model credentials. The API-level `approved:true` flag is not a substitute for OS permission controls or an authenticated human approval system. On production hosts, invoke this only from trusted workspaces.
 
 ### Execution sandbox
 
@@ -60,11 +70,11 @@ OMH_TRACE=1 node scripts/omh-runtime.mjs task:run
 node scripts/omh-runtime.mjs trace:list
 ```
 
-Scheduling is **tick-based**: call `schedule:tick` from systemd/cron/Task Scheduler if you want recurring delivery. There is **no background service installed by default**. Trace journaling is opt-in, and secrets in known fields/token patterns are redacted; keep its data directory private. Tool permissions are implemented as a policy object; integration with actual MCP tool invocation is still outstanding.
+Scheduling is tick-based for interactive use. To process tasks and schedules continuously, launch `node scripts/omh-daemon.mjs` as a **single worker** under systemd/launchd/supervisor. The daemon holds a lock file under `.omh/daemon.lock`; if a process crashes, verify that no worker remains before removing the lock. An OS service is **not** installed automatically. For manual runs, use `schedule:tick`. Trace journaling is opt-in, and secrets in known fields/token patterns are redacted; keep its data directory private. Tool permissions are implemented as a policy object; integration with actual MCP tool invocation is still outstanding.
 
 ## Remaining hardening
 
-- Hook into a supported OpenCode event/plugin API and expose the features in its frontend.
+- Hook live tracing, policy decisions, and skill management into a supported OpenCode event/plugin API and expose the features in its frontend.
 - Add tamper-resistant approval and credential isolation, hardened MCP policy enforcement, and queue locking.
 - Implement macOS/iOS sandbox backends, OS-level CPU/memory quotas, and sandbox integration tests.
 - Add true dependency-aware distributed workflows, scheduled daemon management, and runtime health checks.
