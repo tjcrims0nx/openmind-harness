@@ -13,6 +13,7 @@ import {AgentBus} from '../modules/agent-bus.mjs';
 import {ToolPolicy} from '../modules/tool-policy.mjs';
 import {SkillProposalStore} from '../modules/skill-proposals.mjs';
 import {PluginRegistry} from '../modules/plugin-registry.mjs';
+import {diagnose} from '../modules/doctor.mjs';
 const [action,raw='{}']=process.argv.slice(2);
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
@@ -31,6 +32,7 @@ try {
  let result;
  switch(action){
   case 'status':result={workspace,state,handlers:Object.keys(handlers),queued:queue.list().filter(t=>t.status==='queued').length,scheduled:scheduler.list().length,traceEnabled:trace.enabled};break;
+  case 'doctor':result=await diagnose();break;
   case 'task:add':result=await queue.enqueue(data.kind,data.input);await trace.record('task.queued',{id:result.id,kind:result.kind});break;
   case 'task:run':await trace.record('task.started',{});result=await queue.runNext();await trace.record('task.finished',{id:result?.id,status:result?.status,error:result?.error});for(const event of result?.result?.events||[])await trace.record('agent.event',event);break;
   case 'task:list':result=queue.list();break;
@@ -62,7 +64,7 @@ try {
   case 'plugin:disable':result=await plugins.disable(data.name);break;
   case 'plugin:list':result=plugins.list();break;
   case 'plugin:capabilities':result=plugins.allowedCapabilities();break;
-  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | task:add | task:run | task:list | task:cancel | task:retry | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list | workspace:create | workspace:list | workspace:snapshot | workspace:restore | agent:send | agent:inbox | agent:ack | tool:check | skill:propose | skill:proposals | skill:review | plugin:register | plugin:enable | plugin:disable | plugin:list | plugin:capabilities [JSON]');
+  default:throw new Error('Usage: node scripts/omh-runtime.mjs status | doctor | task:add | task:run | task:list | task:cancel | task:retry | workflow:run | memory:add | memory:list | memory:search | memory:remove | skill:publish | schedule:add | schedule:tick | schedule:list | trace:list | workspace:create | workspace:list | workspace:snapshot | workspace:restore | agent:send | agent:inbox | agent:ack | tool:check | skill:propose | skill:proposals | skill:review | plugin:register | plugin:enable | plugin:disable | plugin:list | plugin:capabilities [JSON]');
  }
  process.stdout.write(JSON.stringify(result,null,2)+'\n');
 } catch(error){process.stderr.write('OMH: '+error.message+'\n');process.exitCode=1;}
