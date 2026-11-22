@@ -27,5 +27,5 @@ export function summarizeAgentEvents(stdout,{limit=100}={}){
    const part=String(obj.part?.type||obj.properties?.type||'').slice(0,100);
    return [{type,part}];
   }catch{return [];}
- }).map(redact);
+ }).map(event=>redact(event));
 }
