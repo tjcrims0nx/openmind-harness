@@ -35,5 +35,15 @@ export class Scheduler{
    return ready;
   });
  }
+ /** Prevent future schedule ticks; already-enqueued tasks are unaffected. */
+ async pause(id){
+  if(typeof id!=='string'||!id)throw new TypeError('Schedule id required');
+  return this.#locked(async()=>{
+   const job=this.jobs.find(j=>j.id===id);
+   if(!job)return null;
+   if(job.enabled){job.enabled=false;await this.save();}
+   return structuredClone(job);
+  });
+ }
  list(){return structuredClone(this.jobs);}
 }
