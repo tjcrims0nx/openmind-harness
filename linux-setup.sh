@@ -111,7 +111,13 @@ command -v opencode >/dev/null 2>&1 || { echo "ERROR: opencode install failed." 
 # --- 2. Universal config + starter skill + guard plugin (same files the iOS app ships) ---
 mkdir -p ~/.config/opencode
 cp "$CONFIG_SRC" ~/.config/opencode/opencode.json
-echo "config installed: ~/.config/opencode/opencode.json (default model openai/gpt-5)"
+echo "config installed: ~/.config/opencode/opencode.json (default model google/gemini-3.8-flash)"
+if [ -f "$SCRIPT_DIR/scripts/install-omh-runtime.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$SCRIPT_DIR/scripts/install-omh-runtime.mjs"
+    echo "OMH runtime and MCP tools installed"
+else
+    echo "OMH runtime skipped: requires repo checkout and Node.js 22+"
+fi
 if [ -n "$SKILLS_SRC" ]; then
     mkdir -p ~/.config/opencode/skills
     cp -R "$SKILLS_SRC/." ~/.config/opencode/skills/
