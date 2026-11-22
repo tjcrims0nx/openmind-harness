@@ -1,6 +1,17 @@
 <p align="center">
-  <strong>OpenMind Harness</strong><br>
-  A universal coding-agent harness — OpenCode with one config for every provider, on every platform.
+  <img src="docs/images/omh-hero.webp" alt="OpenMind Harness cyberpunk hero artwork with neon cyan and violet agent, workflow, trace and runtime panels" width="100%">
+</p>
+
+<h1 align="center">OpenMind Harness</h1>
+
+<p align="center">
+  <strong>Local runtime · Multi-provider agents · Workflows · Dashboard · Traces</strong>
+</p>
+
+<p align="center">
+  <a href="docs/omh-runtime.md">Runtime documentation</a> ·
+  <a href="docs/features.md">Features</a> ·
+  <a href="https://github.com/tjcrims0nx/openmind-harness/actions">Build status</a>
 </p>
 
 > OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.8-flash`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
