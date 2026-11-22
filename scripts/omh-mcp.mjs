@@ -27,7 +27,7 @@ const TOOLS=[
 ];
 export async function callTool(name,args={}){
  if(!args||typeof args!=='object'||Array.isArray(args))throw TypeError('Arguments must be an object');
- const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace)).load();
+ const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace,{stateDir:state})).load();
  switch(name){
   case 'omh_status':return {queued:queue.list().filter(x=>x.status==='queued').length,taskCount:queue.list().length};
   case 'omh_doctor':return diagnose();

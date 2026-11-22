@@ -17,7 +17,7 @@ import {diagnose} from '../modules/doctor.mjs';
 const [action,raw='{}']=process.argv.slice(2);
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
-const handlers=makeHandlers(workspace);
+const handlers=makeHandlers(workspace,{stateDir:state});
 const queue=await new TaskQueue(join(state,'tasks.json'),handlers).load();
 const memory=await new MemoryStore(join(state,'memory.json')).load();
 const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();

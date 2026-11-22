@@ -36,7 +36,7 @@ node scripts/omh-runtime.mjs workflow:submit '{"name":"inspect-later","steps":[{
 
 Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue uses short-lived filesystem locks to prevent simultaneous claims across local workers. Stale running tasks become eligible for recovery after 15 minutes. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
 
-`task:cancel` cancels queued work immediately. For a running Bubblewrap task, it records `cancelRequestedAt` and the worker confirms `cancelled` once the sandbox process closes. A task that finishes before the request takes effect keeps its result. If the worker disappears before confirming, recovery reports the request as failed. Running native OpenCode and filesystem tasks currently reject cancellation.
+`task:cancel` cancels queued work immediately. For a running Bubblewrap task, it records `cancelRequestedAt` and the worker confirms `cancelled` once the sandbox process closes. A task that finishes before the request takes effect keeps its result. If the worker disappears before confirming, recovery reports the request as failed. For a running native agent, the worker asks OpenCode to abort the task’s own session and checks its status. An unconfirmed abort fails the task. Running filesystem handlers currently reject cancellation.
 
 ### Native agent teams
 
@@ -46,7 +46,7 @@ node scripts/omh-runtime.mjs task:run
 node scripts/omh-runtime.mjs workflow:run '{"name":"review-cycle","steps":[{"kind":"agent.run","input":{"agent":"planner","prompt":"Plan a bounded review","approved":true}},{"kind":"agent.run","input":{"agent":"reviewer","prompt":"Review the plan and code","approved":true}}]}'
 ```
 
-Agents `planner`, `implementer`, `tester`, and `reviewer` use OpenCode's `agent` configuration with `mode: "all"`, so OpenCode accepts them both through `run --agent` and through delegation. The native runner captures JSON events and marks a task failed when OpenCode reports an error or switches to its default agent. It needs an installed OpenCode binary and working model credentials. Run native agent tasks from trusted workspaces with appropriate OpenCode permissions.
+Agents `planner`, `implementer`, `tester`, and `reviewer` use OpenCode's `agent` configuration with `mode: "all"`, so OpenCode accepts them both through `run --agent` and through delegation. For each task, the native runner starts a password-protected OpenCode server on loopback, attaches the CLI to one session, and reads the saved assistant response before closing the server. A session error or unexpected agent fails the task. Linux fixture coverage includes normal completion, cancellation of a running shell tool, and scoped memory from a custom `OMH_STATE_DIR`. Abrupt worker death and cancellation of detached external services need separate verification. It needs an installed OpenCode binary and working model credentials. Run native agent tasks from trusted workspaces with appropriate OpenCode permissions.
 
 ### Runtime diagnostics
 
@@ -136,5 +136,5 @@ The Gemini connectivity workflow runs two smoke tests. The fixture streams a det
 - Verify provider-driven MCP tool invocation and wire live tool events and UI panels to the runtime.
 - Add tamper-resistant approval and credential isolation, and enforce policy at the actual OpenCode/MCP tool call boundary. The task queue and schedule store now use short-lived filesystem locks; the mailbox, memory, skill proposal and plugin stores do not yet support concurrent writers.
 - Implement macOS/iOS sandbox backends and OS-level CPU and memory quotas.
-- Add distributed workflow execution, OS service installation and health checks, and running-task cancellation.
+- Add distributed workflow execution, OS service installation and health checks, and worker-crash cleanup for native sessions.
 - Validate installed tool paths and agent configuration on each target platform before claiming full parity.

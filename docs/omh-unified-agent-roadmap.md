@@ -16,8 +16,10 @@ Work through the harness on Linux and verify it through the installed runtime. C
 - [x] Exercise queue persistence, dependency order, scheduler restart recovery and Linux sandbox isolation in CI.
 - [x] Verify cancellation of running sandbox work on Linux with Bubblewrap.
 - [x] Ship a local, read-only runtime dashboard with task, schedule, memory, trace, workspace and sandbox views.
-- [ ] Verify native OpenCode session interruption and design authenticated dashboard task controls.
-- [ ] Verify stock OpenCode subagent delegation and scoped, durable memory across real sessions.
+- [x] Verify native OpenCode session interruption while a shell tool is active on Linux.
+- [ ] Design and verify authenticated dashboard task controls.
+- [x] Verify opt-in scoped memory in separate native sessions using a local provider fixture.
+- [ ] Verify stock OpenCode subagent delegation.
 - [ ] Verify concurrent writes and recovery for runtime state stores. Exercise reviewed skill publication and plugin permissions.
 - [ ] Verify authenticated approvals and session permissions for privileged actions and document the supported sandbox limits.
 - [ ] Run the release smoke suite against the packaged Linux and Termux entry points.

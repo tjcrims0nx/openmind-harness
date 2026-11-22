@@ -29,7 +29,7 @@ async function prepareSandboxWorkspace(root, workspaceId) {
  }
  return directory;
 }
-export function makeHandlers(workspace){
+export function makeHandlers(workspace,{stateDir}={}){
  if(typeof workspace!=='string')throw new TypeError('Workspace required');
  const root=resolve(workspace);
  const policy=new ToolPolicy({allow:['workspace.read'],ask:['workspace.write','sandbox.exec','agent.run']});
@@ -54,12 +54,12 @@ export function makeHandlers(workspace){
    if(result.exitCode!==0)throw new Error(`Sandbox exited with code ${result.exitCode}`);
    return result;
   },{cancellable:true}),
-  'agent.run':async (input)=>{
+  'agent.run':Object.assign(async (input,{signal}={})=>{
    policy.require('agent.run',{approved:input.approved});
-   const args=await prepareAgentTask(input,{workspace:root});
-   const result=await runAgent(args);
+   const args=await prepareAgentTask(input,{workspace:root,stateDir});
+   const result=await runAgent(args,{signal});
    requireSuccessfulAgentRun(result);
    return {...result,events:summarizeAgentEvents(result.stdout)};
-  }
+  },{cancellable:true})
  };
 }

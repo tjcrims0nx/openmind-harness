@@ -20,7 +20,7 @@ let running=true;
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{running=false;});
 const trace=new TraceJournal(join(state,'audit.jsonl'),{enabled:process.env.OMH_TRACE==='1'});
 try{
- const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace)).load();
+ const queue=await new TaskQueue(join(state,'tasks.json'),makeHandlers(workspace,{stateDir:state})).load();
  const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
  while(running){
   try{
