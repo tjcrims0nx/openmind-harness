@@ -32,6 +32,7 @@ def seed(cli):
     cli("memory:add", {"title": "Build conventions", "content": "private-note", "approved": True})
     cli("skill:propose", {"name": "build-review", "description": "Build checks", "instructions": "private-skill"})
     cli("plugin:register", {"name": "trace-index", "version": "1.0.0", "description": "private-plugin", "approved": True})
+    cli("plugin:enable", {"name": "trace-index", "approved": True})
 
 
 def exercise(page, url, mobile):
@@ -172,6 +173,15 @@ def run(root):
             cancel = page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")
             cancel.click()
             assert cli("task:list") and next(t for t in cli("task:list") if t["id"] == retry_id)["status"] == "cancelled"
+            page.locator("#navigation [data-view=schedules]").click()
+            page.locator("#activity button[data-action=pause]").click()
+            assert cli("schedule:list")[0]["enabled"] is False
+            page.locator("#navigation [data-view=plugins]").click()
+            page.locator("#activity button[data-action=disable]").click()
+            assert cli("plugin:list")[0]["enabled"] is False
+            page.locator("#navigation [data-view=skills]").click()
+            page.locator("#activity button[data-action=reject]").click()
+            assert cli("skill:proposals")[0]["status"] == "rejected"
             page.locator("#navigation [data-view=workspace]").click()
             page.locator("#refresh").click()
             expect(page.locator("#connection")).to_have_text("Connected")
