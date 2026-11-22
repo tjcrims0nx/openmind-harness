@@ -29,11 +29,12 @@ else{
  await mkdir(join(dest,'scripts'),{recursive:true});
  await cp(join(source,'modules'),join(dest,'modules'),{recursive:true,force:true});
  await cp(join(source,'dashboard'),join(dest,'dashboard'),{recursive:true,force:true});
- for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});
+ for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-live.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});
  const tmp=configPath+'.'+randomUUID()+'.tmp';
  await writeFile(tmp,JSON.stringify(merged,null,2)+'\n',{mode:0o600});
  await rename(tmp,configPath);
  process.stdout.write('OMH runtime installed with read-mostly MCP tools at '+dest+'\n');
  process.stdout.write('CLI: node '+join(dest,'scripts','omh-runtime.mjs')+' status\n');
  process.stdout.write('Dashboard: node '+join(dest,'scripts','omh-dashboard.mjs')+'\n');
+ process.stdout.write('Live connector: OMH_LIVE_TOKEN=<secret> node '+join(dest,'scripts','omh-live.mjs')+'\n');
 }
