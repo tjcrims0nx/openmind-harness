@@ -1,0 +1,48 @@
+name: Portable harness packages
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'modules/**'
+      - 'dashboard/**'
+      - 'scripts/omh-*.mjs'
+      - 'scripts/package-portable.mjs'
+      - 'scripts/smoke-portable.mjs'
+      - 'opencode.json'
+      - '.github/workflows/portable-packages.yml'
+permissions:
+  contents: read
+jobs:
+  package:
+    name: Portable runtime (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {label: linux-x64, os: ubuntu-24.04, target: linux}
+          - {label: macos-arm64, os: macos-15, target: darwin}
+          - {label: windows-x64, os: windows-2022, target: win32}
+          - {label: termux-aarch64-scripts, os: ubuntu-24.04, target: android}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check package script syntax
+        run: |
+          node --check scripts/package-portable.mjs
+          node --check scripts/smoke-portable.mjs
+      - name: Run portable runtime smoke in fresh temporary workspace
+        run: node scripts/smoke-portable.mjs ${{ matrix.target }}
+      - name: Package platform launchers and runtime
+        run: node scripts/package-portable.mjs ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: omh-runtime-${{ matrix.label }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
