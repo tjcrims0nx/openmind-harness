@@ -22,9 +22,13 @@ Work through the harness on Linux and verify it through the installed runtime. C
 - [ ] Verify concurrent writes and recovery for runtime state stores. Exercise reviewed skill publication and plugin permissions.
 - [ ] Verify authenticated approvals and session permissions for privileged actions and document the supported sandbox limits.
 - [ ] Run the release smoke suite against the packaged Linux and Termux entry points.
-- [ ] Verify iOS guest boot and the OpenCode interface on the simulator and device after harness stabilization.
+- [ ] Verify the **current native iPad workspace** (tracked in [omh-iOS PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4)) on iPad simulator in portrait, landscape and narrow Stage Manager windows; confirm the loopback runtime state and embedded OpenCode editor. Earlier green builds do not verify this branch head.
+- [ ] Verify the iPhone WebKit-first shell and editor independently on the same intended release commit.
+- [ ] Sign and install the final IPA on a physical iPad; verify first boot, session continuity and runtime readiness. CI simulator success does not cover this.
 
 ## Follow-on — reliable full harness on iOS
+
+The app is developed in [omh-iOS](https://github.com/tjcrims0nx/omh-iOS), not here. The native iPad home reads the separate OMH dashboard state API rather than rendering a zoomed desktop web home. Do not mark the iPad UI or sandbox as device-verified until its release gates in [BUILD_AND_VERIFY.md](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/BUILD_AND_VERIFY.md) are satisfied.
 
 - Boot the real OpenCode workspace; verify workspace selection, file tools, terminal, sessions, model picker, and settings on simulator/device.
 - Fix app launch crashes and reconnect logic before adding complex services.
