@@ -8,7 +8,7 @@ project.
 ## Providers — one config, eighteen providers
 
 `opencode.json` declares eighteen providers. The default model is
-`openai/gpt-5`; the working out-of-the-box fallback is
+`google/gemini-3.8-flash`; the configured small-model fallback is
 `experientiallabs/deepseek-v4.1-flash:free`. Switch in the web UI's model
 picker or with the model flag — no restart, no config edit. Small jobs
 (session titles and other one-line calls) always use the free fallback
@@ -17,10 +17,10 @@ models are not on every key's access list.
 
 | Provider | Key | Notes |
 |---|---|---|
-| OpenAI (default) | ChatGPT Plus/Pro OAuth (`opencode auth login --provider openai`) or `OPENAI_API_KEY` | Default `openai/gpt-5`. With a Plus/Pro subscription, requests count against the subscription, not API billing. |
+| OpenAI | ChatGPT Plus/Pro OAuth (`opencode auth login --provider openai`) or `OPENAI_API_KEY` | Optional `openai/gpt-5`. With a Plus/Pro subscription, requests count against the subscription, not API billing. |
 | Experiential Labs (free fallback) | `EXPLABS_API_KEY` | `deepseek-v4.1-flash:free` — free stock route. |
 | DeepSeek | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | `GEMINI_API_KEY` | Google provider. Models pinned in the config: `gemini-3.8-flash`, `gemini-3.5-flash-lite` (`gemini-2.5-flash` is retired by Google). |
+| Gemini (default) | `GEMINI_API_KEY` | Google provider. Models pinned in the config: `gemini-3.8-flash`, `gemini-3.5-flash-lite` (`gemini-2.5-flash` is retired by Google). |
 | Antigravity | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. The harness talks to Antigravity through the loopback bridge (`scripts/antigravity-bridge.mjs`, 127.0.0.1:18080); sign in once and the bridge uses the stored OAuth tokens. |
 | Anthropic | `ANTHROPIC_API_KEY` | Claude models. |
 | Groq | `GROQ_API_KEY` | Fast hosted models. |
@@ -102,7 +102,7 @@ exotic; the agent uses the tools OpenCode ships.
 
 `task` spawns an isolated-context sub-agent for a piece of work. Two are
 pinned in the config: `fast` (small jobs on the free fallback model) and
-`reviewer` (read-only review subagent on `openai/gpt-5`, edit and shell
+`reviewer` (read-only review subagent on `google/gemini-3.8-flash`, edit and shell
 denied). Built-ins `explore` and `general` are available too. Sub-agents
 can work in their own git worktree (`worktree` config).
 
