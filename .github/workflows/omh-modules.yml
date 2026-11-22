@@ -5,6 +5,7 @@ on:
       - 'modules/**'
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'
+      - 'scripts/smoke-sandbox.mjs'
       - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   pull_request:
@@ -12,6 +13,7 @@ on:
       - 'modules/**'
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'
+      - 'scripts/smoke-sandbox.mjs'
       - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
@@ -33,3 +35,23 @@ jobs:
           node scripts/omh-runtime.mjs status
           node scripts/omh-runtime.mjs workflow:run '{"name":"ci-smoke","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
           node scripts/omh-runtime.mjs task:list
+
+  sandbox:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y bubblewrap
+      - name: Smoke-test Linux sandbox isolation
+        run: node scripts/smoke-sandbox.mjs
+        env:
+          OMH_SANDBOX_HOST_FIXTURE: host-only
