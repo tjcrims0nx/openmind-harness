@@ -29,6 +29,10 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
 
   const empty = await (await fetch(base + '/api/state')).json();
+  assert.equal(empty.platform.os, process.platform);
+  assert.equal(empty.platform.arch, process.arch);
+  assert.equal(empty.platform.node, process.versions.node);
+  assert.equal(typeof empty.platform.sandboxBackendInstalled, 'boolean');
   assert.equal(empty.counts.queued, 0);
   assert.deepEqual(empty.tasks, []);
 
