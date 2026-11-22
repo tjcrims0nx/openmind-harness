@@ -93,9 +93,23 @@ node scripts/omh-runtime.mjs trace:list
 
 Scheduling is tick-based for interactive use. To process tasks and schedules continuously, launch `node scripts/omh-daemon.mjs` as a **single worker** under systemd/launchd/supervisor. The daemon holds a lock file under `.omh/daemon.lock`; if a process crashes, verify that no worker remains before removing the lock. An OS service is **not** installed automatically. For manual runs, use `schedule:tick`. Trace journaling is opt-in, and secrets in known fields/token patterns are redacted; keep its data directory private. Tool permissions are implemented as a policy object; integration with actual MCP tool invocation is still outstanding.
 
+
+### OpenCode native MCP integration
+
+The installer copies the OMH Node modules and CLI under `~/.config/opencode/omh-runtime/` and adds a **local stdio MCP server** to the existing OpenCode `opencode.json` without replacing other MCP entries:
+
+```sh
+node scripts/install-omh-runtime.mjs --dry-run
+node scripts/install-omh-runtime.mjs
+```
+
+The Linux and Termux setup scripts run the installer automatically when invoked from a repository checkout and Node.js 22+ is available. The MCP bridge exposes **read-mostly** `omh_status`, `omh_memory_search`, `omh_task_list`, `omh_queue_read`, `omh_trace_recent`, `omh_skill_propose`, `omh_skill_proposals`, `omh_agent_send`, and `omh_agent_inbox`. It deliberately exposes **no direct shell execution, agent invocation, workspace writing, or approval override** to model-generated tool calls. A trusted CLI/daemon remains responsible for executing pending work. This is an explicit runtime boundary, not a guarantee that stock OpenCode tool permissions are enforced by the bridge.
+
+MCP startup uses stdio JSON-RPC for the legacy OpenCode protocol and has automated transport and installer tests. **Live negotiation against the pinned OpenCode 1.19.6 binary has not been verified in this environment.** Run `opencode mcp list` or check the UI's MCP status after installation to confirm it connected.
+
 ## Remaining hardening
 
-- Hook live tracing, policy decisions, and skill management into a supported OpenCode event/plugin API and expose the features in its frontend.
+- Verify MCP handshake in the pinned OpenCode binary and wire live tool-event hooks, policy enforcement and UI panels to the runtime.
 - Add tamper-resistant approval and credential isolation, and enforce policy at the actual OpenCode/MCP tool call boundary. The task queue and schedule store now use short-lived filesystem locks; the mailbox, memory, skill proposal and plugin stores do not yet support concurrent writers.
 - Implement macOS/iOS sandbox backends, OS-level CPU/memory quotas, and sandbox integration tests.
 - Add dependency-aware distributed workflows, OS service installation/health checks, and robust cancellation/retry policy.
