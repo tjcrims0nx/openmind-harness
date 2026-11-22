@@ -7,7 +7,7 @@ export function agentArgs({agent,prompt,workspace,model}={}){
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>16000)throw new TypeError('Invalid agent prompt');
  if(typeof workspace!=='string'||!isAbsolute(workspace))throw new TypeError('Absolute workspace path required');
  if(model!==undefined&&(typeof model!=='string'||!/^[\w.-]+\/[\w.:-]+$/.test(model)))throw new TypeError('Invalid model');
- return ['run','--format','json','--agent',agent,'--dir',resolve(workspace),...(model?['--model',model]:[]),prompt];
+ return ['run','--format','json','--agent',agent,'--dir',resolve(workspace),...(model?['--model',model]:[]),'--',prompt];
 }
 export async function runAgent({agent,prompt,workspace,model,approved=false,timeoutMs=180000}={}){
  if(approved!==true)throw new Error('Native agent execution requires approval; it runs outside bubblewrap');
