@@ -92,7 +92,9 @@ async function readState(state) {
   };
 }
 
-export async function createDashboardServer(state) {
+export async function createDashboardServer(state,{adminToken=process.env.OMH_DASHBOARD_ADMIN_TOKEN,workspace=process.env.OMH_WORKSPACE||process.cwd()}={}) {
+  if(adminToken!==undefined&&(typeof adminToken!=='string'||Buffer.byteLength(adminToken)<32))throw new Error('OMH dashboard administrator token must contain at least 32 bytes');
+  const adminEnabled=adminToken!==undefined;
   const csrf = randomBytes(32).toString('hex');
   const assets = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
     route, {type, body: await readFile(new URL(`../dashboard/${file}`, import.meta.url))},
@@ -107,15 +109,26 @@ export async function createDashboardServer(state) {
          request.headers['sec-fetch-site'] !== 'none')) {
       return send(403, 'Local dashboard requests only');
     }
-    if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject'].includes(request.url)) {
+    if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject','/api/schedules/resume','/api/plugins/enable','/api/skills/accept'].includes(request.url)) {
       const port=server.address().port;
       if(request.headers.origin !== `http://${HOST}:${port}` ||
          !safeEqual(request.headers['x-omh-csrf'],csrf) ||
          request.headers['content-type']?.split(';')[0].trim() !== 'application/json'){
         return send(403,'Dashboard action not authorized');
       }
+      const privileged=['/api/schedules/resume','/api/plugins/enable','/api/skills/accept'].includes(request.url);
+      if(privileged&&(!adminEnabled||!safeEqual(request.headers['x-omh-admin-token'],adminToken))){
+        return send(403,'Administrator authorization required');
+      }
       try{
         const body=await readJson(request);
+        if(request.url==='/api/plugins/enable'){
+          if(typeof body.name!=='string'||!/^[-a-z0-9.]{2,64}$/.test(body.name))return send(400,'Invalid plugin name');
+          const registry=await new PluginRegistry(join(state,'plugins.json')).load();
+          if(!registry.list().some(item=>item.name===body.name&&!item.enabled))return send(409,'Plugin not disabled');
+          const result=await registry.enable(body.name,{approved:true});
+          return send(200,JSON.stringify({name:result.name,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
         if(request.url==='/api/plugins/disable'){
           if(typeof body.name!=='string'||!/^[-a-z0-9.]{2,64}$/.test(body.name))return send(400,'Invalid plugin name');
           const registry=await new PluginRegistry(join(state,'plugins.json')).load();
@@ -125,6 +138,13 @@ export async function createDashboardServer(state) {
           return send(200,JSON.stringify({name:result.name,enabled:result.enabled}),'application/json; charset=utf-8');
         }
         if(typeof body.id!=='string'||!/^[a-f0-9-]{36}$/i.test(body.id))return send(400,'Invalid identifier');
+        if(request.url==='/api/schedules/resume'){
+          const queue=new TaskQueue(join(state,'tasks.json'));
+          const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
+          if(!scheduler.list().some(item=>item.id===body.id&&!item.enabled))return send(409,'Schedule not paused');
+          const result=await scheduler.resume(body.id);
+          return send(200,JSON.stringify({id:result.id,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
         if(request.url==='/api/schedules/pause'){
           const queue=new TaskQueue(join(state,'tasks.json'));
           const scheduler=await new Scheduler(join(state,'schedules.json'),queue).load();
@@ -132,6 +152,12 @@ export async function createDashboardServer(state) {
           if(!scheduled)return send(409,'Schedule not enabled');
           const result=await scheduler.pause(body.id);
           return send(200,JSON.stringify({id:result.id,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
+        if(request.url==='/api/skills/accept'){
+          const proposals=await new SkillProposalStore(join(state,'skill-proposals.json')).load();
+          if(!proposals.list('pending').some(item=>item.id===body.id))return send(409,'Proposal not pending');
+          const result=await proposals.review(body.id,{decision:'accept',approved:true,root:join(resolve(workspace),'skills')});
+          return send(200,JSON.stringify({id:result.id,status:result.status}),'application/json; charset=utf-8');
         }
         if(request.url==='/api/skills/reject'){
           const proposals=await new SkillProposalStore(join(state,'skill-proposals.json')).load();
@@ -164,7 +190,7 @@ export async function createDashboardServer(state) {
     if (request.url === '/api/session') return send(200,JSON.stringify({csrf}), 'application/json; charset=utf-8');
     if (request.url === '/api/state') {
       try {
-        return send(200, JSON.stringify(await readState(state)), 'application/json; charset=utf-8');
+        return send(200, JSON.stringify({...await readState(state),adminActionsAvailable:adminEnabled}), 'application/json; charset=utf-8');
       } catch (error) {
         console.error('OMH dashboard could not read runtime state:', error.code || error.name);
         return send(500, 'Runtime state could not be read.');
