@@ -59,6 +59,27 @@ node scripts/omh-runtime.mjs agent:inbox '{"agent":"implementer"}'
 
 Memory is explicit opt-in and scoped. Skills are **manually provided text** (not automatically self-modified). The store and mailboxes are on disk. Agents registered in `opencode.json` provide native OpenCode plan/implement/test/review roles, but no autonomous multi-agent controller is wired to the OpenCode server yet.
 
+
+### Reviewed skill improvements and plugin studio
+
+Proposals are saved for review and are **not installed automatically**. Publication is a separate explicit action:
+
+```sh
+node scripts/omh-runtime.mjs skill:propose '{"name":"review-style","description":"Project review checklist","instructions":"Check regression tests before publishing.","evidence":"A reviewed maintenance finding"}'
+node scripts/omh-runtime.mjs skill:proposals
+node scripts/omh-runtime.mjs skill:review '{"id":"<proposal-id>","decision":"accept","approved":true}'
+```
+
+The plugin registry stores validated declarative manifests and explicit enabled/disabled states:
+
+```sh
+node scripts/omh-runtime.mjs plugin:register '{"name":"local.review","version":"1.0.0","capabilities":["files.read"],"approved":true}'
+node scripts/omh-runtime.mjs plugin:enable '{"name":"local.review","approved":true}'
+node scripts/omh-runtime.mjs plugin:capabilities
+```
+
+Plugin registration **does not execute code, install packages, or inject tools into OpenCode/MCP**. The registry is a safe foundation for a future signed plugin loader.
+
 ### Scheduling, permission policy and trace
 
 ```sh
@@ -75,7 +96,7 @@ Scheduling is tick-based for interactive use. To process tasks and schedules con
 ## Remaining hardening
 
 - Hook live tracing, policy decisions, and skill management into a supported OpenCode event/plugin API and expose the features in its frontend.
-- Add tamper-resistant approval and credential isolation, hardened MCP policy enforcement, and queue locking.
+- Add tamper-resistant approval and credential isolation, and enforce policy at the actual OpenCode/MCP tool call boundary. The task queue and schedule store now use short-lived filesystem locks; the mailbox, memory, skill proposal and plugin stores do not yet support concurrent writers.
 - Implement macOS/iOS sandbox backends, OS-level CPU/memory quotas, and sandbox integration tests.
-- Add true dependency-aware distributed workflows, scheduled daemon management, and runtime health checks.
+- Add dependency-aware distributed workflows, OS service installation/health checks, and robust cancellation/retry policy.
 - Validate installed tool paths and agent configuration on each target platform before claiming full parity.
