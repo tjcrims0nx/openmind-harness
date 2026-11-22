@@ -13,6 +13,7 @@ if(!/^(linux|darwin|win32|android)$/.test(target))throw Error('Unsupported packa
 const dest=resolve(root,'dist','omh-runtime-'+({darwin:'macos',win32:'windows',android:'termux',linux:'linux'}[target]));
 await rm(dest,{recursive:true,force:true});
 await mkdir(join(dest,'bin'),{recursive:true});
+await mkdir(join(dest,'scripts'),{recursive:true});
 for(const path of ['modules','dashboard','LICENSE','opencode.json'])
  await cp(join(root,path),join(dest,path),{recursive:true});
 for(const name of ['omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-mcp.mjs','omh-live.mjs'])
