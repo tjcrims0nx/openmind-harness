@@ -3,7 +3,7 @@
   A universal coding-agent harness — OpenCode with one config for every provider, on every platform.
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The default is ChatGPT (GPT-5, via your Plus subscription — no API credits needed); the working fallback is a free stock DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.8-flash`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
 
 ## The harness
 
@@ -22,10 +22,10 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 
 | Provider | Model | Key env var | Notes |
 |---|---|---|---|
-| OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | **Default.** ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
+| OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | Optional provider. ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
 | Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Free stock route; works out of the box as the fallback when OpenAI has no credits. |
 | DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | pinned (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | `GEMINI_API_KEY` | Google provider. `gemini-2.5-flash` is retired by Google — the config pins the working models. |
+| Gemini | pinned (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | `GEMINI_API_KEY` | **Configured default.** Google provider. `gemini-2.5-flash` is retired by Google — the config pins the working models. |
 | Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
 | Groq | catalog (`openai/gpt-oss-120b`, …) | `GROQ_API_KEY` | Fast hosted models. |
 | Mistral | catalog (`codestral-2508`, …) | `MISTRAL_API_KEY` | Mistral models. |
@@ -130,3 +130,7 @@ The iOS/iPadOS app is one packaging of the harness: a native shell (iSH-ARM64 em
 ## License
 
 OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`LICENSE.IOS`](https://github.com/tjcrims0nx/omh-iOS/blob/main/ish-arm64/LICENSE.IOS) (in the omh-iOS repo). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
+
+## Experimental OMH modules
+
+The independent [Smart Router policy engine](modules/smart-router.mjs) supports manual, balanced, budget and quality selection, filtered failover, and cost/budget calculations. Run its tests with `node --test modules/smart-router.test.mjs`. **It is not wired into the live OpenCode provider pipeline yet**; it does not discover provider health or prices, and no automatic routing or cost enforcement should be assumed. See [the unified agent roadmap](docs/omh-unified-agent-roadmap.md) for the remaining work.
