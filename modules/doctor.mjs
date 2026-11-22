@@ -11,6 +11,17 @@ function commandProbe(command,args,{spawn=spawnSync}={}) {
   return {available:result.status===0,version:result.status===0 ? String(result.stdout||'').trim().slice(0,120) : null};
  } catch {return {available:false,version:null};}
 }
+/** Categorize a failed namespace probe without treating installed bwrap as isolation. */
+export function sandboxProbeFailure(result){
+ const stderr=String(result?.stderr||'').slice(0,2048);
+ if(/(?:mount|proc).{0,90}(?:proc|mount)|proc.{0,90}(?:permission denied|operation not permitted)/i.test(stderr))
+  return 'host blocked Bubblewrap /proc mount or mount namespace';
+ if(/operation not permitted|permission denied|user namespaces?|namespace creation/i.test(stderr))
+  return 'host denied a required namespace or mount permission';
+ if(result?.timedOut)return 'sandbox probe timed out';
+ return 'sandbox execution probe failed';
+}
+
 export async function diagnose({platform=process.platform,nodeVersion=process.versions.node,spawn=spawnSync,sandboxRun=runSandbox}={}) {
  const nodeMajor=Number(String(nodeVersion).split('.')[0]);
  const node={supported:Number.isInteger(nodeMajor)&&nodeMajor>=22,version:String(nodeVersion)};
@@ -21,7 +32,8 @@ export async function diagnose({platform=process.platform,nodeVersion=process.ve
   const tmp=await mkdtemp(join(tmpdir(),'omh-doctor-'));
   try {
    const result=await sandboxRun({workspace:tmp,command:'sh',args:['-c','test -d /workspace && test ! -e /etc/passwd && test ! -e /etc/shadow'],timeoutMs:5000});
-   isolation={supported:true,verified:result.exitCode===0&&!result.timedOut&&!result.outputTruncated,reason:result.exitCode===0?'mount namespace smoke probe passed':'sandbox execution probe failed'};
+   const verified=result.exitCode===0&&!result.timedOut&&!result.outputTruncated;
+   isolation={supported:true,verified,reason:verified?'mount namespace smoke probe passed':sandboxProbeFailure(result)};
   } catch {isolation={supported:true,verified:false,reason:'sandbox execution probe failed'};}
   finally {await rm(tmp,{recursive:true,force:true});}
  }
