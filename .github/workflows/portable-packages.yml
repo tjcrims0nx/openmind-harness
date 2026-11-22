@@ -13,7 +13,29 @@ on:
 permissions:
   contents: read
 jobs:
+  full-regression:
+    name: Full harness regression (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run complete OMH module suite
+        run: node --test modules/*.test.mjs
+      - name: Validate dashboard build and runtime syntax
+        run: |
+          node scripts/build-vercel-dashboard.mjs
+          node --check scripts/omh-runtime.mjs
+          node --check scripts/omh-dashboard.mjs
+          node --check scripts/install-omh-runtime.mjs
+          node --check scripts/package-portable.mjs
+          node --check scripts/smoke-portable.mjs
   package:
+    needs: full-regression
     name: Portable runtime (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
