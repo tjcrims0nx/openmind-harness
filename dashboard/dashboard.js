@@ -1,120 +1,251 @@
-const heading = document.querySelector('#activity-heading');
-const activity = document.querySelector('#activity');
-const counts = document.querySelector('#counts');
-const filter = document.querySelector('#filter');
-const filterLabel = document.querySelector('#filter-label');
-const refresh = document.querySelector('#refresh');
-const views = [...document.querySelectorAll('[data-view]')];
-const connection = document.querySelector('#connection');
-const updated = document.querySelector('#updated');
-const error = document.querySelector('#error');
-
-let state;
-let active = 'tasks';
-let refreshing = false;
-const labels = {
-  queued: 'Queued', running: 'Running', completed: 'Completed',
-  failed: 'Failed', cancelled: 'Cancelled',
+const $ = selector => document.querySelector(selector);
+const views = {
+  workspace: 'Workspace', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
+  skills: 'Skills', plugins: 'Plugins', traces: 'Trace', sandbox: 'Sandbox', schedules: 'Schedules',
+  workspaces: 'Workspaces',
 };
-const formatDate = value => value ? new Date(value).toLocaleString() : '';
-const element = (tag, text, className) => {
+const features = {
+  memory: 'Persistent context & project notes', agents: 'Roles, queues & activity',
+  workflows: 'Track dependent steps', tasks: 'Inspect background jobs',
+  skills: 'Review proposal status', plugins: 'Registered capabilities',
+  traces: 'Execution history & events', sandbox: 'Isolated task activity',
+};
+const tabs = {console: 'Console', workspaces: 'Workspaces', schedules: 'Schedules', traces: 'Logs'};
+const filterable = new Set(['tasks', 'workflows', 'sandbox']);
+let state;
+let active = 'workspace';
+let tab = 'console';
+let query;
+let refreshed;
+
+function el(tag, text, className) {
   const node = document.createElement(tag);
-  node.textContent = text;
+  if (text !== undefined) node.textContent = text;
   if (className) node.className = className;
   return node;
-};
+}
 
-function list(rows, empty, title) {
-  if (title) activity.append(element('h3', title, 'group-title'));
+function icon(name) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const use = document.createElementNS(ns, 'use');
+  use.setAttribute('href', '/icons.svg#' + name);
+  svg.append(use);
+  return svg;
+}
+
+function viewButton(view, label = views[view], description, symbol = view) {
+  const button = el('button');
+  button.type = 'button';
+  button.dataset.view = view;
+  const caption = el('span');
+  caption.append(el('b', label));
+  if (description) caption.append(el('small', description));
+  button.append(icon(symbol), caption);
+  return button;
+}
+
+const time = value => value ? new Date(value).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
+const date = value => value ? new Date(value).toLocaleString() : '';
+const title = word => word ? word[0].toUpperCase() + word.slice(1) : '';
+const row = (name, status, detail, id) => ({name, status, detail, id});
+const taskCount = () => Object.values(state.counts).reduce((sum, count) => sum + count, 0);
+
+function records(view) {
+  if (!state) return [];
+  if (filterable.has(view)) {
+    const tasks = view === 'workflows' ? state.workflowSteps : state[view];
+    return tasks.map(t => ({
+      ...row(t.kind, t.blocked ? 'Blocked' : t.cancelRequestedAt && t.status === 'running' ? 'Cancelling' : title(t.status),
+        [t.id, (t.attempts || 0) + ' attempts', t.dependsOn && 'Depends on ' + t.dependsOn, date(t.finishedAt || t.createdAt)].filter(Boolean).join(' · '), t.id),
+      queueStatus: t.status,
+    }));
+  }
+  switch (view) {
+    case 'agents': return state.agents.map(a => row(a.name, a.running ? 'Running' : a.queued ? 'Queued' : 'Idle', a.running + ' running · ' + a.queued + ' queued'));
+    case 'memory': return state.memory.map(n => row(n.title, n.scope, date(n.createdAt), n.id));
+    case 'skills': return state.skills.map(s => row(s.name, title(s.status), date(s.createdAt), s.id));
+    case 'plugins': return state.plugins.map(p => row(p.name, p.enabled ? 'Enabled' : 'Disabled', 'Version ' + p.version));
+    case 'schedules': return state.schedules.map(s => row(s.kind, s.enabled ? 'Enabled' : 'Disabled', 'Every ' + s.everyMs / 1000 + ' s · Next ' + date(s.nextAt), s.id));
+    case 'traces': return state.traces.map(t => row(t.type, t.status, [date(t.at), t.kind, t.id].filter(Boolean).join(' · '), t.id));
+    case 'workspaces': return state.workspaces.map(name => row(name, 'Workspace'));
+    default: return [];
+  }
+}
+
+function showRows(container, rows, empty) {
+  container.replaceChildren();
   if (!rows.length) {
-    activity.append(element('p', empty, 'empty'));
+    container.append(el('p', empty, 'empty'));
     return;
   }
-  const items = element('ul', '', 'items');
-  for (const {name, status, detail, kind = ''} of rows) {
-    const row = element('li', '', 'activity-row');
-    row.append(element('strong', name));
-    if (status) row.append(element('span', status, `status ${kind}`));
-    if (detail) row.append(element('p', detail));
-    items.append(row);
+  const list = el('ul', undefined, 'records');
+  for (const r of rows) {
+    const item = el('li');
+    item.append(el('b', r.name));
+    if (r.status) item.append(el('span', r.status, 'status'));
+    if (r.detail) item.append(el('small', r.detail));
+    list.append(item);
   }
-  activity.append(items);
+  container.append(list);
 }
 
-function render() {
-  if (!state) return;
-  counts.replaceChildren(...Object.entries(labels).map(([key, label]) => {
-    const card = element('div', '', 'count');
-    card.append(element('span', label), element('strong', state.counts[key]));
-    return card;
-  }));
-  activity.replaceChildren();
-  heading.textContent = views.find(button => button.dataset.view === active).textContent;
-  filterLabel.hidden = active !== 'tasks' && active !== 'sandbox';
-  if (active === 'tasks' || active === 'sandbox') {
-    const rows = state[active].filter(task => filter.value === 'all' || task.status === filter.value);
-    list(rows.map(task => ({
-      name: task.kind,
-      status: task.blocked ? 'Blocked' : task.status === 'running' && task.cancelRequestedAt ?
-        'Cancellation requested' : labels[task.status],
-      kind: task.status,
-      detail: [task.id, `${task.attempts || 0} attempts`, formatDate(task.finishedAt || task.createdAt)]
-        .filter(Boolean).join(' · '),
-    })), 'No tasks match this view.');
-  } else if (active === 'agents') {
-    list(state.agents.map(agent => ({
-      name: agent.name, status: `${agent.running} running`, detail: `${agent.queued} queued`,
-    })), 'No agents available.', 'Agent tasks');
-    list(state.workspaces.map(name => ({name})), 'No agent workspaces.', 'Workspaces');
-  } else if (active === 'schedules') {
-    list(state.schedules.map(job => ({
-      name: job.kind,
-      status: job.enabled ? 'Enabled' : 'Disabled',
-      detail: job.enabled ? `Next run ${formatDate(job.nextAt)} · Every ${job.everyMs / 60000} min` : job.id,
-    })), 'No schedules configured.');
-  } else if (active === 'memory') {
-    list(state.memory.map(note => ({
-      name: note.title, status: note.scope, detail: formatDate(note.createdAt),
-    })), 'No saved memory entries.');
-  } else {
-    list(state.traces.map(trace => ({
-      name: trace.type, status: trace.status,
-      detail: [formatDate(trace.at), trace.kind, trace.id].filter(Boolean).join(' · '),
-    })), 'No trace events recorded.');
+function renderDock() {
+  const panel = $('#dock-content');
+  panel.setAttribute('aria-labelledby', 'tab-' + tab);
+  for (const button of $('#dock-tabs').children) {
+    const selected = button.dataset.tab === tab;
+    button.setAttribute('aria-selected', selected);
+    button.tabIndex = selected ? 0 : -1;
+  }
+  if (tab === 'console') {
+    panel.replaceChildren(el('span', 'omh@workspace', 'prompt'), el('span', '  ~  runtime status', 'command'),
+      el('p', state ? state.agents.length + ' configured roles · ' + taskCount() + ' tasks recorded' : 'Waiting for runtime state.'),
+      el('small', state ? Object.entries(state.counts).map(([status, count]) => count + ' ' + status).join(' · ') + '  │  ' + time(refreshed) : ''));
+  } else showRows(panel, records(tab), 'No records in this view.');
+}
+
+function renderSearch() {
+  $('#results').hidden = !query;
+  if (!query) return;
+  const keys = query.scope === 'all' ? Object.keys(views).filter(v => v !== 'workspace') : [query.scope];
+  const rows = keys.flatMap(key => records(key)
+    .filter(r => [r.name, r.status, r.detail, r.id].some(s => s?.toLowerCase().includes(query.term)))
+    .map(r => ({...r, detail: [views[key], r.detail].filter(Boolean).join(' · ')})));
+  showRows($('#matches'), rows, 'No matching runtime records.');
+}
+
+function renderView() {
+  $('#hub').hidden = active !== 'workspace';
+  $('#detail').hidden = active === 'workspace';
+  for (const button of document.querySelectorAll('[data-view]')) {
+    button.setAttribute('aria-pressed', button.dataset.view === active);
+  }
+  if (active !== 'workspace') {
+    $('#view-heading').textContent = views[active];
+    $('#filter-label').hidden = !filterable.has(active);
+    const rows = records(active).filter(r => !filterable.has(active) || $('#filter').value === 'all' || r.queueStatus === $('#filter').value);
+    showRows($('#activity'), rows, 'No records match this view.');
+  }
+  renderSearch();
+  renderDock();
+}
+
+function renderFeeds() {
+  $('#agent-count').textContent = state.agents.length;
+  $('#task-count').textContent = taskCount();
+  $('#health-detail').textContent = state.agents.length + ' roles   ·   ' + taskCount() + ' tasks';
+  const feeds = [
+    ['#agent-feed', records('agents').map(r => row(title(r.name), r.status))],
+    ['#task-feed', records('tasks').slice(0, 4)],
+    ['#trace-feed', state.traces.slice(0, 4).map(t => row(t.type, time(t.at)))],
+  ];
+  for (const [selector, rows] of feeds) {
+    const feed = $(selector);
+    feed.replaceChildren();
+    if (!rows.length) feed.append(el('p', 'No activity recorded.', 'empty'));
+    for (const r of rows) {
+      const item = el('div', undefined, 'feed-row');
+      item.append(el('span', r.name), el('small', r.status));
+      feed.append(item);
+    }
   }
 }
+
+function toggleMenu(open) {
+  $('#menu').setAttribute('aria-expanded', open);
+  document.body.classList.toggle('menu-open', open);
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-view]');
+  if (!button) return;
+  active = button.dataset.view;
+  $('#filter').value = 'all';
+  toggleMenu(false);
+  renderView();
+  if (active !== 'workspace') $('#view-heading').focus({preventScroll: true});
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.body.classList.contains('menu-open')) {
+    toggleMenu(false);
+    $('#menu').focus();
+  }
+});
+for (const node of document.querySelectorAll('[data-icon]')) node.replaceWith(icon(node.dataset.icon));
+$('#refresh').append(icon('refresh'));
+$('#menu').append(icon('menu'));
+$('#menu').onclick = () => toggleMenu($('#menu').getAttribute('aria-expanded') !== 'true');
+for (const [key, label] of Object.entries(views)) {
+  $('#navigation').append(viewButton(key));
+  if (key !== 'workspace') $('#scope').add(new Option(label, key));
+}
+for (const [key, description] of Object.entries(features)) $('#tiles').append(viewButton(key, views[key], description));
+$('#shortcuts').append(viewButton('workspace', 'Overview', null, 'panel'), viewButton('agents', 'Agent team'), viewButton('tasks', 'Queue', null, 'list'));
+for (const [key, label] of Object.entries(tabs)) {
+  const button = el('button');
+  button.id = 'tab-' + key;
+  button.dataset.tab = key;
+  button.setAttribute('role', 'tab');
+  button.setAttribute('aria-controls', 'dock-content');
+  button.append(icon(key), label);
+  button.onclick = () => { tab = key; renderDock(); };
+  $('#dock-tabs').append(button);
+}
+$('#dock-tabs').onkeydown = event => {
+  const keys = Object.keys(tabs);
+  let index = keys.indexOf(tab);
+  switch (event.key) {
+    case 'ArrowLeft': index = (index + keys.length - 1) % keys.length; break;
+    case 'ArrowRight': index = (index + 1) % keys.length; break;
+    case 'Home': index = 0; break;
+    case 'End': index = keys.length - 1; break;
+    default: return;
+  }
+  event.preventDefault();
+  const button = $('#tab-' + keys[index]);
+  button.click();
+  button.focus();
+};
+$('#filter').onchange = renderView;
+$('#search-form').onsubmit = event => {
+  event.preventDefault();
+  query = {term: $('#search').value.trim().toLowerCase(), scope: $('#scope').value};
+  renderSearch();
+};
+$('#scope').onchange = () => { if (query) $('#search-form').requestSubmit(); };
+$('#clear').onclick = () => {
+  query = undefined;
+  $('#search').value = '';
+  renderSearch();
+  $('#search').focus();
+};
 
 async function load() {
-  if (refreshing) return;
-  refreshing = true;
-  refresh.disabled = true;
+  $('#refresh').disabled = true;
   try {
-    const response = await fetch('/api/state');
-    if (!response.ok) throw new Error('State unavailable');
+    const response = await fetch('/api/state', {signal: AbortSignal.timeout(10000)});
+    if (!response.ok) throw Error('State unavailable');
     state = await response.json();
-    render();
-    connection.textContent = 'Connected';
-    connection.dataset.connected = 'true';
-    updated.textContent = `Last updated ${new Date().toLocaleTimeString()}`;
-    error.hidden = true;
+    refreshed = Date.now();
+    renderFeeds();
+    renderView();
+    $('#connection').textContent = 'Connected';
+    $('#health-title').textContent = 'Harness online';
+    document.body.dataset.online = 'true';
+    $('#error').hidden = true;
   } catch {
-    connection.textContent = 'Unavailable';
-    connection.dataset.connected = 'false';
-    error.textContent = 'Could not read runtime state. Check that the dashboard is running, then retry.';
-    error.hidden = false;
+    $('#connection').textContent = 'Offline';
+    $('#health-title').textContent = 'Harness offline';
+    document.body.dataset.online = 'false';
+    $('#error').textContent = state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.';
+    $('#error').hidden = false;
   } finally {
-    refreshing = false;
-    refresh.disabled = false;
+    $('#refresh').disabled = false;
   }
 }
-
-for (const button of views) {
-  button.addEventListener('click', () => {
-    active = button.dataset.view;
-    for (const view of views) view.setAttribute('aria-pressed', String(view === button));
-    render();
-  });
-}
-filter.addEventListener('change', render);
-refresh.addEventListener('click', load);
+$('#refresh').onclick = load;
+renderView();
 load();

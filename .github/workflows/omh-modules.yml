@@ -7,6 +7,7 @@ on:
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'
       - 'scripts/smoke-sandbox.mjs'
+      - 'scripts/smoke-dashboard.py'
       - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'
       - 'scripts/smoke-sandbox.mjs'
+      - 'scripts/smoke-dashboard.py'
       - 'opencode.json'
       - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
@@ -37,6 +39,32 @@ jobs:
           node scripts/omh-runtime.mjs status
           node scripts/omh-runtime.mjs workflow:run '{"name":"ci-smoke","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
           node scripts/omh-runtime.mjs task:list
+
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exercise the installed dashboard in Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          mkdir -p "$RUNNER_TEMP/dashboard-screenshots"
+          OMH_SCREENSHOT_DIR="$RUNNER_TEMP/dashboard-screenshots" python scripts/smoke-dashboard.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: omh-dashboard-screenshots
+          path: ${{ runner.temp }}/dashboard-screenshots
+          if-no-files-found: error
 
   sandbox:
     runs-on: ubuntu-22.04

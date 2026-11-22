@@ -6,6 +6,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {createDashboardServer} from '../scripts/omh-dashboard.mjs';
+import {PluginRegistry} from './plugin-registry.mjs';
+import {SkillProposalStore} from './skill-proposals.mjs';
 import {MemoryStore} from './memory.mjs';
 import {Scheduler} from './scheduler.mjs';
 import {TaskQueue} from './task-queue.mjs';
@@ -46,12 +48,21 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   await new TraceJournal(join(state, 'audit.jsonl'), {enabled: true})
     .record('task.queued', {id: first.id, kind: first.kind, extra: 'private-trace'});
 
+  await new PluginRegistry(join(state, 'plugins.json')).register({
+    name: 'test-plugin', version: '1.0.0', description: 'private-description', approved: true,
+  });
+  await new SkillProposalStore(join(state, 'skill-proposals.json')).propose({
+    name: 'test-skill', description: 'private-skill', instructions: 'private-instructions',
+  });
   const response = await fetch(base + '/api/state');
   const raw = await response.text();
   assert.equal(response.status, 200);
   assert.doesNotMatch(raw, /private-/);
   const data = JSON.parse(raw);
   assert.equal(data.counts.queued, 2);
+  assert.equal(data.workflowSteps[0].dependsOn, first.id);
+  assert.deepEqual(data.plugins, [{name: 'test-plugin', version: '1.0.0', enabled: false}]);
+  assert.equal(data.skills[0].status, 'pending');
   assert.equal(data.sandbox[0].id, second.id);
   assert.equal(data.sandbox[0].blocked, true);
   assert.deepEqual(data.agents.find(item => item.name === 'reviewer'),

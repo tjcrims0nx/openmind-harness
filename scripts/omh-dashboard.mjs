@@ -4,6 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {OMH_AGENTS} from '../modules/agent-runner.mjs';
+import {PluginRegistry} from '../modules/plugin-registry.mjs';
+import {SkillProposalStore} from '../modules/skill-proposals.mjs';
 import {MemoryStore} from '../modules/memory.mjs';
 import {Scheduler} from '../modules/scheduler.mjs';
 import {TaskQueue} from '../modules/task-queue.mjs';
@@ -15,6 +17,10 @@ const HOST = '127.0.0.1';
 const ASSETS = [
   ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/dashboard.css', 'dashboard.css', 'text/css; charset=utf-8'],
+  ['/app-icon.png', 'app-icon.png', 'image/png'],
+  ['/orbit.webp', 'orbit.webp', 'image/webp'],
+  ['/orbitron.ttf', 'orbitron.ttf', 'font/ttf'],
+  ['/icons.svg', 'icons.svg', 'image/svg+xml'],
   ['/dashboard.js', 'dashboard.js', 'text/javascript; charset=utf-8'],
 ];
 const LIMIT = 50;
@@ -28,12 +34,14 @@ const HEADERS = {
 
 async function readState(state) {
   const queue = new TaskQueue(join(state, 'tasks.json'));
-  const [tasks, schedules, notes, traces, workspaces] = await Promise.all([
+  const [tasks, schedules, notes, traces, workspaces, skills, plugins] = await Promise.all([
     queue.load().then(store => store.list()),
     new Scheduler(join(state, 'schedules.json'), queue).load().then(store => store.list()),
     new MemoryStore(join(state, 'memory.json')).load().then(store => store.list()),
     new TraceJournal(join(state, 'audit.jsonl')).read({limit: LIMIT}),
     new WorkspaceManager(join(state, 'team-workspaces')).list(),
+    new SkillProposalStore(join(state, 'skill-proposals.json')).load().then(store => store.list()),
+    new PluginRegistry(join(state, 'plugins.json')).load().then(store => store.list()),
   ]);
   const counts = {queued: 0, running: 0, completed: 0, failed: 0, cancelled: 0};
   const agents = OMH_AGENTS.map(name => ({name, queued: 0, running: 0}));
@@ -56,6 +64,9 @@ async function readState(state) {
     counts,
     agents,
     tasks: tasks.slice(-LIMIT).reverse().map(taskView),
+    workflowSteps: tasks.filter(task => task.dependsOn).slice(-LIMIT).reverse().map(taskView),
+    skills: skills.slice(-LIMIT).reverse().map(({id, name, status, createdAt}) => ({id, name, status, createdAt})),
+    plugins: plugins.slice(-LIMIT).reverse().map(({name, version, enabled}) => ({name, version, enabled})),
     sandbox: sandbox.slice(-LIMIT).reverse().map(taskView),
     schedules: schedules.slice(-LIMIT).reverse().map(({id, kind, everyMs, enabled, nextAt}) => ({
       id, kind, everyMs, enabled, nextAt,
