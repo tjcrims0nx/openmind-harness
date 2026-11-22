@@ -1,4 +1,4 @@
-"""Exercise the installed dashboard with a temporary workspace and real Chromium."""
+"""Exercise the installed dashboard with a temporary workspace in Chromium or WebKit."""
 import json
 import os
 import shutil
@@ -132,8 +132,14 @@ def run(root):
     try:
         url = server.stdout.readline().strip().split()[-1]
         with sync_playwright() as playwright:
-            chrome = os.environ.get("CHROME_BIN") or shutil.which("chromium") or shutil.which("google-chrome")
-            browser = playwright.chromium.launch(executable_path=chrome)
+            engine = os.environ.get("OMH_SMOKE_BROWSER", "chromium")
+            if engine == "webkit":
+                browser = playwright.webkit.launch()
+            elif engine == "chromium":
+                chrome = os.environ.get("CHROME_BIN") or shutil.which("chromium") or shutil.which("google-chrome")
+                browser = playwright.chromium.launch(executable_path=chrome)
+            else:
+                raise ValueError(f"Unsupported dashboard smoke browser: {engine}")
             page = browser.new_page(viewport={"width": 1280, "height": 720})
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
@@ -178,4 +184,4 @@ def run(root):
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="omh-dashboard-") as tmp:
         run(Path(tmp))
-    print("Installed dashboard passed Chromium navigation, feature, filter, keyboard, responsive layout and recovery checks.")
+    print("Installed dashboard passed navigation, feature, filter, keyboard, responsive layout and recovery checks.")

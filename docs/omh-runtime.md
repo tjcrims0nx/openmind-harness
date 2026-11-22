@@ -22,7 +22,7 @@ The dashboard reads the same state as the CLI and daemon. Workspace search cover
 
 The header uses the icon from the [OMH app icon set](https://github.com/tjcrims0nx/omh-ios/blob/33f526c56faf7a6bb51487b57bb8e69457bd323b/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png). The orbital background was generated for OMH. The bundled Orbitron font includes its SIL Open Font License in `dashboard/Orbitron-LICENSE.txt`.
 
-To run the installed-dashboard smoke test, install Python Playwright and Chromium, then run `python scripts/smoke-dashboard.py`. Set `CHROME_BIN` to select a browser executable. Set `OMH_SCREENSHOT_DIR` to capture desktop and phone-width screenshots with temporary test records. The test uses an isolated home and workspace.
+To run the installed-dashboard smoke test, install Python Playwright and Chromium, then run `python scripts/smoke-dashboard.py`. Set `CHROME_BIN` to select a Chromium executable. For WebKit, install its Playwright browser and run the same script with `OMH_SMOKE_BROWSER=webkit`. CI exercises both engines. Set `OMH_SCREENSHOT_DIR` to capture desktop and phone-width screenshots with temporary test records. The test uses an isolated home and workspace.
 
 ### Persistent queue and workflow execution
 
