@@ -2,7 +2,14 @@
 import {runSandbox} from './sandbox.mjs';
 import {readFile,writeFile,mkdir,realpath} from 'node:fs/promises';
 import {resolve,dirname,sep} from 'node:path';
-const rootPath = (root,relative='') => {if(typeof relative!=='string'||relative.includes('\0'))throw new TypeError('Invalid path');const path=resolve(root,relative);if(path!==root&&!path.startsWith(root+sep))throw new Error('Path escapes workspace');return path;};
+const SENSITIVE = /^(?:\.omh|\.git|\.env(?:\..*)?|\.ssh|\.gnupg|\.npmrc|auth\.json|credentials(?:\..*)?|id_[^/]+)$/i;
+const rootPath = (root,relative='') => {
+ if(typeof relative!=='string'||relative.includes('\0'))throw new TypeError('Invalid path');
+ const path=resolve(root,relative);
+ if(path!==root&&!path.startsWith(root+sep))throw new Error('Path escapes workspace');
+ if(path.slice(root.length).split(sep).some(x=>SENSITIVE.test(x)||/\.(?:pem|key|p12)$/i.test(x)))throw new Error('Sensitive path denied');
+ return path;
+};
 export function makeHandlers(workspace){
  if(typeof workspace!=='string')throw new TypeError('Workspace required');
  const root=resolve(workspace);
