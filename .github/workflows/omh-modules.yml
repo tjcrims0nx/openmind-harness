@@ -1,35 +1,7 @@
 name: OMH module tests
 on:
   push:
-    paths:
-      - 'dashboard/**'
-      - 'modules/**'
-      - 'scripts/omh-*.mjs'
-      - 'scripts/install-omh-runtime.mjs'
-      - 'scripts/smoke-sandbox.mjs'
-      - 'scripts/smoke-dashboard.py'
-      - 'opencode.json'
-      - 'api/**'
-      - 'lib/**'
-      - 'vercel.json'
-      - 'scripts/build-vercel-dashboard.mjs'
-      - 'scripts/connect-vercel-mcp.mjs'
-      - '.github/workflows/omh-modules.yml'
   pull_request:
-    paths:
-      - 'dashboard/**'
-      - 'modules/**'
-      - 'scripts/omh-*.mjs'
-      - 'scripts/install-omh-runtime.mjs'
-      - 'scripts/smoke-sandbox.mjs'
-      - 'scripts/smoke-dashboard.py'
-      - 'opencode.json'
-      - 'api/**'
-      - 'lib/**'
-      - 'vercel.json'
-      - 'scripts/build-vercel-dashboard.mjs'
-      - 'scripts/connect-vercel-mcp.mjs'
-      - '.github/workflows/omh-modules.yml'
   workflow_dispatch:
 concurrency:
   group: omh-runtime-${{ github.workflow }}-${{ github.ref }}
