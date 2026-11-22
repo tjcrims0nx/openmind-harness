@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chooseProvider, failoverCandidate, estimateCost, withinBudget} from './smart-router.mjs';
+const providers=[{id:'gemini',healthy:true,costPerMillion:1,latencyMs:500,quality:.8},{id:'premium',healthy:true,costPerMillion:8,latencyMs:200,quality:.99},{id:'offline',healthy:false,costPerMillion:0,latencyMs:0,quality:1}];
+test('manual requires requested healthy model',()=>{assert.equal(chooseProvider(providers,{mode:'manual',preferred:'gemini'}).id,'gemini');assert.equal(chooseProvider(providers,{mode:'manual',preferred:'offline'}),null)});
+test('budget and quality policies',()=>{assert.equal(chooseProvider(providers,{mode:'budget'}).id,'gemini');assert.equal(chooseProvider(providers,{mode:'quality'}).id,'premium')});
+test('failover excludes failed providers',()=>assert.equal(failoverCandidate(providers,['gemini'],{mode:'budget'}).id,'premium'));
+test('limits filter candidates',()=>assert.equal(chooseProvider(providers,{mode:'quality',maxCostPerMillion:2}).id,'gemini'));
+test('rejects malformed provider metrics',()=>assert.equal(chooseProvider([{id:'x',healthy:true,costPerMillion:-1,latencyMs:0,quality:1}]),null));
+test('cost and budget',()=>{assert.equal(estimateCost({inputTokens:1000000,outputTokens:500000,inputPerMillion:2,outputPerMillion:4}),4);assert.equal(withinBudget(4,5,9),true);assert.equal(withinBudget(4,6,9),false)});
