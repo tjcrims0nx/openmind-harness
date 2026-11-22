@@ -1,5 +1,6 @@
 /** Approved built-in task handlers. No arbitrary host process execution. */
 import {runSandbox} from './sandbox.mjs';
+import {runAgent} from './agent-runner.mjs';
 import {readFile,writeFile,mkdir,realpath} from 'node:fs/promises';
 import {resolve,dirname,sep} from 'node:path';
 const SENSITIVE = /^(?:\.omh|\.git|\.env(?:\..*)?|\.ssh|\.gnupg|\.npmrc|auth\.json|credentials(?:\..*)?|id_[^/]+)$/i;
@@ -17,6 +18,7 @@ export function makeHandlers(workspace){
  return {
   'workspace.read':async ({path})=>{const p=await verified(rootPath(root,path),true);const data=await readFile(p,'utf8');if(data.length>100000)throw Error('File too large');return data;},
   'workspace.write':async ({path,content,approved})=>{if(approved!==true)throw Error('Write approval required');if(typeof content!=='string'||content.length>100000)throw TypeError('Invalid content');await mkdir(root,{recursive:true});const p=await verified(rootPath(root,path));await writeFile(p,content,{flag:'wx',mode:0o600});return {path};},
-  'sandbox.exec':async ({command,args=[],timeoutMs=30000,approved})=>{if(approved!==true)throw Error('Execution approval required');return runSandbox({workspace:root,command,args,timeoutMs});}
+  'sandbox.exec':async ({command,args=[],timeoutMs=30000,approved})=>{if(approved!==true)throw Error('Execution approval required');return runSandbox({workspace:root,command,args,timeoutMs});},
+  'agent.run':async ({agent,prompt,model,approved,timeoutMs})=>runAgent({agent,prompt,model,approved,timeoutMs,workspace:root})
  };
 }
