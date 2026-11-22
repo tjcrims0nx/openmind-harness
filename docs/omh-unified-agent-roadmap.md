@@ -14,8 +14,9 @@ Work through the harness on Linux and verify it through the installed runtime. C
 
 - [x] Verify OpenCode installer, MCP registration, reviewer selection and a live provider-backed tool call.
 - [x] Exercise queue persistence, dependency order, scheduler restart recovery and Linux sandbox isolation in CI.
-- [ ] Verify cancellation of running sandbox work and define the contract for native OpenCode session interruption.
-- [ ] Ship a local runtime dashboard with task, schedule, memory, trace, workspace and sandbox views.
+- [x] Verify cancellation of running sandbox work on Linux with Bubblewrap.
+- [x] Ship a local, read-only runtime dashboard with task, schedule, memory, trace, workspace and sandbox views.
+- [ ] Verify native OpenCode session interruption and design authenticated dashboard task controls.
 - [ ] Verify stock OpenCode subagent delegation and scoped, durable memory across real sessions.
 - [ ] Verify concurrent writes and recovery for runtime state stores. Exercise reviewed skill publication and plugin permissions.
 - [ ] Verify authenticated approvals and session permissions for privileged actions and document the supported sandbox limits.

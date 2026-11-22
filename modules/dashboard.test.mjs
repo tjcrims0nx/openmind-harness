@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import {once} from 'node:events';
+import {mkdtemp, rm} from 'node:fs/promises';
+import {request} from 'node:http';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import test from 'node:test';
+import {createDashboardServer} from '../scripts/omh-dashboard.mjs';
+import {MemoryStore} from './memory.mjs';
+import {Scheduler} from './scheduler.mjs';
+import {TaskQueue} from './task-queue.mjs';
+import {TraceJournal} from './trace-journal.mjs';
+import {WorkspaceManager} from './workspaces.mjs';
+
+test('dashboard reads runtime stores over loopback without leaking task or note contents', async t => {
+  const state = await mkdtemp(join(tmpdir(), 'omh-dashboard-'));
+  t.after(() => rm(state, {recursive: true, force: true}));
+  const server = await createDashboardServer(state);
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const port = server.address().port;
+  const base = `http://127.0.0.1:${port}`;
+  const page = await fetch(base);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Runtime dashboard/);
+  assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+
+  const empty = await (await fetch(base + '/api/state')).json();
+  assert.equal(empty.counts.queued, 0);
+  assert.deepEqual(empty.tasks, []);
+
+  const queue = new TaskQueue(join(state, 'tasks.json'), {
+    'agent.run': async () => 'private-output',
+    'sandbox.exec': async () => null,
+  });
+  const [first, second] = await queue.enqueueSequence([
+    {kind: 'agent.run', input: {agent: 'reviewer', prompt: 'private-prompt'}},
+    {kind: 'sandbox.exec', input: {args: ['private-argument']}},
+  ]);
+  await new Scheduler(join(state, 'schedules.json'), queue)
+    .add({kind: 'sandbox.exec', input: {args: ['private-schedule']}, everyMs: 60000});
+  await new MemoryStore(join(state, 'memory.json'))
+    .add({title: 'Conventions', content: 'private-memory', approved: true});
+  await new WorkspaceManager(join(state, 'team-workspaces')).create('reviewer');
+  await new TraceJournal(join(state, 'audit.jsonl'), {enabled: true})
+    .record('task.queued', {id: first.id, kind: first.kind, extra: 'private-trace'});
+
+  const response = await fetch(base + '/api/state');
+  const raw = await response.text();
+  assert.equal(response.status, 200);
+  assert.doesNotMatch(raw, /private-/);
+  const data = JSON.parse(raw);
+  assert.equal(data.counts.queued, 2);
+  assert.equal(data.sandbox[0].id, second.id);
+  assert.equal(data.sandbox[0].blocked, true);
+  assert.deepEqual(data.agents.find(item => item.name === 'reviewer'),
+    {name: 'reviewer', queued: 1, running: 0});
+  assert.equal(data.schedules[0].enabled, true);
+  assert.equal(data.memory[0].title, 'Conventions');
+  assert.equal(data.traces[0].id, first.id);
+  assert.deepEqual(data.workspaces, ['reviewer']);
+
+  assert.equal((await fetch(base + '/api/state', {method: 'POST'})).status, 405);
+  assert.equal((await fetch(base + '/api/state', {headers: {'Sec-Fetch-Site': 'cross-site'}})).status, 403);
+  const foreignHost = request(base + '/api/state', {headers: {Host: 'example.test'}});
+  foreignHost.end();
+  const [denied] = await once(foreignHost, 'response');
+  denied.resume();
+  assert.equal(denied.statusCode, 403);
+  assert.equal((await fetch(base + '/tasks.json')).status, 404);
+});

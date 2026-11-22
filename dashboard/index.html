@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c14">
+  <title>Runtime dashboard · OpenMind Harness</title>
+  <link rel="stylesheet" href="/dashboard.css">
+  <script type="module" src="/dashboard.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/">OpenMind <span>Harness</span></a>
+    <span class="connection" id="connection" role="status">Connecting</span>
+  </header>
+  <main>
+    <div class="page-heading">
+      <div>
+        <h1>Runtime dashboard</h1>
+        <p id="updated">Loading runtime activity…</p>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+    <p id="error" role="alert" hidden></p>
+    <section aria-label="Task counts" class="counts" id="counts"></section>
+    <section class="panel" aria-labelledby="activity-heading">
+      <div class="panel-header">
+        <h2 id="activity-heading">Tasks</h2>
+        <label id="filter-label">Status
+          <select id="filter">
+            <option value="all">All statuses</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+      </div>
+      <nav aria-label="Runtime views" id="views">
+        <button type="button" data-view="tasks" aria-pressed="true">Tasks</button>
+        <button type="button" data-view="sandbox" aria-pressed="false">Sandbox</button>
+        <button type="button" data-view="agents" aria-pressed="false">Agents &amp; Workspaces</button>
+        <button type="button" data-view="schedules" aria-pressed="false">Schedules</button>
+        <button type="button" data-view="memory" aria-pressed="false">Memory</button>
+        <button type="button" data-view="traces" aria-pressed="false">Trace</button>
+      </nav>
+      <div id="activity"></div>
+    </section>
+  </main>
+</body>
+</html>

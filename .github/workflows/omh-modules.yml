@@ -2,6 +2,7 @@ name: OMH module tests
 on:
   push:
     paths:
+      - 'dashboard/**'
       - 'modules/**'
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'
@@ -10,6 +11,7 @@ on:
       - '.github/workflows/omh-modules.yml'
   pull_request:
     paths:
+      - 'dashboard/**'
       - 'modules/**'
       - 'scripts/omh-*.mjs'
       - 'scripts/install-omh-runtime.mjs'

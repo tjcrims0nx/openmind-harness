@@ -14,6 +14,12 @@ node --test modules/*.test.mjs
 
 Set `OMH_WORKSPACE` to a dedicated absolute workspace if you don't want to use your current directory. Runtime state is stored under `$OMH_WORKSPACE/.omh` unless `OMH_STATE_DIR` is provided.
 
+### Runtime dashboard
+
+Run `node scripts/omh-dashboard.mjs` and open `http://127.0.0.1:4177` on the same machine. The installer also copies this entry point and its assets into the installed runtime. Set `OMH_DASHBOARD_PORT` to change the port.
+
+The dashboard reads the same state as the CLI and daemon. It shows task counts, blocked workflows, sandbox jobs, agent activity and workspaces, schedules, memory titles and scopes, and recent trace metadata. The status filter applies to task and sandbox views. Refresh reads the latest persisted state. Use the CLI for task actions, memory contents, and detailed traces.
+
 ### Persistent queue and workflow execution
 
 ```sh
