@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {Scheduler} from './scheduler.mjs';
+import {TaskQueue} from './task-queue.mjs';
+import {ToolPolicy} from './tool-policy.mjs';
+import {TraceJournal} from './trace-journal.mjs';
+test('MCP deny-by-default policy',()=>{const p=new ToolPolicy({allow:['read'],ask:['write']});assert.equal(p.check('read').allowed,true);assert.equal(p.check('write').allowed,false);assert.equal(p.check('write',{approved:true}).allowed,true);assert.throws(()=>p.require('unknown'));});
+test('scheduler persists interval and enqueues only when due',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const q=await new TaskQueue(join(d,'q.json'),{echo:async x=>x}).load();const s=await new Scheduler(join(d,'s.json'),q).load();const j=await s.add({kind:'echo',input:{n:1},everyMs:60000});assert.equal((await s.tick(j.nextAt-1)).length,0);assert.equal((await s.tick(j.nextAt)).length,1);assert.equal((await s.tick(j.nextAt+1)).length,0);assert.equal((await new Scheduler(join(d,'s.json'),q).load()).list().length,1);}finally{await rm(d,{recursive:true,force:true});}});
+test('journal stays opt-in and redacts',async()=>{const d=await mkdtemp(join(tmpdir(),'omh-'));try{const file=join(d,'trace.jsonl');const off=new TraceJournal(file);assert.equal(await off.record('task.queued',{x:1}),false);const on=new TraceJournal(file,{enabled:true});await on.record('task.finished',{apiKey:'secret',message:'Bearer secretvalue'});const rows=await on.read();assert.equal(rows.length,1);assert.equal(rows[0].fields.apiKey,'[REDACTED]');assert.equal(rows[0].fields.message,'[REDACTED]');}finally{await rm(d,{recursive:true,force:true});}});
