@@ -14,6 +14,7 @@ import {ToolPolicy} from '../modules/tool-policy.mjs';
 import {SkillProposalStore} from '../modules/skill-proposals.mjs';
 import {PluginRegistry} from '../modules/plugin-registry.mjs';
 import {diagnose} from '../modules/doctor.mjs';
+import {readHeartbeat} from '../modules/runtime-health.mjs';
 const [action,raw='{}']=process.argv.slice(2);
 const workspace=resolve(process.env.OMH_WORKSPACE||process.cwd());
 const state=resolve(process.env.OMH_STATE_DIR||join(workspace,'.omh'));
@@ -31,7 +32,7 @@ try {
  const data=JSON.parse(raw);
  let result;
  switch(action){
-  case 'status':result={workspace,state,handlers:Object.keys(handlers),queued:queue.list().filter(t=>t.status==='queued').length,scheduled:scheduler.list().length,traceEnabled:trace.enabled};break;
+  case 'status':result={workspace,state,handlers:Object.keys(handlers),queued:queue.list().filter(t=>t.status==='queued').length,worker:await readHeartbeat(join(state,'daemon-health.json')),scheduled:scheduler.list().length,traceEnabled:trace.enabled};break;
   case 'doctor':result=await diagnose();break;
   case 'task:add':result=await queue.enqueue(data.kind,data.input);await trace.record('task.queued',{id:result.id,kind:result.kind});break;
   case 'task:run':await trace.record('task.started',{});result=await queue.runNext();await trace.record('task.finished',{id:result?.id,status:result?.status,error:result?.error});for(const event of result?.result?.events||[])await trace.record('agent.event',event);break;
