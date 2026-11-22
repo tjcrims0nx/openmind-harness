@@ -120,39 +120,49 @@ echo "OpenCode 1.19.6 connected to the installed OMH MCP server."
 
 run_status=0
 timeout 75s opencode run --print-logs --format json -- \
-  'Use the available OMH queue read tool exactly once with path fixture.txt. Then say done.' \
+  'Use the available OMH queue read tool with path fixture.txt. Its queued status means success. As soon as it returns a task ID, reply done without polling or making another call.' \
   > "$profile/events.jsonl" 2> "$profile/opencode.err" || run_status=$?
 if (( run_status != 0 )); then
   echo "OpenCode exited with status $run_status. Checking for a completed MCP tool call."
 fi
 
-node --input-type=module - "$profile/events.jsonl" "$OMH_STATE_DIR/tasks.json" <<'NODE'
+task_count="$(node --input-type=module - "$profile/events.jsonl" "$OMH_STATE_DIR/tasks.json" <<'NODE'
 import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 const [eventsFile, queueFile] = process.argv.slice(2);
 const events = readFileSync(eventsFile, 'utf8').trim().split('\n').flatMap(line => {
   try { return [JSON.parse(line)]; } catch { return []; }
 });
-if (!events.some(event => event.type === 'tool_use' &&
-  event.part?.tool?.endsWith('omh_queue_read') && event.part.state?.status === 'completed')) {
+const calls = events.filter(event => event.type === 'tool_use' &&
+  event.part?.tool === 'omh-runtime_omh_queue_read' && event.part.state?.status === 'completed');
+if (!calls.length) {
   const error = events.find(event => event.type === 'error')?.error;
   const status = error?.data?.statusCode;
   const detail = Number.isInteger(status) ? ` (HTTP ${status})` : '';
   throw new Error(`Gemini did not complete the OMH MCP tool call${detail}`);
 }
 const {tasks} = JSON.parse(readFileSync(queueFile, 'utf8'));
-if (tasks.length !== 1 || tasks[0].kind !== 'workspace.read' ||
-    tasks[0].status !== 'queued' || tasks[0].input?.path !== 'fixture.txt') {
-  throw new Error('The MCP call did not queue exactly one fixture read');
+const taskIds = new Set(calls.map(call => JSON.parse(call.part.state.output).id));
+const expectedPath = resolve('fixture.txt');
+if (tasks.length < 1 || tasks.length > 10 || tasks.length !== taskIds.size ||
+    tasks.some(task => !taskIds.has(task.id) || task.kind !== 'workspace.read' ||
+      task.status !== 'queued' || typeof task.input?.path !== 'string' ||
+      resolve(task.input.path) !== expectedPath)) {
+  throw new Error(`Expected only fixture reads from verified MCP calls. Saw ${calls.length} calls and ${tasks.length} tasks.`);
 }
+console.log(tasks.length);
 NODE
+)"
 if (( run_status != 0 )); then exit "$run_status"; fi
 
-node "$repo/scripts/omh-runtime.mjs" task:run > "$profile/result.json"
-node --input-type=module - "$profile/result.json" <<'NODE'
+for ((task = 0; task < task_count; task++)); do
+  node "$repo/scripts/omh-runtime.mjs" task:run > "$profile/result.json"
+  node --input-type=module - "$profile/result.json" <<'NODE'
 import {readFileSync} from 'node:fs';
 const task = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 if (task.status !== 'completed' || task.result !== 'OMH MCP smoke test fixture\n') {
   throw new Error('The OMH worker did not return the expected fixture');
 }
 NODE
+done
 echo "The Gemini $mode test called OMH through OpenCode and the worker completed the queued fixture read."
