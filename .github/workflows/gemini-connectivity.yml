@@ -5,41 +5,38 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/gemini-connectivity.yml'
+      - 'scripts/smoke-gemini.sh'
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify Gemini API key and model access without printing credentials
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned OpenCode
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "::error::GEMINI_API_KEY secret is missing"
-            exit 1
-          fi
-          python3 - <<'PY'
-          import json, os, urllib.request, urllib.error
-          url = "https://generativelanguage.googleapis.com/v1beta/models"
-          req = urllib.request.Request(url, headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]})
-          try:
-              with urllib.request.urlopen(req, timeout=25) as response:
-                  data = json.load(response)
-          except urllib.error.HTTPError as exc:
-              print(f"Gemini API authentication/model listing failed (HTTP {exc.code})")
-              raise SystemExit(1)
-          except Exception as exc:
-              print(f"Gemini connectivity failed ({type(exc).__name__})")
-              raise SystemExit(1)
-          models = [m.get("name", "") for m in data.get("models", [])]
-          print(f"Gemini authentication succeeded; received {len(models)} models (first page).")
-          target = "models/gemini-3.8-flash"
-          if target not in models and data.get("nextPageToken"):
-              print("Target model not in first page; full availability not confirmed.")
-          elif target not in models:
-              print("WARNING: configured gemini-3.8-flash not listed by this key.")
-          else:
-              print("Configured Gemini model appears in available model list.")
-          PY
+          release="$RUNNER_TEMP/omh-opencode"
+          mkdir -p "$release"
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/anomalyco/opencode/releases/download/v1.19.6/opencode-linux-x64.tar.gz \
+            --output "$release/opencode-linux-x64.tar.gz"
+          (
+            cd "$release"
+            echo '47734e08968b30cc22a0bffb6d9feeed76ad4aa743213a12122040392d09a057  opencode-linux-x64.tar.gz' | sha256sum --check
+            tar -xzf opencode-linux-x64.tar.gz
+          )
+          echo "$release" >> "$GITHUB_PATH"
+      - name: Verify Gemini calls an installed OMH MCP tool through OpenCode
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: bash scripts/smoke-gemini.sh
