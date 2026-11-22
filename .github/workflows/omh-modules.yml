@@ -40,6 +40,31 @@ jobs:
           node scripts/omh-runtime.mjs workflow:run '{"name":"ci-smoke","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
           node scripts/omh-runtime.mjs task:list
 
+
+  portable-runtime:
+    name: portable runtime (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Portable module tests
+        run: node --test modules/doctor.test.mjs modules/mcp.test.mjs modules/smart-router.test.mjs
+      - name: Verify runtime status and diagnostics
+        run: |
+          node scripts/omh-runtime.mjs status
+          node scripts/omh-runtime.mjs doctor
+
   dashboard:
     strategy:
       fail-fast: false
