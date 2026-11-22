@@ -41,7 +41,8 @@ test('administrator token authorizes only explicit governance actions',()=>fixtu
  await (new Scheduler(join(root,'schedules.json'),queue)).pause(schedule.id);
  const registry=await new PluginRegistry(join(root,'plugins.json')).load();
  await registry.register({name:'review-plugin',version:'1.0.0',approved:true});
- const proposal=await (new SkillProposalStore(join(root,'skill-proposals.json')).load()).propose({
+ const proposalStore=await new SkillProposalStore(join(root,'skill-proposals.json')).load();
+ const proposal=await proposalStore.propose({
   name:'review-task',description:'Reviewed safe checklist',instructions:'Review tests before merging'
  });
  assert.equal((await send('/api/plugins/enable',{name:'review-plugin'},{token:'incorrect-credential'.repeat(3)})).status,403);
