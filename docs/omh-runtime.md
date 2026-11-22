@@ -19,10 +19,12 @@ Set `OMH_WORKSPACE` to a dedicated absolute workspace if you don't want to use y
 node scripts/omh-runtime.mjs task:add '{"kind":"workspace.read","input":{"path":"README.md"}}'
 node scripts/omh-runtime.mjs task:run
 node scripts/omh-runtime.mjs task:list
+node scripts/omh-runtime.mjs task:cancel '{"id":"<queued-task-id>"}'
+node scripts/omh-runtime.mjs task:retry '{"id":"<failed-task-id>","maxAttempts":3}'
 node scripts/omh-runtime.mjs workflow:run '{"name":"inspect","steps":[{"kind":"workspace.read","input":{"path":"README.md"}}]}'
 ```
 
-Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue persists tasks and marks interrupted `running` tasks as `queued` on restart. Use a **single worker**; multi-process locking and exactly-once execution are not implemented.
+Built-in task kinds are **workspace.read**, **workspace.write**, **sandbox.exec**, and **agent.run**. The last runs a registered OMH OpenCode agent through the native `opencode run --format json --agent ... --dir ...` CLI; unlike the sandbox handler, native agent execution uses host OpenCode permissions and networking, so it is **not bubblewrap-isolated**. Writes and execution require an explicit `approved:true` field; this is a cooperative application-level gate, **not** a trusted human identity or privilege boundary. Never expose the CLI's input surface to untrusted users or untrusted model-generated requests without an external approval system. The queue persists tasks and marks interrupted `running` tasks as `queued` on restart. The queue uses short-lived filesystem locks to prevent simultaneous task claims across local workers. A cancelled **queued** task is never executed; cancellation of an already running handler is refused rather than falsely claiming the process has stopped. Failed tasks can be retried explicitly up to a configured attempt limit (default 3). Exactly-once side effects across crashes and distributed/network filesystem support are **not** guaranteed.
 
 ### Native agent teams
 
