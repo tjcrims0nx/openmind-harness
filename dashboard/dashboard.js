@@ -203,6 +203,10 @@ document.addEventListener('click', async event => {
       signal:AbortSignal.timeout(10000),
     });
     if(!response.ok)throw Error((await response.text()).slice(0,160));
+    // Re-enable actions before rebuilding the records; otherwise the new
+    // buttons inherit the busy state and stay disabled after the old node
+    // is detached from the DOM.
+    actionBusy=false;
     await load();
   }catch(error){
     $('#error').textContent='Task action failed: '+error.message;
