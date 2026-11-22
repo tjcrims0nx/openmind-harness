@@ -14,7 +14,7 @@ test('doctor validates Linux namespace probe instead of bwrap version alone',asy
  const d=await diagnose({platform:'linux',nodeVersion:'22.1.0',spawn:ok,sandboxRun:async ({command,args})=>{
   checks++;
   assert.equal(command,'sh');
-  assert.ok(args.includes('/workspace'));
+  assert.ok(args.some(value=>value.includes('/workspace')));
   return {exitCode:0,timedOut:false,outputTruncated:false};
  }});
  assert.equal(checks,1);
