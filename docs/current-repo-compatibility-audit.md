@@ -1,5 +1,7 @@
 # Current repository compatibility audit (2026-11-21)
 
+> **Historical snapshot.** This audit documents repository state on November 21, 2026, not the current default model or current feature implementation. As of November 22, the main and delegated agent defaults are `google/gemini-3.5-flash-lite` following observed 3.8 Flash stalls. See [runtime documentation](omh-runtime.md#model-reliability-and-host-isolation) and the current [`opencode.json`](../opencode.json). The iOS repository was not changed.
+
 Checked directly against main of `tjcrims0nx/openmind-harness` and `tjcrims0nx/omh-ios`. This is a **static source review**, not a successful CI, device, or provider invocation.
 
 ## Confirmed alignment
