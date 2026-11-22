@@ -13,6 +13,7 @@ import {TaskQueue} from '../modules/task-queue.mjs';
 import {TraceJournal} from '../modules/trace-journal.mjs';
 import {redact} from '../modules/trace.mjs';
 import {WorkspaceManager} from '../modules/workspaces.mjs';
+import {sandboxAvailable} from '../modules/sandbox.mjs';
 
 const HOST = '127.0.0.1';
 const JSON_LIMIT = 4096;
@@ -72,6 +73,7 @@ async function readState(state) {
   });
   return {
     version: 1,
+    platform: {os:process.platform,arch:process.arch,node:process.versions.node,sandboxBackendInstalled:sandboxAvailable()},
     counts,
     agents,
     tasks: tasks.slice(-LIMIT).reverse().map(taskView),
@@ -172,6 +174,11 @@ export async function createDashboardServer(state) {
     if (asset) return send(200, asset.body, asset.type);
     return send(404, 'Not found');
   });
+  server.requestTimeout=10000;
+  server.headersTimeout=8000;
+  server.keepAliveTimeout=5000;
+  server.maxHeadersCount=60;
+  server.maxRequestsPerSocket=100;
   return server;
 }
 
