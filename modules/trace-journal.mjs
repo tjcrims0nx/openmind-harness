@@ -2,7 +2,7 @@
 import {mkdir,appendFile,readFile} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {redact} from './trace.mjs';
-const TYPES=new Set(['task.queued','task.started','task.finished','workflow.started','workflow.finished','sandbox.denied','memory.updated','skill.published']);
+const TYPES=new Set(['task.queued','task.started','task.finished','workflow.started','workflow.finished','sandbox.denied','memory.updated','skill.published','agent.event']);
 export class TraceJournal {
  constructor(file,{enabled=false}={}){this.file=file;this.enabled=enabled;}
  async record(type,fields={}){if(!TYPES.has(type))throw new TypeError('Unknown event');if(!this.enabled)return false;await mkdir(dirname(this.file),{recursive:true});await appendFile(this.file,JSON.stringify({at:new Date().toISOString(),type,fields:redact(fields)})+'\n',{mode:0o600});return true;}
