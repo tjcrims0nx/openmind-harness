@@ -26,7 +26,7 @@ try{
   try{
    await scheduler.tick();
    const task=await queue.runNext();
-   if(task)await trace.record('task.finished',{id:task.id,kind:task.kind,status:task.status,error:task.error});
+   if(task){await trace.record('task.finished',{id:task.id,kind:task.kind,status:task.status,error:task.error});for(const event of task.result?.events||[])await trace.record('agent.event',event);}
   }catch(e){process.stderr.write('OMH daemon: '+e.message+'\n');}
   if(running)await delay(tickMs);
  }
