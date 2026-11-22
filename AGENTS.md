@@ -11,9 +11,10 @@ The iOS/iPadOS app is a separate repo: [tjcrims0nx/omh-iOS](https://github.com/t
 ## Layout
 
 - `opencode.json` — the single source of truth for the harness config
-  (default model `openai/gpt-5`, free fallback `experientiallabs/deepseek-v4.1-flash:free`,
+  (default model `google/gemini-3.5-flash-lite`, configured small model `experientiallabs/deepseek-v4.1-flash:free`,
   task-routed agents `fast` and `reviewer`). Both setup scripts install this
-  exact file, and the omh-iOS build fetches it from this repo. Edit it in one place only.
+  file, and the omh-iOS build fetches a **pinned commit** from this repo. Update the
+  iOS pin and rebuild the guest image to propagate a new config. Edit the source in one place.
 - `linux-setup.sh`, `termux-setup.sh` — install the harness on Linux and
   Termux. `README.md` documents the platforms.
 - `skills/openmind-harness/SKILL.md` — the starter skill (Agent Skills standard).
