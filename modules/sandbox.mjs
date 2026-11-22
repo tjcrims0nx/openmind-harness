@@ -7,11 +7,9 @@ export function sandboxArgs({workspace,command,args=[],network=false}={}) {
   if(!isAbsolute(workspace||''))throw new TypeError('Workspace must be absolute');
   if(!COMMANDS.has(command)||!Array.isArray(args)||args.some(a=>typeof a!=='string'||a.includes('\0')))throw new TypeError('Command or args not allowed');
   if(network)throw new Error('Networked sandbox execution is not supported');
-  return ['--die-with-parent','--new-session','--unshare-all','--share-net','--ro-bind','/usr','/usr','--ro-bind-try','/bin','/bin','--ro-bind-try','/lib','/lib','--ro-bind-try','/lib64','/lib64','--proc','/proc','--dev','/dev','--tmpfs','/tmp','--bind',workspace,'/workspace','--chdir','/workspace','--setenv','HOME','/tmp','--setenv','PATH','/usr/bin:/bin','--',command,...args];
+  return ['--die-with-parent','--new-session','--unshare-all','--ro-bind','/usr','/usr','--ro-bind-try','/bin','/bin','--ro-bind-try','/lib','/lib','--ro-bind-try','/lib64','/lib64','--proc','/proc','--dev','/dev','--tmpfs','/tmp','--bind',workspace,'/workspace','--chdir','/workspace','--setenv','HOME','/tmp','--setenv','PATH','/usr/bin:/bin','--',command,...args];
 }
-// Use bwrap's --unshare-net instead of --share-net: network remains isolated.
-// The explicit --share-net placeholder above is replaced here for older bwrap compatibility.
-export function isolatedArgs(opts){const a=sandboxArgs(opts);a[a.indexOf('--share-net')]='--unshare-net';return a;}
+export function isolatedArgs(opts){return sandboxArgs(opts);}
 export function sandboxAvailable(){return process.platform==='linux'&&spawnSync('bwrap',['--version'],{stdio:'ignore'}).status===0;}
 export async function runSandbox({workspace,command,args=[],timeoutMs=30000,maxOutputBytes=65536}={}) {
   if(!sandboxAvailable())throw new Error('Sandbox unavailable: Linux and bubblewrap required; refusing unsandboxed execution');
