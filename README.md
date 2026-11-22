@@ -7,7 +7,7 @@
 
 ## The harness
 
-OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. Nothing about the agent itself is customized — the work here is the packaging, the universal provider config, and the OpenMind Harness branding. Full feature list: [docs/features.md](docs/features.md).
+OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. OMH also includes experimental local runtime modules for tasks, workflows, memory, isolated execution, team workspaces and traces. They run through a separate CLI and are not yet integrated into the OpenCode UI. Full feature list: [docs/features.md](docs/features.md).
 
 Two ways to run it on any platform:
 
@@ -15,6 +15,13 @@ Two ways to run it on any platform:
 - **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
 
 Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
+
+
+## OMH local runtime (experimental)
+
+OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. These features are **not automatically active inside the stock OpenCode agent interface**. See [usage, security boundaries and limitations](docs/omh-runtime.md).
+
+Run `node scripts/omh-runtime.mjs status` from the repository root, or `node --test modules/*.test.mjs` for module tests.
 
 ## Providers
 
