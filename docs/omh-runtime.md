@@ -18,6 +18,8 @@ Set `OMH_WORKSPACE` to a dedicated absolute workspace if you don't want to use y
 
 Run `node scripts/omh-dashboard.mjs` and open `http://127.0.0.1:4177` on the same machine. The installer also copies this entry point and its assets into the installed runtime. Set `OMH_DASHBOARD_PORT` to change the port.
 
+The dashboard now has **two narrowly scoped interactive controls**: cancel a queued task, or retry a failed `workspace.read` task up to the configured limit. Each action requires a confirmation and calls a local same-origin JSON API guarded by a per-process anti-CSRF token, strict Origin and Host checks, and bounded request bodies. It does **not** allow executing shell commands, restarting native agents, approving privileged operations, publishing skills, or changing permissions. Running tasks must still be managed through a trusted CLI and their existing cancellation policy. This browser-local token is not a defense against malware or other processes running as the same OS user.
+
 The dashboard reads the same state as the CLI and daemon. Workspace search covers the displayed records for agent roles, dependent workflow steps, tasks, memory titles, skill proposals, plugin manifests, traces, sandbox jobs, schedules and workspaces. Task, workflow and sandbox views support status filtering. The console reports queue totals, and the other inspector tabs show workspaces, schedules and logs. Refresh reads a new snapshot. After a failed refresh the dashboard labels the previous snapshot as stale. Use the CLI to submit work, grant approvals or inspect private record contents.
 
 The header uses the icon from the [OMH app icon set](https://github.com/tjcrims0nx/omh-ios/blob/33f526c56faf7a6bb51487b57bb8e69457bd323b/app/DSHAssets.xcassets/DSHAppIcon.appiconset/icon-1024.png). The orbital background was generated for OMH. The bundled Orbitron font includes its SIL Open Font License in `dashboard/Orbitron-LICENSE.txt`.
@@ -138,6 +140,10 @@ The Linux and Termux setup scripts run the installer automatically when invoked 
 The installed bridge connected over stdio to the pinned OpenCode 1.19.6 binary on Linux. Run `opencode mcp list` or check the UI's MCP status after installation. The automated transport tests cover tool discovery and rejection of privileged calls.
 
 The Gemini connectivity workflow runs two smoke tests. The fixture streams a deterministic tool call to the real OpenCode binary on loopback. The live job uses the repository's `GEMINI_API_KEY` secret and tries the configured Google models. Both jobs verify the reviewer runs, OpenCode calls the installed MCP read tool, and the worker returns the expected file.
+
+## Verified and unverified platforms
+
+GitHub Actions exercises Linux module tests, the real Linux Bubblewrap sandbox, and Chromium/WebKit dashboard smoke tests. Separate macOS and Windows CI smoke jobs check portable runtime status, provider routing, MCP interfaces and diagnostic output; **neither platform has an OS-level execution sandbox backend** in OMH. Any request for `sandbox.exec` on an unsupported host must fail closed rather than execute without isolation. iOS has not been changed, and iOS launch or sandbox behavior must not be inferred from desktop results.
 
 ## Remaining hardening
 
