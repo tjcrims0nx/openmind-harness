@@ -45,7 +45,7 @@ const HEADERS = {
   'X-Content-Type-Options': 'nosniff',
 };
 
-async function readState(state) {
+export async function readState(state) {
   const queue = new TaskQueue(join(state, 'tasks.json'));
   const [tasks, schedules, notes, traces, workspaces, skills, plugins] = await Promise.all([
     queue.load().then(store => store.list()),
