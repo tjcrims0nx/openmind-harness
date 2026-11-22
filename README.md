@@ -14,7 +14,9 @@
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions">Build status</a>
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.8-flash`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+
+**Reliability note (November 22, 2026):** The previous `google/gemini-3.8-flash` default was observed to hang for 120 and 180 seconds with no output, while `gemini-3.5-flash-lite` returned a response in approximately 6 seconds using the same key and setup. OMH now defaults to Flash Lite. The 3.8 model remains optional, not automatically selected. See [model troubleshooting and sandbox platform limits](docs/omh-runtime.md#model-reliability-and-host-isolation).
 
 ## The harness
 
@@ -45,7 +47,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | Optional provider. ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
 | Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Free stock route; works out of the box as the fallback when OpenAI has no credits. |
 | DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | pinned (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | `GEMINI_API_KEY` | **Configured default.** Google provider. `gemini-2.5-flash` is retired by Google — the config pins the working models. |
+| Gemini | `gemini-3.5-flash-lite` (default), `gemini-3.8-flash` (optional) | `GEMINI_API_KEY` | Default changed to Flash Lite after repeated 3.8 Flash hangs (120–180 seconds with no output); Flash Lite responded in ~6 seconds on the affected setup. Validate both on your own key before selecting 3.8. |
 | Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
 | Groq | catalog (`openai/gpt-oss-120b`, …) | `GROQ_API_KEY` | Fast hosted models. |
 | Mistral | catalog (`codestral-2508`, …) | `MISTRAL_API_KEY` | Mistral models. |
@@ -61,7 +63,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
 | Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Set it with `openmind-set-custom-endpoint` (or `/custom-endpoint` in the web UI) — it asks for the URL, the bearer key and a model id, and saves them where the harness reads them. |
 
-The default model is `openai/gpt-5` (top-level `"model"` in [`opencode.json`](opencode.json) — the single source of truth used on every platform). If OpenAI has no credits, switch to `experientiallabs/deepseek-v4.1-flash:free` in the model picker — that is the working out-of-the-box fallback. Small jobs (session titles and other one-line calls) always use the free fallback too (`"small_model"` in the config) — some providers' default small models are not on every key's access list, and a failed title call should never break a session.
+The default model is `google/gemini-3.5-flash-lite` (top-level `"model"` in [`opencode.json`](opencode.json), also used by the planner, implementer, tester, and reviewer). The `small_model` and `fast` agent use `experientiallabs/deepseek-v4.1-flash:free` if you have credentials for that service; OpenCode does not automatically fail over from a stalled main model just because `small_model` is configured. To update an existing installation, copy the latest `opencode.json` to your OpenCode configuration directory or rerun the platform setup, and start a **new session**. Check the current model in the picker; existing sessions may retain the previous selection.
 
 ## ChatGPT Plus — GPT-5 with no API credits
 
