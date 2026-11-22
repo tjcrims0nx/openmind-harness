@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "google/gemini-3.8-flash",
+  "model": "google/gemini-3.5-flash-lite",
   "small_model": "experientiallabs/deepseek-v4.1-flash:free",
   "provider": {
     "anthropic": {
@@ -187,7 +187,7 @@
     "reviewer": {
       "description": "Reviews current changes for correctness and regressions. Read-only.",
       "mode": "all",
-      "model": "google/gemini-3.8-flash",
+      "model": "google/gemini-3.5-flash-lite",
       "permission": {
         "bash": "deny",
         "edit": "deny"
@@ -197,7 +197,7 @@
     "planner": {
       "description": "Read-only architecture planner. Delegated by an OMH user or coordinating agent.",
       "mode": "all",
-      "model": "google/gemini-3.8-flash",
+      "model": "google/gemini-3.5-flash-lite",
       "permission": {
         "bash": "deny",
         "edit": "deny"
@@ -207,13 +207,13 @@
     "implementer": {
       "description": "Scoped code implementer; filesystem/tool permissions remain enforced by OpenCode.",
       "mode": "all",
-      "model": "google/gemini-3.8-flash",
+      "model": "google/gemini-3.5-flash-lite",
       "prompt": "Implement only the explicitly assigned change. Prefer minimal patches and include exact files changed. Do not claim testing without running tests."
     },
     "tester": {
       "description": "Read-only test analyst; does not execute shell or modify source.",
       "mode": "all",
-      "model": "google/gemini-3.8-flash",
+      "model": "google/gemini-3.5-flash-lite",
       "permission": {
         "bash": "deny",
         "edit": "deny"
