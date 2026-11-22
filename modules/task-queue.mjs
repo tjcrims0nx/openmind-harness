@@ -112,7 +112,8 @@ export class TaskQueue {
  }
  async #run(id){
   const task=await this.#locked(async()=>{
-   // Resolve every dependent task whose prerequisite has irreversibly failed.
+   // Resolve descendants of explicitly cancelled prerequisites. Failed jobs
+   // remain retryable, so their dependents must remain queued and blocked.
    // Propagate cancellations through longer workflow chains in one transaction.
    const byId=new Map(this.tasks.map(t=>[t.id,t]));
    let changed=false;
@@ -121,7 +122,7 @@ export class TaskQueue {
     for(const blocked of this.tasks){
      if(blocked.status!=='queued'||!blocked.dependsOn)continue;
      const parent=byId.get(blocked.dependsOn);
-     if(parent&&(parent.status==='failed'||parent.status==='cancelled')){
+     if(parent&&parent.status==='cancelled'){
       blocked.status='cancelled';
       blocked.error=`Dependency ${parent.id} ended as ${parent.status}`;
       blocked.finishedAt=new Date().toISOString();
