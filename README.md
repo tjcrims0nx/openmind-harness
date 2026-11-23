@@ -248,7 +248,11 @@ The dashboard's ordinary actions are bounded. Additional governance operations r
 
 ## Development screenshots and diagnostics
 
-The recent images supplied during the iPad bring-up cover **the OMH startup diagnostic panel, failing iOS CI checks, and the provider configuration interface**. These are different from the branded concept illustrations. The screenshot binaries still need to be committed before this section can show an actual image gallery; no missing-image placeholders are linked.
+The images from iPad bring-up are **development diagnostics**, not verified release screenshots. The startup capture below is an actual shared image (compressed for README display), not a rendered mock-up.
+
+<p align="center"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" width="640" alt="OpenMind Harness startup diagnostic capture from November 23, 2026"></p>
+
+<p align="center"><sub>Startup diagnostic capture · November 23, 2026 · Native launch still under verification</sub></p>
 
 | Diagnostic | Interpretation |
 | --- | --- |
@@ -256,7 +260,7 @@ The recent images supplied during the iPad bring-up cover **the OMH startup diag
 | iOS build run | A failed workflow check, not a distributable IPA |
 | Providers settings | Provider configuration screens; connection success requires separate tests |
 
-For the actual machine-readable state, inspect [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) and [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions). Preserve diagnostic screenshots under `docs/images/diagnostics/` after redacting personal details and secrets.
+For the actual machine-readable state, inspect [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) and [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions). Additional captures will be placed under `docs/images/diagnostics/` after checking for personal details or credentials.
 
 ## Testing and project status
 
