@@ -4,7 +4,7 @@
 
 <h1 align="center">OpenMind Harness</h1>
 <p align="center"><strong>One workspace. Your models. Your agents. Your tools.</strong></p>
-<p align="center"><sub>Local-first AI orchestration • Multi-provider • MCP • Workflows • Experimental native iPad client</sub></p>
+<p align="center"><sub>Local-first AI orchestration • Multi-provider • MCP • Workflows • Windows/macOS/Linux desktop</sub></p>
 
 <p align="center">
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Module tests"></a>
@@ -19,6 +19,7 @@
 <a href="#-providers">Providers</a> ·
 <a href="#-mcp--plugins">MCP</a> ·
 <a href="#-jailbreak-lab">Jailbreak Lab</a> ·
+<a href="#-desktop-application">Desktop</a> ·
 <a href="#-docs--links">Docs</a>
 </sub></p>
 
@@ -147,6 +148,17 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 | 🖥️ Unified dashboard and iPad operation | Integration pending |
 
 **Execution is not yet verified end to end.** The evidence fixture tests passed 3/3, but the Lab CLI requires its real SQLite schema (including `started_at`); the simplified evidence fixture cannot validate run creation. Live provider calls require explicit operator opt-in, approved inputs and bounded budgets. See [PR details](https://github.com/tjcrims0nx/openmind-harness/pull/6).
+
+### 🖥️ Desktop application
+
+**OMH Desktop** is an Electron app for **Windows, macOS and Linux** with the official neon hexagon branding, chat-first interface and local OMH runtime dashboard.
+
+- 🖥️ Native window with sandboxed, isolated renderer; local dashboard bound to `127.0.0.1`.
+- 💬 Authenticated multi-provider chat through the local dashboard; configure API keys securely in the desktop process environment.
+- 📦 Windows `.exe`, macOS `.dmg` / `.zip`, Linux `.AppImage` / `.deb` packaging workflows.
+- 🔧 [Desktop setup and limitations](desktop/README.md) · [Desktop build workflow](.github/workflows/desktop-packages.yml).
+
+**Build artifacts are not a signed release.** Windows and macOS packages need platform signing, plus launch checks on each system, before production distribution.
 
 ### 🛡️ Security & verification
 
