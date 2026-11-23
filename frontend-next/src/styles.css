@@ -133,3 +133,40 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
  .message{max-width:96%}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition:none!important}}
+
+/* Real OMH runtime views share the same shell, not placeholder links. */
+.runtime-page{flex:1;overflow:auto;min-height:0;padding:30px clamp(16px,3.2vw,46px);width:min(100%,1120px);margin:0 auto}
+.runtime-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px}
+.runtime-heading h1{font-size:clamp(26px,3vw,36px);margin:5px 0 7px;letter-spacing:-.035em}
+.runtime-heading p{color:#a4bad6;font-size:13px;margin:0}
+.runtime-refresh,.runtime-offline button{border:1px solid #386485;background:#14304a;color:#caf1ff;font-size:12px;padding:9px 12px;border-radius:9px;white-space:nowrap}
+.runtime-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:23px}
+.runtime-metric{border:1px solid #304a68;border-radius:12px;background:#101e36;padding:15px}
+.runtime-metric span{display:block;font-size:11px;color:#a9bbd3;text-transform:capitalize}
+.runtime-metric strong{display:block;font-size:27px;font-variant-numeric:tabular-nums;margin-top:6px}
+.runtime-list{border:1px solid #2b4266;border-radius:14px;background:#101a31;overflow:hidden}
+.runtime-list-title{display:flex;justify-content:space-between;align-items:center;padding:15px 19px;border-bottom:1px solid #293a59;font-size:13px}
+.runtime-list-title span{color:#829cbd;font-size:11px}
+.runtime-record{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 19px;border-bottom:1px solid #243450}
+.runtime-record:last-child{border-bottom:0}
+.runtime-record strong{font-size:13px;font-weight:650;overflow-wrap:anywhere}
+.runtime-record p{margin:7px 0 0;color:#839db9;font-size:11px;overflow-wrap:anywhere}
+.runtime-status{flex:none;text-transform:capitalize;font-size:11px;color:#b9c9df;border:1px solid #334e6d;border-radius:99px;padding:5px 10px}
+.runtime-status.running{border-color:#3773a9;color:#86c5f5}
+.runtime-status.completed,.runtime-status.enabled{border-color:#2e6d64;color:#8fe1ce}
+.runtime-status.failed,.runtime-status.cancelled{border-color:#744e62;color:#ebb4c7}
+.runtime-empty{padding:40px 15px;text-align:center;color:#879fb9;font-size:13px}
+.runtime-offline{padding:22px;border-radius:14px;border:1px solid #75553e;background:#241c23;margin-bottom:20px}
+.runtime-offline strong{font-size:15px;color:#f4d2b5}
+.runtime-offline p{font-size:13px;color:#dbc1b3;line-height:1.6}
+.runtime-offline span{display:block;color:#b5a3ad;font-size:11px;margin-top:12px}
+@media(max-width:600px){
+ .runtime-page{padding:20px 12px}
+ .runtime-heading{align-items:start}
+ .runtime-heading h1{font-size:25px}
+ .runtime-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .runtime-metric{padding:11px}
+ .runtime-metric strong{font-size:22px}
+ .runtime-record{padding:13px;align-items:start}
+ .runtime-status{font-size:10px}
+}
