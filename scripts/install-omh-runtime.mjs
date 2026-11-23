@@ -51,6 +51,8 @@ if(check){
 }else if(dryRun){process.stdout.write(JSON.stringify({destination:dest,mcp:merged.mcp['omh-runtime']},null,2)+'\n');}
 else{
  await mkdir(join(dest,'scripts'),{recursive:true});
+ // The dashboard imports shared chat adapters from ../lib at runtime.
+ await cp(join(source,'lib'),join(dest,'lib'),{recursive:true,force:true});
  await cp(join(source,'modules'),join(dest,'modules'),{recursive:true,force:true});
  await cp(join(source,'dashboard'),join(dest,'dashboard'),{recursive:true,force:true});
  for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-live.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});
