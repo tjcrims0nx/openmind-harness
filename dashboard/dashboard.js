@@ -319,6 +319,8 @@ function renderChatControls(){
  chatSend.disabled=!chatReady()||!$('#chat-input').value.trim();
  chatProvider.disabled=chatBusy;
  $('#chat-reset').disabled=chatBusy;
+ $('#chat-connect').hidden=!remote || Boolean(webToken);
+ $('#chat-connect').disabled=chatBusy;
  $('#chat-model').textContent=selected?selected.model:'No model connected';
  $('#chat-hint').textContent=chatBusy?'Waiting for provider response…':selected?'Enter to send · Shift+Enter for a new line':'Configure a provider key in Vercel';
  $('#chat-availability').textContent=selected?'Chat ready · '+selected.label:'Chat unavailable';
