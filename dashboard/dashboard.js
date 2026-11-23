@@ -24,15 +24,11 @@ const remote = document.documentElement.dataset.omhRemote === 'true';
 let webToken;
 async function runtimeFetch(url,options={}){
  if(!remote)return fetch(url,options);
- if(!webToken){
-   const token=prompt('Enter your OMH Vercel dashboard access token (not your provider API key):');
-   if(!token)throw Error('Dashboard access token required');
-   webToken=token;
- }
+ if(!webToken)throw Error('Dashboard access token required. Use Connect above to enter it.');
  const response=await fetch(url,{...options,headers:{...options.headers,Authorization:'Bearer '+webToken}});
  if(response.status===401){
    webToken=undefined;
-   throw Error('Dashboard token rejected. Select Refresh to try again.');
+   throw Error('Dashboard token rejected. Use Connect to enter a valid token.');
  }
  return response;
 }
@@ -159,12 +155,14 @@ function renderSearch() {
 }
 
 function renderView() {
+  document.body.dataset.activeView=active;
   $('#chat').hidden = active !== 'chat';
   $('#hub').hidden = active !== 'workspace';
   $('#detail').hidden = active === 'workspace' || active === 'chat';
   $('#connectors-panel').hidden = active !== 'plugins';
   document.querySelector('.dock').hidden = active === 'chat';
   $('#breadcrumb-view').textContent = views[active] || 'Chat';
+  // Chat is a focused workspace; telemetry and legacy errors belong in Tools.
   for (const button of document.querySelectorAll('[data-view]')) {
     button.setAttribute('aria-pressed', button.dataset.view === active);
   }
@@ -360,7 +358,7 @@ async function loadChatProviders(){
   chatNotice.textContent=first?'Chat ready. Choose a model and send a message.':'No provider API keys configured in Vercel. Add a server-side provider key to enable chat.';
   chatNotice.dataset.severity='info';
  }catch(error){
-  chatNotice.textContent='Chat unavailable: '+error.message;
+  chatNotice.textContent=error.message.includes('Dashboard access token')?'Enter the dashboard access token with Connect to see available providers.':'Chat unavailable: '+error.message;
   chatNotice.dataset.severity='warning';
   chatProvider.replaceChildren(new Option('Unable to load providers',''));
  }
@@ -369,6 +367,17 @@ async function loadChatProviders(){
 $('#chat-input').addEventListener('input',renderChatControls);
 chatProvider.onchange=resetChat;
 $('#chat-reset').onclick=resetChat;
+$('#chat-connect').onclick=()=>{
+ const token=prompt('Enter the OMH dashboard access token (not a provider API key):');
+ if(!token)return;
+ webToken=token.trim();
+ chatProviders=[];
+ chatNotice.textContent='Checking provider access…';
+ chatNotice.dataset.severity='info';
+ void loadChatProviders();
+ void load();
+};
+
 for(const suggestion of document.querySelectorAll('[data-chat-suggestion]')){
  suggestion.addEventListener('click',()=>{
   $('#chat-input').value=suggestion.dataset.chatSuggestion;
@@ -450,13 +459,13 @@ async function load() {
     renderFeeds();
     renderView();
     $('#connection').textContent = 'Connected';
-    $('#chat-availability').textContent = 'Runtime online · Chat unavailable';
+    // Provider chat connectivity is independent from worker telemetry.
     $('#health-title').textContent = 'Harness online';
     document.body.dataset.online = 'true';
     $('#error').hidden = true;
   } catch (error) {
     $('#connection').textContent = 'Offline';
-    $('#chat-availability').textContent = 'Runtime offline';
+    // A disconnected worker must not hide an available hosted chat provider.
     $('#health-title').textContent = 'Harness offline';
     document.body.dataset.online = 'false';
     $('#error').textContent = remote ? ('Remote runtime unavailable: '+error.message) : (state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.');
