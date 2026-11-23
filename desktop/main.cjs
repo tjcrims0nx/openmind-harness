@@ -41,6 +41,7 @@ function startRuntime(){
  });
 }
 function showFailure(message){
+ if(process.env.OMH_DESKTOP_SCREENSHOT_DIR){console.error(message);app.exit(1);return;}
  if(!windowRef||windowRef.isDestroyed())return;
  void dialog.showMessageBox(windowRef,{type:'error',title:'OMH runtime unavailable',message,detail:'Use View > Reload after fixing the problem, or restart OpenMind Harness.'});
 }
@@ -123,5 +124,6 @@ app.whenReady().then(()=>{
  app.setAppUserModelId('app.openmind.harness.desktop');
  menu();
  createWindow();
+ if(process.env.OMH_DESKTOP_SCREENSHOT_DIR)setTimeout(()=>{console.error('OMH desktop screenshot startup timed out');app.exit(1);},45000).unref();
  try{startRuntime();}catch(e){showFailure(e.message);}
 }).catch(error=>{console.error('OMH Electron startup error:',error);app.quit();});
