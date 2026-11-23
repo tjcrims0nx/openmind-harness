@@ -36,7 +36,8 @@ def run(page,width):
     page.goto(BASE,wait_until="networkidle")
     expect(page.get_by_role("heading",name="Chat",exact=True)).to_be_visible()
     expect(page.get_by_role("heading",name="What can I help you build?")).to_be_visible()
-    expect(page.locator("#chat-provider")).to_have_value("openai")
+    expect(page.locator("#chat-provider")).to_have_value("")
+    page.locator("#chat-provider").select_option("openai")
     expect(page.get_by_role("button",name="Send ↑")).to_be_disabled()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1"),"Horizontal overflow on "+str(width)
     assert page.locator(".composer").evaluate("el=>el.getBoundingClientRect().bottom<=innerHeight+2"),"Composer below fold"
