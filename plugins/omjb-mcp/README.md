@@ -79,7 +79,9 @@ Tools currently exposed:
 | --- | --- |
 | `omjb_lab_capabilities` | Check whether the native Lab is installed and whether live runs are enabled |
 | `omjb_lab_run_case` | Run a selected `GL-###` case via `python -m omjb.cli`; supports offline `echo` and explicitly enabled provider targets |
-| `omjb_lab_run_campaign` | Launch the Lab's native reviewed-benign multi-provider evaluator with 1–100 request ceiling, finite estimated cost limit, two workers and deadline |
+| `omjb_lab_run_campaign` | Launch the Lab's native reviewed-benign multi-provider evaluator with 1–100 request ceiling, a maximum-total estimated cost ceiling, two workers and deadline |
+
+The MCP layer refuses campaigns when `max_requests × estimated_request_cost` exceeds `max_usd`, instead of quietly trimming the requested campaign to fit one request. Free/local `echo` and `ollama` targets may use zero cost and a zero budget; hosted providers require positive estimated cost and budget. Execution errors return recognized safe Lab diagnostics; unrecognized stderr and tracebacks stay local.
 
 **Live execution is disabled by default.** Only set `OMJB_ALLOW_LIVE_RUNS=1` in a trusted operator-controlled environment when you intend to permit provider calls and associated charges. Campaigns also require an existing reviewed corpus selected by `OMJB_REVIEWED_CORPUS` and an absolute `OMJB_CAMPAIGN_OUTPUT` evidence path. The native Lab checks case eligibility and corpus review constraints. MCP callers cannot provide arbitrary shell commands, raw prompts, corpus paths, or URLs.
 
