@@ -1,0 +1,16 @@
+{
+  "name": "omh-openui-test",
+  "main": "workers/openui-backend.mjs",
+  "compatibility_date": "2026-11-23",
+  "assets": {
+    "directory": "./frontend-next/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
