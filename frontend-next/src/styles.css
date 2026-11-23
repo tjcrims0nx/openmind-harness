@@ -170,3 +170,11 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
  .runtime-record{padding:13px;align-items:start}
  .runtime-status{font-size:10px}
 }
+
+/* Public GitHub Pages preview: unmistakably a demo, not a provider session. */
+.demo-banner{position:fixed;z-index:50;bottom:0;left:0;right:0;background:#192942;border-top:1px solid #3ad7e8;color:#c9f1fb;text-align:center;padding:7px 12px;font-size:11px;pointer-events:none}
+.demo-banner strong{letter-spacing:.12em;color:#72ecf4}
+.runtime-demo-note{padding:10px 13px;border:1px solid #376a83;background:#14243e;border-radius:10px;margin-bottom:16px;color:#add9e9;font-size:12px}
+.omh-shell:has(.demo-banner) .chat-layout{padding-bottom:28px}
+.omh-shell:has(.demo-banner) .runtime-page{padding-bottom:45px}
+@media(max-width:600px){.demo-banner{font-size:10px;padding:6px 8px}}
