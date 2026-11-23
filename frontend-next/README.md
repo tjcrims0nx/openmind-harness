@@ -31,9 +31,9 @@ The script copies `../dashboard/app-icon.webp`, the official OMH emblem, into th
 - Explicit connection control for remote dashboard tokens; model keys stay on the server.
 - Existing Harness modules, MCP and dashboard remain unchanged; this is a replacement candidate until integrated and tested.
 - OpenUI supports streamed messages and generative components, but OMH's current JSON chat endpoint returns a final response. Actual token streaming and model-driven components require a separately verified server protocol; this pilot does not claim those capabilities.
-- Workspace/Agents/Tasks/etc navigation is a placeholder. It must be integrated with the existing authenticated OMH runtime views before rollout.
+- Workspace, Agents, Tasks, Memory, Workflows, Plugins and Logs now read actual metadata from the authenticated `/api/state` endpoint. These views are **read-only** and fail visibly if the remote runtime is disconnected. Administrative task mutations and MCP registration still belong to the existing dashboard until their permissions and UI are migrated.
 - Authored React UI and styles are original OMH code; no OpenUI source files are copied into this repository.
 
 ## Rollout gate
 
-Pass `npm run build` and browser tests at 390px and 1440px, verify real hosted/provider and local CSRF paths, and connect the missing runtime views. **Do not switch Vercel or Electron to this UI until these checks succeed.**
+Pass `npm run build` and the Chromium browser workflow at 390px and 1440px, review real CI screenshots, verify real hosted-provider and local CSRF paths, then migrate any remaining privileged runtime controls deliberately. **Do not switch Vercel or Electron to this UI until these checks succeed.**
