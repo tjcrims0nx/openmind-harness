@@ -117,6 +117,9 @@ test('read-only plugin queries work against the real-schema DB', async () => {
 test('echo run on a fresh real-schema DB persists and is visible via read-only MCP', {skip: !labRoot()}, async () => {
   const root = labRoot();
   const dir = await mkdtemp(join(tmpdir(), 'omjb-exec-'));
+  // Save the caller's env: the skip decision was made at load time, so a
+  // later test in this file must still see OMJB_LAB_ROOT after this one.
+  const saved = {root: process.env.OMJB_LAB_ROOT, db: process.env.OMJB_DB_PATH, live: process.env.OMJB_ALLOW_LIVE_RUNS};
   try {
     const dbPath = join(dir, 'exec.db');
     makeDb(dbPath, REAL_SCHEMA);
@@ -141,8 +144,9 @@ test('echo run on a fresh real-schema DB persists and is visible via read-only M
     assert.equal(summary.found, true);
     assert.equal(summary.observations, 1);
   } finally {
-    delete process.env.OMJB_LAB_ROOT;
-    delete process.env.OMJB_DB_PATH;
+    if (saved.root === undefined) delete process.env.OMJB_LAB_ROOT; else process.env.OMJB_LAB_ROOT = saved.root;
+    if (saved.db === undefined) delete process.env.OMJB_DB_PATH; else process.env.OMJB_DB_PATH = saved.db;
+    if (saved.live === undefined) delete process.env.OMJB_ALLOW_LIVE_RUNS; else process.env.OMJB_ALLOW_LIVE_RUNS = saved.live;
     await rm(dir, {recursive: true, force: true});
   }
 });
@@ -179,6 +183,7 @@ test('reviewed-benign echo campaign completes through MCP without provider keys'
 test('incompatible (fixture-schema) DB is rejected cleanly without modification', {skip: !labRoot()}, async () => {
   const root = labRoot();
   const dir = await mkdtemp(join(tmpdir(), 'omjb-exec-'));
+  const saved = {root: process.env.OMJB_LAB_ROOT, db: process.env.OMJB_DB_PATH, live: process.env.OMJB_ALLOW_LIVE_RUNS};
   try {
     const dbPath = join(dir, 'fixture.db');
     makeDb(dbPath, FIXTURE_SCHEMA);
@@ -194,8 +199,9 @@ test('incompatible (fixture-schema) DB is rejected cleanly without modification'
     const results = resultRows(dbPath);
     assert.equal(results.length, 1);
   } finally {
-    delete process.env.OMJB_LAB_ROOT;
-    delete process.env.OMJB_DB_PATH;
+    if (saved.root === undefined) delete process.env.OMJB_LAB_ROOT; else process.env.OMJB_LAB_ROOT = saved.root;
+    if (saved.db === undefined) delete process.env.OMJB_DB_PATH; else process.env.OMJB_DB_PATH = saved.db;
+    if (saved.live === undefined) delete process.env.OMJB_ALLOW_LIVE_RUNS; else process.env.OMJB_ALLOW_LIVE_RUNS = saved.live;
     await rm(dir, {recursive: true, force: true});
   }
 });
