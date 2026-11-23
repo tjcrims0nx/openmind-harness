@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const views = {
-  workspace: 'Workspace', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
+  chat: 'Chat', workspace: 'Workspace tools', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
   skills: 'Skills', plugins: 'Plugins', traces: 'Trace', sandbox: 'Sandbox', schedules: 'Schedules',
   workspaces: 'Workspaces',
 };
@@ -13,7 +13,7 @@ const features = {
 const tabs = {console: 'Console', workspaces: 'Workspaces', schedules: 'Schedules', traces: 'Logs'};
 const filterable = new Set(['tasks', 'workflows', 'sandbox']);
 let state;
-let active = 'workspace';
+let active = 'chat';
 let tab = 'console';
 let query;
 let refreshed;
@@ -159,12 +159,14 @@ function renderSearch() {
 }
 
 function renderView() {
+  $('#chat').hidden = active !== 'chat';
   $('#hub').hidden = active !== 'workspace';
-  $('#detail').hidden = active === 'workspace';
+  $('#detail').hidden = active === 'workspace' || active === 'chat';
+  $('#connectors-panel').hidden = active !== 'plugins';
   for (const button of document.querySelectorAll('[data-view]')) {
     button.setAttribute('aria-pressed', button.dataset.view === active);
   }
-  if (active !== 'workspace') {
+  if (active !== 'workspace' && active !== 'chat') {
     $('#view-heading').textContent = views[active];
     $('#filter-label').hidden = !filterable.has(active);
     const rows = records(active).filter(r => !filterable.has(active) || $('#filter').value === 'all' || r.queueStatus === $('#filter').value);
@@ -207,7 +209,7 @@ document.addEventListener('click', event => {
   $('#filter').value = 'all';
   toggleMenu(false);
   renderView();
-  if (active !== 'workspace') $('#view-heading').focus({preventScroll: true});
+  if (active !== 'workspace' && active !== 'chat') $('#view-heading').focus({preventScroll: true});
 });
 document.addEventListener('click', async event => {
   const button=event.target.closest('button[data-action][data-task-id]');
@@ -273,10 +275,10 @@ $('#menu').append(icon('menu'));
 $('#menu').onclick = () => toggleMenu($('#menu').getAttribute('aria-expanded') !== 'true');
 for (const [key, label] of Object.entries(views)) {
   $('#navigation').append(viewButton(key));
-  if (key !== 'workspace') $('#scope').add(new Option(label, key));
+  if (key !== 'workspace' && key !== 'chat') $('#scope').add(new Option(label, key));
 }
 for (const [key, description] of Object.entries(features)) $('#tiles').append(viewButton(key, views[key], description));
-$('#shortcuts').append(viewButton('workspace', 'Overview', null, 'panel'), viewButton('agents', 'Agent team'), viewButton('tasks', 'Queue', null, 'list'));
+$('#shortcuts').append(viewButton('chat', 'Chat', null, 'panel'), viewButton('workspace', 'Tools', null, 'workspaces'), viewButton('agents', 'Agent team'), viewButton('tasks', 'Queue', null, 'list'));
 for (const [key, label] of Object.entries(tabs)) {
   const button = el('button');
   button.id = 'tab-' + key;
@@ -302,6 +304,23 @@ $('#dock-tabs').onkeydown = event => {
   button.click();
   button.focus();
 };
+// Chat is the primary workspace. Until a separately authenticated model-chat
+// endpoint exists, retain draft text locally and never fabricate assistant output.
+$('#chat-open-tools').onclick = () => {
+ active = 'workspace';
+ renderView();
+};
+$('#chat-form').onsubmit = event => {
+ event.preventDefault();
+ $('#chat-notice').textContent = 'No chat provider is connected to this dashboard. OpenCode conversation tools are available on your trusted runtime; the remote gateway does not expose a chat route.';
+ $('#chat-input').focus();
+};
+$('#chat-input').addEventListener('keydown', event => {
+ if(event.key==='Enter' && !event.shiftKey) {
+  event.preventDefault();
+  $('#chat-form').requestSubmit();
+ }
+});
 $('#filter').onchange = renderView;
 $('#search-form').onsubmit = event => {
   event.preventDefault();
@@ -326,11 +345,13 @@ async function load() {
     renderFeeds();
     renderView();
     $('#connection').textContent = 'Connected';
+    $('#chat-availability').textContent = 'Runtime online · Chat unavailable';
     $('#health-title').textContent = 'Harness online';
     document.body.dataset.online = 'true';
     $('#error').hidden = true;
   } catch (error) {
     $('#connection').textContent = 'Offline';
+    $('#chat-availability').textContent = 'Runtime offline';
     $('#health-title').textContent = 'Harness offline';
     document.body.dataset.online = 'false';
     $('#error').textContent = remote ? ('Remote runtime unavailable: '+error.message) : (state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.');
