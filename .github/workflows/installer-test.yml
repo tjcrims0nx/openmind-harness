@@ -1,0 +1,75 @@
+name: Installer test
+
+on:
+  push:
+    paths:
+      - 'linux-setup.sh'
+      - 'macos-setup.sh'
+      - 'windows-setup.ps1'
+      - 'termux-setup.sh'
+      - 'opencode.json'
+      - 'scripts/install-omh-runtime.mjs'
+  pull_request:
+    paths:
+      - 'linux-setup.sh'
+      - 'macos-setup.sh'
+      - 'windows-setup.ps1'
+      - 'termux-setup.sh'
+      - 'opencode.json'
+      - 'scripts/install-omh-runtime.mjs'
+
+jobs:
+  install-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run Linux installer (no launch)
+        run: bash linux-setup.sh --no-launch
+      - name: Verify opencode installed
+        run: opencode --version
+      - name: Verify installed config
+        run: |
+          cfg="$HOME/.config/opencode/opencode.json"
+          test -f "$cfg" || { echo "config not installed: $cfg"; exit 1; }
+          grep -q 'gemini-3\.5-flash-lite' "$cfg" || { echo "config default is not gemini-3.5-flash-lite"; exit 1; }
+          echo "config installed: $cfg (default gemini-3.5-flash-lite)"
+
+  install-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run macOS installer (no launch)
+        run: bash macos-setup.sh --no-launch
+      - name: Verify opencode installed
+        run: opencode --version
+      - name: Verify installed config
+        run: |
+          cfg="$HOME/.config/opencode/opencode.json"
+          test -f "$cfg" || { echo "config not installed: $cfg"; exit 1; }
+          grep -q 'gemini-3\.5-flash-lite' "$cfg" || { echo "config default is not gemini-3.5-flash-lite"; exit 1; }
+          echo "config installed: $cfg (default gemini-3.5-flash-lite)"
+
+  install-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run Windows installer (no launch)
+        shell: pwsh
+        run: .\windows-setup.ps1 -NoLaunch
+      - name: Add opencode to PATH for later steps
+        shell: pwsh
+        # The installer adds %LOCALAPPDATA%\Programs\opencode to the user
+        # PATH in the registry (new shells see it), but GitHub Actions
+        # steps do not re-read the registry PATH, so tell the runner too.
+        run: Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA 'Programs\opencode')
+      - name: Verify opencode installed
+        shell: pwsh
+        run: opencode --version
+      - name: Verify installed config
+        shell: pwsh
+        run: |
+          $cfg = Join-Path $env:USERPROFILE '.config\opencode\opencode.json'
+          if (-not (Test-Path $cfg)) { throw "config not installed: $cfg" }
+          $text = Get-Content $cfg -Raw
+          if ($text -notmatch 'gemini-3\.5-flash-lite') { throw "config default is not gemini-3.5-flash-lite" }
+          Write-Host "config installed: $cfg (default gemini-3.5-flash-lite)"

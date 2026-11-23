@@ -3,7 +3,8 @@
 # or any Linux server). Installs the SAME harness as the iOS app: OpenCode
 # 1.19.6 + the universal multi-provider config from opencode.json.
 #
-#   curl -fsSL https://raw.githubusercontent.com/tjcrims0nx/openmind-harness/main/linux-setup.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/tjcrims0nx/openmind-harness/main/linux-setup.sh -o linux-setup.sh
+#   bash linux-setup.sh [--no-launch]
 #   # or, from a clone of the repo:
 #   ./linux-setup.sh [--no-launch]
 #
