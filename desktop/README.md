@@ -10,7 +10,7 @@ A **native Electron window** for the existing OMH local-first runtime and cyberp
 | macOS | `.dmg` and `.zip` | Unsigned builds require explicit approval; notarization pending |
 | Linux | `.AppImage` and `.deb` | Depends on desktop session/system Electron libraries |
 
-Automated build: [Desktop packages](../.github/workflows/desktop-packages.yml). Artifacts appear under the completed GitHub Actions run, separately for each operating system. **A green packaging job proves the artifact was created; opening it successfully requires a per-OS launch test.** These packages do not bundle the OpenCode binary, an AI model, Ollama, or a background worker service.
+Automated build: [Desktop packages](../.github/workflows/desktop-packages.yml). Artifacts appear under the completed GitHub Actions run, separately for each operating system. The workflow also captures **real running Electron app screenshots** (`omh-chat-desktop.png` and `omh-chat-mobile.png`) using a Linux display server and uploads them as `omh-electron-real-screenshots`. The captured UI remains offline without provider keys; no fabricated chat messages are used. **A green packaging job proves the artifact was created; opening it successfully requires a per-OS launch test.** These packages do not bundle the OpenCode binary, an AI model, Ollama, or a background worker service.
 
 ## Run from source
 
