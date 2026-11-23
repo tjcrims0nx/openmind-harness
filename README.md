@@ -1,99 +1,49 @@
 <p align="center">
-  <img src="docs/images/omh-hero-mcp.webp" width="100%" alt="OpenMind Harness — MCP servers, providers, agents, workflows, memory, sandbox and dashboard">
+  <img src="docs/images/omh-hero-mcp.webp" alt="OpenMind Harness · local AI runtime, agents, providers and MCP" width="100%">
 </p>
 
 <h1 align="center">OpenMind Harness</h1>
-
-<p align="center"><strong>Local-first AI agent orchestration · Universal model providers · MCP integrations</strong></p>
-
-<p align="center">
-  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Harness tests"></a>
-  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml/badge.svg" alt="Portable packaging"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-9c70fa" alt="GPL-3.0"></a>
-  <img src="https://img.shields.io/badge/Node.js-22%2B-00c7dd" alt="Node.js 22 or newer for the OMH runtime">
-</p>
+<p align="center"><strong>One workspace. Your models. Your agents. Your tools.</strong></p>
+<p align="center"><sub>Local-first AI orchestration • Multi-provider • MCP • Workflows • Experimental native iPad client</sub></p>
 
 <p align="center">
-  <a href="#quick-start">Quick start</a> •
-  <a href="#mcp-integrations">MCP</a> •
-  <a href="#providers-and-authentication">Providers</a> •
-  <a href="#local-runtime-and-dashboard">Runtime</a> •
-  <a href="#platforms">Platforms</a> •
-  <a href="#development-screenshots-and-diagnostics">Screenshots</a> •
-  <a href="#documentation">Docs</a>
+  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Module tests"></a>
+  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml/badge.svg" alt="Portable packages"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-8961e8" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Node.js-22%2B-00c9cf" alt="Node 22+">
 </p>
+
+<p align="center"><sub>
+<a href="#-overview">Overview</a> ·
+<a href="#-quick-start">Install</a> ·
+<a href="#-providers">Providers</a> ·
+<a href="#-mcp--plugins">MCP</a> ·
+<a href="#-jailbreak-lab">Jailbreak Lab</a> ·
+<a href="#-ipad-development">iPad</a> ·
+<a href="#-docs--links">Docs</a>
+</sub></p>
 
 ---
 
-OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-agent setup with a separately implemented **local orchestration runtime**. Use your chosen model providers, register MCP tools, manage repeatable tasks and workflows, record redacted traces, and inspect activity in a local dashboard.
+### ⚡ Overview
 
-**What is implemented today:** OpenCode handles interactive conversations, model selection and its own agent/tool loop. OMH supplies independent Node.js modules, a CLI/daemon, an opt-in MCP bridge, and a dashboard. Some OMH orchestration features remain **experimental** and are **not yet integrated into OpenCode's standard UI or model execution loop**. Do not confuse configured functionality with a running provider, active worker, or verified sandbox.
+**OMH** brings together [OpenCode](https://opencode.ai), configurable model providers, an independent Node.js orchestration runtime, a scoped MCP bridge and a local dashboard.
 
-## Build status · November 23, 2026
+- 🤖 **Agents** — configured planner, implementer, tester, reviewer and fast roles.
+- 🌐 **Models** — hosted, gateway, local and custom provider configurations.
+- 🔌 **MCP** — approved tools for tasks, memory, diagnostics, traces and skills.
+- 🧠 **Runtime** — local task queue, workflows, schedules, mailboxes and scoped memory.
+- 📊 **Dashboard** — local activity and observed state at `127.0.0.1:4177`.
+- 🛡️ **Controls** — schema validation, scoped permissions, reviewed changes and platform-dependent sandbox checks.
 
-| <strong>iPad startup</strong> | <strong>Provider settings</strong> | <strong>Lab integration</strong> |
-| :---: | :---: | :---: |
-| ❌ **Startup failure captured** | ⚠️ **UI shown; providers disconnected** | 🧪 **PR #6 under development** |
-| [iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) | [Features](docs/features.md) | [Full Lab integration PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) |
+<sub>OpenCode handles its own model conversations and native tool loop. OMH's separate orchestration modules are experimental; they are not all wired into OpenCode's standard execution loop.</sub>
 
-### Actual diagnostic screenshots · November 23, 2026
+### 🚀 Quick start
 
-<table>
-<tr>
-<td align="center" width="50%"><a href="docs/images/diagnostics/omh-startup-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" alt="Real iPad OpenMind Harness startup failure screen" width="100%"></a><br><strong>iPad startup diagnostics</strong><br><sub>Bootstrap failure; not a verified release</sub></td>
-<td align="center" width="50%"><a href="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg" alt="Real GitHub Actions iOS unsigned IPA build failure" width="65%"></a><br><strong>iOS build checks</strong><br><sub>Failed unsigned IPA job; simulator and smoke skipped</sub></td>
-</tr>
-</table>
-
-**Provider-settings screenshot:** Captured during development, but not yet added to this gallery. These screenshots are actual diagnostics, not product mockups.
-
-## At a glance
-
-| Capability | What it does | State |
-| --- | --- | --- |
-| **MCP integrations** | Registers a scoped OMH MCP server; optional external MCP integrations | Available; restricted tool set |
-| **OpenMind Jailbreak Lab integration** | Native Lab execution, bounded campaigns, evidence, scoring and review workflows | In development in [PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6); full integration not yet released |
-| **Multi-provider models** | Shared OpenCode configuration for hosted and local models | Configured; provider credentials required |
-| **Agent roles** | Planner, implementer, tester, reviewer and fast-agent definitions | Configured; native OMH execution separate |
-| **Tasks and workflows** | Durable queue, dependencies, retries, scheduling and cancellation semantics | Experimental local runtime |
-| **Memory and trace** | Scoped memory, snapshots and opt-in redacted event history | Experimental local runtime |
-| **Execution isolation** | Workspace/path controls and Linux Bubblewrap checks | Platform-dependent; fails closed if unavailable |
-| **Dashboard** | Read local runtime state and perform scoped, authorized controls | Local server on loopback |
-| **Remote operations** | Vercel frontend / protected proxy to an explicitly configured host | Experimental; requires separate setup |
-
-## Architecture
-
-```text
-        Model providers                MCP servers and integrations
-      (OAuth / API keys)                  (local or remote)
-              |                                 |
-              v                                 v
-       +----------------- OpenCode -----------------+
-       | Interactive coding-agent sessions and tools |
-       +----------------------+---------------------+
-                              |
-                         OMH MCP bridge
-                     (restricted / read-mostly)
-                              |
-         +--------------------v----------------------+
-         |            OpenMind Harness                |
-         |  tasks · agent mailboxes · workflows       |
-         |  memory · traces · policy · schedules      |
-         +--------------------+----------------------+
-                              |
-                 CLI / daemon / local state
-                              |
-                 Local dashboard :4177
-```
-
-The diagram describes component relationships, **not** a promise that every feature is automatically connected or enabled.
-
-## Quick start
-
-Install from a trusted clone, or use the platform instructions in [INSTALL.md](INSTALL.md).
+**Choose your platform** ([full installation guide](INSTALL.md)).
 
 <details open>
-<summary><strong>Linux</strong></summary>
+<summary>🐧 Linux</summary>
 
 ```bash
 git clone https://github.com/tjcrims0nx/openmind-harness.git
@@ -102,11 +52,10 @@ bash linux-setup.sh --no-launch
 opencode auth login
 opencode web
 ```
-
 </details>
 
 <details>
-<summary><strong>macOS</strong></summary>
+<summary>🍎 macOS</summary>
 
 ```bash
 git clone https://github.com/tjcrims0nx/openmind-harness.git
@@ -115,11 +64,10 @@ bash macos-setup.sh --no-launch
 opencode auth login
 opencode web
 ```
-
 </details>
 
 <details>
-<summary><strong>Windows (PowerShell)</strong></summary>
+<summary>🪟 Windows · PowerShell</summary>
 
 ```powershell
 git clone https://github.com/tjcrims0nx/openmind-harness.git
@@ -128,11 +76,10 @@ cd openmind-harness
 opencode auth login
 opencode web
 ```
-
 </details>
 
 <details>
-<summary><strong>Android / Termux</strong></summary>
+<summary>🤖 Android · Termux</summary>
 
 ```bash
 pkg update && pkg install -y git curl
@@ -141,14 +88,11 @@ bash openmind-harness/termux-setup.sh --no-launch
 opencode auth login
 opencode web
 ```
-
 </details>
 
-OpenCode's local web interface normally listens at **http://127.0.0.1:4097**. The interactive OpenCode service and the **OMH dashboard** are different servers.
+**OpenCode UI:** `http://127.0.0.1:4097` · Connect a provider when you are ready. No particular hosted provider is required to be the default for your installation.
 
-### Run the independent OMH runtime
-
-Requires **Node.js 22+** and a trusted workspace:
+**OMH local runtime** (Node.js 22+):
 
 ```bash
 node scripts/omh-runtime.mjs doctor
@@ -156,143 +100,91 @@ node scripts/omh-runtime.mjs status
 node scripts/omh-dashboard.mjs
 ```
 
-Open the local runtime dashboard at **http://127.0.0.1:4177**. Runtime state is stored in the workspace's `.omh` directory unless `OMH_WORKSPACE` or `OMH_STATE_DIR` is configured.
+**OMH dashboard:** `http://127.0.0.1:4177` · Local state normally lives in `.omh/`. See [runtime docs](docs/omh-runtime.md).
 
-## MCP integrations
+### 🌐 Providers
 
-**Model Context Protocol (MCP)** provides a standard way for compatible agents to access approved tools and contextual resources. OMH's built-in MCP integration is intentionally scoped; it is not an unrestricted shell tool.
+Use the providers supported by your OpenCode installation and the settings in [`opencode.json`](opencode.json).
 
-Register the OMH MCP server in your installed OpenCode config:
+| 🔑 Hosted | 🔀 Gateways | 💻 Local |
+| --- | --- | --- |
+| OpenAI, Anthropic, Gemini, DeepSeek | OpenRouter, OrcaRouter, APInex, Experiential Labs | Ollama, LM Studio |
+| GLM / Z.AI, Moonshot / Kimi, Qwen | GitHub Models and custom compatible endpoints | Your local models |
+| Groq, Mistral, xAI, Together | User-defined API URL + key | No cloud key needed for local-only use |
+
+The committed config currently names `google/gemini-3.5-flash-lite` as its default and `experientiallabs/deepseek-v4.1-flash:free` as its small model. **Configured does not mean authenticated, available or tested**; the small-model setting is not automatic failover.
+
+```bash
+opencode auth login
+# Once connected, choose a supported model in OpenCode.
+```
+
+<sub>Keep credentials out of Git and logs. Provider availability and billing depend on each service.</sub>
+
+### 🔌 MCP & plugins
+
+Register OMH's local MCP bridge:
 
 ```bash
 node scripts/install-omh-runtime.mjs
 node scripts/install-omh-runtime.mjs --check
 ```
 
-This installs the runtime modules and registers the `omh-runtime` local MCP command. The exposed tools include:
+**Built-in scoped tool groups:**
+`omh_status` · `omh_doctor` · `omh_memory_search` · `omh_task_list` · `omh_trace_recent` · `omh_agent_inbox` · skill proposals and bounded queue operations.
 
-| Category | Example MCP tools | Behavior |
-| --- | --- | --- |
-| Health | `omh_status`, `omh_doctor` | Inspect runtime and host prerequisites |
-| Memory | `omh_memory_search` | Search approved, scoped notes |
-| Tasks | `omh_task_list`, `omh_queue_read` | Inspect tasks or queue a bounded read-only workspace inspection |
-| Tracing | `omh_trace_recent` | Return redacted trace summaries |
-| Skills | `omh_skill_propose`, `omh_skill_proposals` | Submit and review proposals; no automatic publishing |
-| Agent messages | `omh_agent_send`, `omh_agent_inbox` | Exchange informational mailbox messages |
+OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitrary filesystem access. Additional MCP connectors are configured separately. [MCP guide](docs/omh-runtime.md) · [Vercel integration](docs/vercel-live.md).
 
-OMH validates MCP input schemas before accessing state. This bridge does **not** expose arbitrary command execution, bypass manual approvals, or grant filesystem permissions automatically. Additional MCP services—including Vercel's OAuth MCP—require their own setup: [MCP and runtime guide](docs/omh-runtime.md) · [Vercel integration](docs/vercel-live.md).
+### 🧪 Jailbreak Lab
 
-### OpenMind Jailbreak Lab — full integration (in development)
+**Goal: the full [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) inside OMH.** The Lab stays the underlying execution engine; the OMH integration is being developed in **[PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6)**.
 
-The goal of [OMH PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6) is to bring the **complete [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) workflow into OMH**, not merely expose stored evidence. The Lab's own Python packages remain the execution engine; OMH provides orchestration, MCP integration and, ultimately, a unified dashboard.
-
-| Lab capability | Integration status |
+| Component | Progress |
 | --- | --- |
-| Evidence queries, run summaries, pending-review counts and regression differences | Five-tool read-only MCP foundation in PR #6 |
-| Launch a reviewed Guardrail Lab case via the native Lab CLI | Initial opt-in execution MCP added to PR #6 |
-| Run a bounded reviewed-benign multi-provider evaluation | Initial opt-in execution MCP added to PR #6 |
-| Corpus browser, Guardrail Lab and versioned benchmark selection | Planned |
-| Mutation engine, trace replay, guard evaluation and provenance | Planned |
-| Human adjudication, scoring, exports and campaign history screens | Planned |
-| Unified OMH dashboard and native iPad workflow | Planned; not yet implemented |
+| 📈 Evidence summaries, comparisons, pending reviews | Read-only MCP bridge in PR |
+| ▶️ Native Lab case runner and bounded campaigns | Initial opt-in execution bridge in PR |
+| 🧬 Mutation, replay, guard evaluation and provenance | Integration pending |
+| 👥 Human adjudication, exports and campaign history | Integration pending |
+| 🖥️ Unified dashboard and iPad operation | Integration pending |
 
-The execution bridge is separate from the evidence bridge. **Provider calls are disabled by default** and require explicit operator opt-in and finite campaign budgets. The native Lab enforces eligibility checks; OMH does not replace those checks or treat heuristic findings as confirmed failures.
+**Execution is not yet verified end to end.** The evidence fixture tests passed 3/3, but the Lab CLI requires its real SQLite schema (including `started_at`); the simplified evidence fixture cannot validate run creation. Live provider calls require explicit operator opt-in, approved inputs and bounded budgets. See [PR details](https://github.com/tjcrims0nx/openmind-harness/pull/6).
 
-**Reported test-fixture evidence (November 23, 2026):** The read-only evidence bridge passed 3/3 regression tests with 3 runs and 7 observations. These results do not establish that the new execution bridge, full Lab integration, portable packages, or iPad app work end to end. See the [PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) and its [integration guide](plugins/omjb-mcp/README.md) after merge for operational setup.
+### 📱 iPad development
 
-## Providers and authentication
+Native iPad work lives in a separate repository: **[omh-iOS](https://github.com/tjcrims0nx/omh-iOS)**.
 
-Provider definitions live in **[opencode.json](opencode.json)**. The configured default is `google/gemini-3.5-flash-lite`; the separate small-model setting is `experientiallabs/deepseek-v4.1-flash:free`. **A small model is not automatic failover** for a failing primary model.
+<sub>Development evidence · November 23, 2026. These are actual diagnostics, **not** successful release screenshots.</sub>
 
-| Connection | Examples | Authentication |
-| --- | --- | --- |
-| Major hosted providers | OpenAI, Anthropic, Google Gemini, DeepSeek | OpenCode login or appropriate API credentials |
-| OpenAI-compatible gateways | OpenRouter, OrcaRouter, Experiential Labs, APInex, GitHub Models | Provider-issued API keys / tokens |
-| Additional endpoints | Z.AI / GLM, Moonshot / Kimi, Qwen / DashScope | Provider-issued API keys |
-| Other hosted providers | Groq, Mistral, xAI, Together | Provider-issued API keys |
-| Local models | Ollama, LM Studio | Local service availability |
-| Custom endpoint | User-defined OpenAI-compatible API | Explicit URL, model and bearer token |
-| Antigravity bridge | Google account-connected models | Separate OAuth bridge configuration |
+<table>
+<tr>
+<td width="50%" align="center"><a href="docs/images/diagnostics/omh-startup-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" width="100%" alt="OMH native iPad startup failure diagnostic"></a><br><sub>⚠️ Startup / bootstrap failure</sub></td>
+<td width="50%" align="center"><a href="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg" width="65%" alt="Failed iOS unsigned IPA build"></a><br><sub>❌ Unsigned IPA build check</sub></td>
+</tr>
+</table>
 
-These are **configuration options**, not a claim that every account, model, endpoint, or credential has been live-tested. Availability and billing are controlled by each provider.
+- 🧩 **Provider settings:** UI captures exist; authenticated connections and persistence still need testing.
+- 🧪 **Verification:** green build, simulator launch, physical iPad startup, runtime connectivity and signing.
+- 📦 **IPA:** CI outputs are unsigned and require signing; these captures do not prove an installable, working release.
 
-```bash
-# Let OpenCode present the available sign-in methods
-opencode auth login
+[View iOS build runs](https://github.com/tjcrims0nx/omh-iOS/actions) · [Read iPad project](https://github.com/tjcrims0nx/omh-iOS).
 
-# After configuring your provider, run a quick model request
-opencode run --model google/gemini-3.5-flash-lite "Say hello in one sentence."
-```
+### 🛡️ Security & verification
 
-Keep credentials out of Git, logs, screenshots and chat messages. The OpenCode login flow may support different authentication methods depending on the installed version. See [features and providers](docs/features.md).
+- 🔒 Local interfaces bind to loopback by default; use authentication and network controls for any remote exposure.
+- 🧱 Linux Bubblewrap availability **does not prove** sandbox execution. Unsupported isolation must fail closed.
+- ✅ Run `node --test modules/*.test.mjs` and check the actual CI commit before trusting a release.
+- 🧾 Review outputs and privileged actions explicitly; configured agents and providers are not automatically running.
 
-## Local runtime and dashboard
+### 📚 Docs & links
 
-The independent OMH runtime includes a persistent task queue, agent mailboxes, memory, workflow dependencies, optional scheduled tasks, skill proposal review, and tracing. The dashboard displays observed state rather than fabricating running agents.
-
-```bash
-node scripts/omh-runtime.mjs status
-node scripts/omh-runtime.mjs doctor
-node --test modules/*.test.mjs
-```
-
-The dashboard's ordinary actions are bounded. Additional governance operations require an explicitly configured local administrator token; they do not enable arbitrary agent execution. A worker must actually be running for queued tasks to execute. [Read the runtime and dashboard guide](docs/omh-runtime.md).
-
-### Security and isolation
-
-- **Loopback first.** Local interfaces should stay on `127.0.0.1`. If exposing OpenCode remotely, configure authentication and network controls before changing the bind address.
-- **No implicit sandbox success.** Bubblewrap isolation requires a compatible Linux kernel, namespaces and mounts. Check the actual environment; unsupported isolation fails closed.
-- **No hidden credential collection.** Store keys using provider-supported credentials or environment variables, never committed configuration files.
-- **Human review remains meaningful.** Skill publishing, sensitive state changes and privileged operations have explicit boundaries.
-
-## Platforms
-
-| Platform | Setup | Notes |
-| --- | --- | --- |
-| Linux | [linux-setup.sh](linux-setup.sh) | Hosts, VMs, containers |
-| macOS | [macos-setup.sh](macos-setup.sh) | Apple Silicon and Intel |
-| Windows | [windows-setup.ps1](windows-setup.ps1) | PowerShell, x64 and ARM64 |
-| Android / Termux | [termux-setup.sh](termux-setup.sh) | Android shell environment; separate OpenCode build |
-
-**[Full installation guide](INSTALL.md)** contains prerequisites and platform-specific details. GitHub Actions also assembles [portable runtime packages](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for these targets. They are **Node.js launcher bundles, not standalone native executables**, and the Termux package is not a verified device binary.
-
-## Development screenshots and diagnostics
-
-The two real diagnostic image files are available above, with clickable full-size views. They show an unsuccessful native bootstrap and an iOS build failure. They must not be represented as a working IPA or verified model connectivity.
-
-| Capture | Observed | Follow-up |
-| --- | --- | --- |
-| [iPad startup screen](docs/images/diagnostics/omh-startup-2026-11-23.jpg) | Bootstrap/startup failure with log output | Verify reliable on-device launch |
-| [Unsigned IPA CI check](docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg) | Failed iOS build; later stages skipped | Green CI plus device installation |
-| Provider configuration | Native OMH providers panel shows disconnected entries | Verify authentication, storage and persistence; add reviewed screenshot asset |
-
-[Live iOS checks](https://github.com/tjcrims0nx/omh-iOS/actions) · [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions).
-
-## Testing and project status
-
-- [Full module regression](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml)
-- [Installer matrix](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/installer-test.yml)
-- [Portable package build](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml)
-- [Experimental live Vercel/MCP](docs/vercel-live.md)
-- [Current capability notes](docs/features.md) and [integration roadmap](docs/omh-unified-agent-roadmap.md)
-
-Check the **latest workflow run and exact commit** before treating any binary, integration or provider as release-ready. Passing unit tests does not prove real credentials, remote MCP authorization, host sandboxing or an external provider's availability.
-
-## Documentation
-
-| Guide | Contents |
+| | |
 | --- | --- |
-| [INSTALL.md](INSTALL.md) | Platform installs and first-use steps |
-| [Features](docs/features.md) | Provider/agent/runtime capabilities |
-| [OMH runtime and MCP](docs/omh-runtime.md) | CLI, daemon, dashboard, tool boundaries |
-| [Vercel + remote MCP](docs/vercel-live.md) | Protected remote connectivity |
-| [Agent integration roadmap](docs/omh-unified-agent-roadmap.md) | Completed and pending integration work |
-| [Evaluations](eval/README.md) | Harness benchmark and runner |
-| [Licensing](LICENSE.md) | Third-party components and notices |
+| 📦 [Installation](INSTALL.md) | 🛠️ [Features](docs/features.md) |
+| ⚙️ [Runtime & MCP](docs/omh-runtime.md) | 🔗 [Remote / Vercel](docs/vercel-live.md) |
+| 🗺️ [Roadmap](docs/omh-unified-agent-roadmap.md) | 🧪 [Evaluations](eval/README.md) |
+| 🏗️ [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions) | 📱 [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) |
+| 📄 [License](LICENSE) | 📋 [Notices](LICENSE.md) |
 
 ---
 
-<p align="center">
-  <strong>OpenMind Harness · MCP-aware · Multi-provider · Local-first</strong><br>
-  <sub>Open-source software under <a href="LICENSE">GPL-3.0</a>. Built around explicit access controls and verifiable runtime state.</sub>
-</p>
+<p align="center"><sub><strong>OPENMIND HARNESS</strong> · Local-first · Multi-provider · MCP-ready<br>GPL-3.0 · Build and runtime capabilities should be verified on the target platform.</sub></p>
