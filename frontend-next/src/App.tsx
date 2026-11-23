@@ -124,7 +124,7 @@ export function App(){
   <div className="stage">
    <header className="app-header"><div className="header-left">
     <button className="menu-toggle" aria-label="Toggle navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)}>☰</button>
-    <img src="/app-icon.webp" alt="" className="header-logo"/>
+    <img src={logoUrl} alt="" className="header-logo"/>
     <strong>OpenMind Harness</strong><span className="divider">/</span><span>{view}</span>
    </div><div className="header-right"><span className="status"><span className={'small-dot'+(selected?' connected':'')}/>{demo?'Demo mode':selected?'Model ready':'Not connected'}</span>
    {!demo&&<button onClick={()=>{setShowConnect(true);setTokenDraft('');}} className="settings-button">Connect</button>}</div></header>
@@ -143,7 +143,7 @@ export function App(){
      {history.length===0?<div className="empty-state">
        <img src="/app-icon.webp" alt="OMH hexagon" className="hero-logo"/>
        <h2>What can I help you build?</h2>
-       <p>Try the chat layout with sample responses. No AI model is connected.</p>
+       <p>{demo?'Try the layout with sample replies. No AI model is connected.':'Choose your provider and start a real conversation.'}</p>
        <div className="suggestions">{['Plan a project','Review some code','Explain a concept'].map(x=><button key={x} onClick={()=>setDraft(x)}>{x}</button>)}</div>
      </div>:<div className="messages">{history.map((m,i)=><article className={'message '+m.role} key={i}>
        <span className="message-role">{m.role==='user'?'YOU':(selected?.label??'ASSISTANT').toUpperCase()}</span>
