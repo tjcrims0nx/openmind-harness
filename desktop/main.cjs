@@ -5,6 +5,7 @@ const {app,BrowserWindow,Menu,shell,dialog,nativeImage}=require('electron');
 const {spawn}=require('node:child_process');
 const {join,resolve}=require('node:path');
 const {mkdirSync,existsSync}=require('node:fs');
+const {writeFile}=require('node:fs/promises');
 const {createInterface}=require('node:readline');
 
 let windowRef;
@@ -56,6 +57,27 @@ function createWindow(){
   }
  });
  windowRef.once('ready-to-show',()=>windowRef.show());
+ // CI-only evidence: capture real Chromium-rendered OMH desktop/mobile layouts.
+ // No provider tokens or prompts are included in the default offline fixture.
+ if(process.env.OMH_DESKTOP_SCREENSHOT_DIR){
+  let captured=false;
+  windowRef.webContents.on('did-finish-load',async()=>{
+   if(captured||!dashboardURL||windowRef.webContents.getURL()!==dashboardURL+'/')return;
+   captured=true;
+   try{
+    const folder=resolve(process.env.OMH_DESKTOP_SCREENSHOT_DIR);
+    mkdirSync(folder,{recursive:true});
+    for(const [name,width,height] of [['desktop',1440,900],['mobile',420,880]]){
+     windowRef.setSize(width,height);
+     await new Promise(resolve=>setTimeout(resolve,1000));
+     const screenshot=await windowRef.webContents.capturePage();
+     await writeFile(join(folder,'omh-chat-'+name+'.png'),screenshot.toPNG());
+    }
+    console.log('Saved OMH desktop screenshot evidence to '+folder);
+    app.quit();
+   }catch(error){console.error('OMH screenshot capture failed:',error);app.exit(1);}
+  });
+ }
  windowRef.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  windowRef.webContents.on('will-navigate',(event,url)=>{
   if(!dashboardURL||!url.startsWith(dashboardURL+'/'))event.preventDefault();
