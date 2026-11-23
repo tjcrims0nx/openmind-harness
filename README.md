@@ -19,6 +19,7 @@
   <a href="#providers-and-authentication">Providers</a> •
   <a href="#local-runtime-and-dashboard">Runtime</a> •
   <a href="#platforms">Platforms</a> •
+  <a href="#diagnostics-and-verification">Diagnostics</a> •
   <a href="#documentation">Docs</a>
 </p>
 
@@ -236,6 +237,20 @@ The dashboard's ordinary actions are bounded. Additional governance operations r
 | Android / Termux | [termux-setup.sh](termux-setup.sh) | Android shell environment; separate OpenCode build |
 
 **[Full installation guide](INSTALL.md)** contains prerequisites and platform-specific details. GitHub Actions also assembles [portable runtime packages](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for these targets. They are **Node.js launcher bundles, not standalone native executables**, and the Termux package is not a verified device binary.
+
+## Diagnostics and verification
+
+The latest shared OMH diagnostics include an **iPad startup/bootstrap failure**, a **GitHub Actions iOS build failure**, and **provider-settings UI captures**. These are development evidence, not proof of a production-ready iOS release. Original image files are not yet published in this repository; do not treat design illustrations as runtime screenshots.
+
+| Area | What the captured diagnostics show | What still needs verification |
+| --- | --- | --- |
+| iPad startup | Native app boot screen with a startup/bootstrap failure and a visible diagnostic log | Successful on-device launch, working local runtime and repeatable startup |
+| iOS CI | A failed build job in the iOS repository workflow | Green build, simulator smoke test and installable IPA |
+| Provider settings | Screens showing provider configuration entries and connection states | Successful authenticated sessions and persisted provider settings |
+
+**Where to check:** [OMH CI workflows](https://github.com/tjcrims0nx/openmind-harness/actions) · [iOS build workflows](https://github.com/tjcrims0nx/omh-iOS/actions) · [iOS app repository](https://github.com/tjcrims0nx/omh-iOS).
+
+> Screenshots must be checked for exposed provider keys, personal account details or tokens before they are committed. Keep diagnostic captures in `docs/images/diagnostics/` and clearly label them by date and platform when published. Actual runtime screenshots should remain separate from concept artwork.
 
 ## Testing and project status
 
