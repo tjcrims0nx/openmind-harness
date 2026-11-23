@@ -16,7 +16,7 @@ type RuntimeState={
   platform?:RecordLike;
 };
 type View='Workspace'|'Agents'|'Tasks'|'Memory'|'Workflows'|'Plugins'|'Logs';
-type Props={view:View; token:string; local:boolean; onConnect:()=>void};
+type Props={view:View; token:string; local:boolean; demo:boolean; onConnect:()=>void};
 
 const DATA:Record<View,{key:keyof RuntimeState;heading:string;description:string}>={
  Workspace:{key:'workspaces',heading:'Workspace',description:'Runtime health, tasks and workspaces'},
@@ -47,13 +47,15 @@ function secondary(item:RecordLike){
  return choices.filter(key=>item[key]!=null).slice(0,3).map(key=>key+': '+field(item[key])).join(' · ');
 }
 
-export function RuntimeView({view,token,local,onConnect}:Props){
+const DEMO_STATE:RuntimeState={counts:{queued:2,running:1,completed:12,failed:0,cancelled:0},agents:[{name:'reviewer',queued:1,running:0}],tasks:[{id:'demo-task-1',kind:'workspace.read',status:'completed'}],workflowSteps:[{id:'demo-step-1',kind:'review',status:'queued'}],memory:[{id:'demo-memory',title:'Example project notes',scope:'workspace'}],plugins:[{name:'OMH connector (demo)',version:'preview',enabled:true}],traces:[{id:'demo-event',type:'task.completed',at:'Sample event'}],workspaces:['Example workspace']};
+export function RuntimeView({view,token,local,demo,onConnect}:Props){
  const [state,setState]=useState<RuntimeState|null>(null);
  const [error,setError]=useState('');
  const [loading,setLoading]=useState(false);
  const refresh=useCallback(async()=>{
   setLoading(true);setError('');
   try{
+   if(demo){setState(DEMO_STATE);return;}
    if(!local&&!token)throw Error('Connect with your dashboard access token to view remote runtime status.');
    const response=await fetch('/api/state',{headers:local?{}:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(12000)});
    if(!response.ok)throw Error(response.status===503?'Remote Harness runtime is not connected. Chat may still work.':'Runtime request failed (HTTP '+response.status+').');
@@ -61,14 +63,15 @@ export function RuntimeView({view,token,local,onConnect}:Props){
    setState(data);
   }catch(e){setState(null);setError(e instanceof Error?e.message:'Runtime unavailable');}
   finally{setLoading(false);}
- },[local,token]);
+ },[local,token,demo]);
  useEffect(()=>{void refresh();},[refresh]);
  const info=DATA[view];
  const entries=state?.[info.key];
  const list=Array.isArray(entries)?entries:[];
  return <main className="runtime-page">
-  <div className="runtime-heading"><div><span className="eyebrow">OPENMIND HARNESS · LOCAL RUNTIME</span><h1>{info.heading}</h1><p>{info.description}</p></div>
+  <div className="runtime-heading"><div><span className="eyebrow">{demo?'DEMO · SAMPLE DATA':'OPENMIND HARNESS · LOCAL RUNTIME'}</span><h1>{info.heading}</h1><p>{info.description}</p></div>
   <button className="runtime-refresh" disabled={loading} onClick={()=>void refresh()}>{loading?'Refreshing…':'↻ Refresh'}</button></div>
+  {demo&&<div className="runtime-demo-note">These are example records for interface testing. No live Harness is connected.</div>}
   {error?<div className="runtime-offline" role="status"><strong>Runtime unavailable</strong><p>{error}</p>
    {!local&&!token&&<button onClick={onConnect}>Connect dashboard</button>}
    <span>These views require an OMH runtime. The model chat API is configured separately.</span>
