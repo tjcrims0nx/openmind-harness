@@ -1,167 +1,248 @@
 <p align="center">
-  <img src="docs/images/omh-hero.webp" alt="OpenMind Harness cyberpunk hero artwork with neon cyan and violet agent, workflow, trace and runtime panels" width="100%">
+  <img src="docs/images/omh-hero-mcp.svg" width="100%" alt="OpenMind Harness — MCP servers, providers, agents, workflows, memory, sandbox and dashboard">
 </p>
 
 <h1 align="center">OpenMind Harness</h1>
 
-<p align="center"><img src="dashboard/app-icon.webp" alt="Official OMH cyberpunk electric-blue hexagon M logo" width="128" height="128"></p>
+<p align="center"><strong>One environment for AI coding agents, MCP tools and local orchestration.</strong></p>
 
 <p align="center">
-  <strong>Local runtime · Multi-provider agents · Workflows · Dashboard · Traces</strong>
+  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Harness tests"></a>
+  <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml/badge.svg" alt="Portable packaging"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-9c70fa" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Node.js-22%2B-00c7dd" alt="Node.js 22 or newer for the OMH runtime">
 </p>
 
 <p align="center">
-  <a href="docs/omh-runtime.md">Runtime documentation</a> ·
-  <a href="docs/features.md">Features</a> ·
-  <a href="https://github.com/tjcrims0nx/openmind-harness/actions">Build status</a>
+  <a href="#quick-start">Quick start</a> •
+  <a href="#mcp-integrations">MCP</a> •
+  <a href="#providers-and-authentication">Providers</a> •
+  <a href="#local-runtime-and-dashboard">Runtime</a> •
+  <a href="#platforms">Platforms</a> •
+  <a href="#documentation">Docs</a>
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It supports Linux, macOS, Windows and Android/Termux with shared provider and agent configuration. The harness runtime and local dashboard are separate from any mobile app. No server, no account, no subscription — the harness and your keys live on your machine.
+---
 
-**Reliability note (November 22, 2026):** The previous `google/gemini-3.8-flash` default was observed to hang for 120 and 180 seconds with no output, while `gemini-3.5-flash-lite` returned a response in approximately 6 seconds using the same key and setup. OMH now defaults to Flash Lite. The 3.8 model remains optional, not automatically selected. See [model troubleshooting and sandbox platform limits](docs/omh-runtime.md#model-reliability-and-host-isolation).
+OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-agent setup with a separately implemented **local orchestration runtime**. Use your chosen model providers, register MCP tools, manage repeatable tasks and workflows, record redacted traces, and inspect activity in a local dashboard.
 
-## The harness
+**What is implemented today:** OpenCode handles interactive conversations, model selection and its own agent/tool loop. OMH supplies independent Node.js modules, a CLI/daemon, an opt-in MCP bridge, and a dashboard. Some OMH orchestration features remain **experimental** and are **not yet integrated into OpenCode's standard UI or model execution loop**. Do not confuse configured functionality with a running provider, active worker, or verified sandbox.
 
-OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. OMH also includes experimental local runtime modules for tasks, workflows, memory, isolated execution, team workspaces and traces. They run through a separate CLI and are not yet integrated into the OpenCode UI. Full feature list: [docs/features.md](docs/features.md).
+## At a glance
 
-Two OpenCode server modes:
+| Capability | What it does | State |
+| --- | --- | --- |
+| **MCP integrations** | Registers a local read-mostly MCP server with OpenCode; supports additional MCP configurations | Available; restricted tool set |
+| **Multi-provider models** | Shared OpenCode configuration for hosted and local models | Configured; provider credentials required |
+| **Agent roles** | Planner, implementer, tester, reviewer and fast-agent definitions | Configured; native OMH execution separate |
+| **Tasks and workflows** | Durable queue, dependencies, retries, scheduling and cancellation semantics | Experimental local runtime |
+| **Memory and trace** | Scoped memory, snapshots and opt-in redacted event history | Experimental local runtime |
+| **Execution isolation** | Workspace/path controls and Linux Bubblewrap checks | Platform-dependent; fails closed if unavailable |
+| **Dashboard** | Read local runtime state and perform scoped, authorized controls | Local server on loopback |
+| **Remote operations** | Vercel frontend / protected proxy to an explicitly configured host | Experimental; requires separate setup |
 
-- **`opencode web`** — the full web UI (default port **4097**). The supported platform installers launch it locally, and the independent OMH dashboard is available through its own local runtime.
-- **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
+## Architecture
 
-Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
-
-
-## Live Vercel dashboard + remote MCP (experimental)
-
-The same neon dashboard can run as a **Vercel frontend connected to a real Linux OMH worker**, with an authenticated remote MCP endpoint and live task, schedule, plugin, and proposal controls. No demo state is substituted for the worker: unconfigured or unreachable Linux backends report offline. The Linux daemon, execution sandbox, and OpenCode sessions remain on a trusted Linux host; Vercel is the UI and protected API gateway. Setup, required secrets, tunnel guidance, transport tests, and limitations: **[Live Vercel + MCP connector guide](docs/vercel-live.md)**.
-
-## OMH local runtime (experimental)
-
-OMH now ships an independent Node.js CLI for persistent tasks, memory, manual skill publishing, scoped workspaces and snapshots, team mailboxes, tick-based schedules, opt-in tracing, and Linux bubblewrap sandbox execution. The sandbox refuses to run without Linux/bwrap and does not expose the host as a fallback. A **read-mostly MCP bridge** now exposes selected status, memory, trace, task-inspection and skill-proposal tools inside OpenCode after running `node scripts/install-omh-runtime.mjs`. Privileged execution remains in the separate CLI/daemon; this is not a full OpenCode UI integration. See [usage, security boundaries and limitations](docs/omh-runtime.md).
-
-Run `node scripts/omh-dashboard.mjs` to open the locally hosted midnight-blue dashboard at `http://127.0.0.1:4177`. Its live controls can cancel queued tasks, retry failed read-only jobs, pause schedules, disable plugins and reject skill proposals; a separate opt-in administrator token enables approved governance actions without exposing arbitrary shell or agent execution. The daemon emits a monitored heartbeat, and the state stores serialize concurrent writes. The dashboard must remain bound to loopback, not exposed publicly.
-
-Run `node scripts/omh-runtime.mjs status` or `node scripts/omh-runtime.mjs doctor` to check the runtime and sandbox prerequisites. Use `node scripts/install-omh-runtime.mjs` to install the OpenCode MCP bridge, or `node --test modules/*.test.mjs` for module tests. The queue now supports `task:cancel` for pending work and `task:retry` for explicitly retrying failed work (limited attempts); active jobs are not falsely reported as cancelled.
-
-## Providers
-
-Pick a provider in the web UI's model picker; add its key once per machine (see "Adding keys" below). Keys are never stored in the repo or the config file — they are read from environment variables, the web UI's `/connect` flow, or `opencode auth login`.
-
-| Provider | Model | Key env var | Notes |
-|---|---|---|---|
-| OpenAI | `openai/gpt-5` | ChatGPT Plus/Pro OAuth or `OPENAI_API_KEY` | Optional provider. ChatGPT models. With a Plus/Pro subscription, sign in via OAuth — no API credits needed. API-key use needs credits — an account with no credits returns `credit_balance_exhausted`. |
-| Experiential Labs | `experientiallabs/deepseek-v4.1-flash:free` | `EXPLABS_API_KEY` | Free stock route; works out of the box as the fallback when OpenAI has no credits. |
-| DeepSeek | catalog (`deepseek-flash`, `deepseek-v4-pro`, …) | `DEEPSEEK_API_KEY` | Stock DeepSeek API models. |
-| Gemini | `gemini-3.5-flash-lite` (default), `gemini-3.8-flash` (optional) | `GEMINI_API_KEY` | Default changed to Flash Lite after repeated 3.8 Flash hangs (120–180 seconds with no output); Flash Lite responded in ~6 seconds on the affected setup. Validate both on your own key before selecting 3.8. |
-| Anthropic | catalog (`claude-sonnet-5`, `claude-haiku-5-5`, …) | `ANTHROPIC_API_KEY` | Claude models. |
-| Groq | catalog (`openai/gpt-oss-120b`, …) | `GROQ_API_KEY` | Fast hosted models. |
-| Mistral | catalog (`codestral-2508`, …) | `MISTRAL_API_KEY` | Mistral models. |
-| xAI | catalog (`grok-4.6`, …) | `XAI_API_KEY` | Grok models. |
-| Together | catalog (empty in 1.19.6 — see note) | `TOGETHER_API_KEY` | The 1.19.6 model catalog lists no Together models yet; the provider is configured and the picker shows models once the catalog updates or a `models` entry is added. |
-| OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
-| OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
-| Antigravity | `antigravity/gemini-3-flash` | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. Needs the loopback bridge, started on the host. |
-| APInex | pinned free (`free/deepseek-v4.1-flash`, `free/glm-5.3-flash`, `free/gemini-3.8-flash`, `free/gpt-6-luna`, `free/claude-sonnet-4.6`) | `APINEX_API_KEY` | Gateway: Claude, GPT, Gemini, DeepSeek, GLM, Qwen, Kimi, Grok on one key (22 free models listed live). **Needs a one-time $5 top-up to unlock the free tier** — until then every model call returns a billing error ("Make a single top-up of $5 or more to unlock 25M free tokens daily for life"). The key itself works (the model list answers); the account just has no usable free tokens yet. |
-| Pollinations | `pollinations/gpt-oss-20b` | none (keyless) | Free, no signup, no key. One model (GPT-OSS 20B). **Direct endpoint verified live (answers), but the harness run stalls** — OpenCode produces no output and the call never starts, twice in a row. Not reliable as a harness provider; kept as a spare. Rate-limited to about one request per 45 seconds per IP. |
-| GitHub Models | pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`) | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user — no card. One endpoint, many model families (GPT, DeepSeek, Llama, Mistral, Phi). Needs a PAT; not yet tested live. |
-| Ollama | local server discovery | none | Local models at `http://localhost:11434/v1`. |
-| LM Studio | local server discovery | none | Local models at `http://localhost:1234/v1`. |
-| Custom endpoint | your models | `OPENMIND_CUSTOM_BASE_URL` + `OPENMIND_CUSTOM_API_KEY` | Any OpenAI-compatible endpoint you supply. Set it with `openmind-set-custom-endpoint` (or `/custom-endpoint` in the web UI) — it asks for the URL, the bearer key and a model id, and saves them where the harness reads them. |
-
-The default model is `google/gemini-3.5-flash-lite` (top-level `"model"` in [`opencode.json`](opencode.json), also used by the planner, implementer, tester, and reviewer). The `small_model` and `fast` agent use `experientiallabs/deepseek-v4.1-flash:free` if you have credentials for that service; OpenCode does not automatically fail over from a stalled main model just because `small_model` is configured. To update an existing installation, copy the latest `opencode.json` to your OpenCode configuration directory or rerun the platform setup, and start a **new session**. Check the current model in the picker; existing sessions may retain the previous selection.
-
-## ChatGPT Plus — GPT-5 with no API credits
-
-The default is GPT-5 because it works on a **ChatGPT Plus/Pro subscription** — no API credits needed. OpenCode's built-in OpenAI login signs in with your ChatGPT account over OAuth; requests then count against the subscription, not against API billing. (An OpenAI API key works too — export `OPENAI_API_KEY` — but with Plus you do not need one, and the config deliberately sets no API key for the OpenAI provider so the subscription login is used.)
-
-```sh
-opencode auth login --provider openai
+```text
+        Model providers                MCP servers and integrations
+      (OAuth / API keys)                  (local or remote)
+              |                                 |
+              v                                 v
+       +----------------- OpenCode -----------------+
+       | Interactive coding-agent sessions and tools |
+       +----------------------+---------------------+
+                              |
+                         OMH MCP bridge
+                     (restricted / read-mostly)
+                              |
+         +--------------------v----------------------+
+         |            OpenMind Harness                |
+         |  tasks · agent mailboxes · workflows       |
+         |  memory · traces · policy · schedules      |
+         +--------------------+----------------------+
+                              |
+                 CLI / daemon / local state
+                              |
+                 Local dashboard :4177
 ```
 
-Pick a method (verified in OpenCode 1.19.6):
+The diagram describes component relationships, **not** a promise that every feature is automatically connected or enabled.
 
-| Method | How it works | Where to use it |
-|---|---|---|
-| `ChatGPT Pro/Plus (browser)` | Opens a browser; sign-in completes through a `localhost:1455` callback. | Linux, Termux (the phone browser shares Termux's localhost). |
-| `ChatGPT Pro/Plus (headless)` | Device code — a short code to enter at `auth.openai.com/codex/device`. No browser needed where OpenCode runs. | Headless Linux hosts, SSH, containers. |
-| `Manually enter API Key` | API-key login (API billing, not the subscription). | Only if you want API billing instead of Plus. |
+## Quick start
 
-Login state is stored in `~/.local/share/opencode/auth.json` (mode `0600`).
+Install from a trusted clone, or use the platform instructions in [INSTALL.md](INSTALL.md).
 
+<details open>
+<summary><strong>Linux</strong></summary>
 
-## Antigravity — Google account sign-in
-
-Antigravity is Google's agentic platform (Cloud Code Assist): Gemini and Claude models through Google's Cloud infrastructure, billed against your Google account — no API key. The harness speaks to it through a small loopback bridge (`scripts/antigravity-bridge.mjs`), because Antigravity's API is its own format, not OpenAI-compatible. The bridge translates the harness's requests and back; it only ever runs on `127.0.0.1` on your own machine.
-
-```sh
-openmind-antigravity-login
+```bash
+git clone https://github.com/tjcrims0nx/openmind-harness.git
+cd openmind-harness
+bash linux-setup.sh --no-launch
+opencode auth login
+opencode web
 ```
 
-Sign in with your Google account in the browser that opens (or with `--manual` on headless machines: the script prints the sign-in URL, you paste back the redirect URL). Tokens are stored at `~/.config/opencode/antigravity-auth.json` (mode `0600`) — access token, refresh token, your email, and the Google Cloud project id the API needs. The bridge refreshes the token itself when it expires.
+</details>
 
-Start the bridge:
+<details>
+<summary><strong>macOS</strong></summary>
 
-```sh
-node ~/.local/bin/openmind-antigravity-bridge.mjs
+```bash
+git clone https://github.com/tjcrims0nx/openmind-harness.git
+cd openmind-harness
+bash macos-setup.sh --no-launch
+opencode auth login
+opencode web
 ```
 
-Then pick `antigravity/gemini-3-flash` in the model picker. If you are not signed in, the model answers with a clear "not signed in" error — run the login script. Check sign-in state any time with `openmind-antigravity-login --status`, and refresh the token with `--refresh`. The `ANTIGRAVITY_API_KEY` env var in the config is only the loopback bridge's key — the real credential is the OAuth token file, never a key in the config.
+</details>
 
-## Onboarding — first run
+<details>
+<summary><strong>Windows (PowerShell)</strong></summary>
 
-1. Install on your platform (below).
-2. Connect a provider: `opencode auth login --provider openai` (ChatGPT Plus/Pro) or export the provider's key (`EXPLABS_API_KEY`, …).
-3. Test the connection: `opencode run --model experientiallabs/deepseek-v4.1-flash:free "Say only ok."` — a one-line answer proves the provider, the key, and the model ID all work.
-4. Open the web UI (`opencode web`, http://127.0.0.1:4097) and pick a model. That is the whole setup; there is no account and no signup.
+```powershell
+git clone https://github.com/tjcrims0nx/openmind-harness.git
+cd openmind-harness
+.\windows-setup.ps1 -NoLaunch
+opencode auth login
+opencode web
+```
 
-## Portable harness runtime packages (experimental)
+</details>
 
-[Portable packages CI](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) creates downloadable artifacts for **Linux x64**, **macOS Apple Silicon**, **Windows x64**, and **Termux aarch64 scripts**. These packages contain the OMH Node.js runtime modules, local dashboard assets, configuration, and platform-specific command launchers. They **are not self-contained native executables**: install Node.js **22+** separately. They do not bundle OpenCode, provider credentials, or any paid API access.
+<details>
+<summary><strong>Android / Termux</strong></summary>
 
-On Linux, macOS or Termux, unpack an artifact and run `sh bin/omh status` or `sh bin/omh-dashboard` from its extracted package folder. On Windows, run `bin\\omh.cmd status` or `bin\\omh-dashboard.cmd` from Command Prompt. The runtime stores state in the current workspace unless `OMH_WORKSPACE` or `OMH_STATE_DIR` is set. Run only within a trusted workspace. The dashboard binds loopback.
+```bash
+pkg update && pkg install -y git curl
+git clone https://github.com/tjcrims0nx/openmind-harness.git
+bash openmind-harness/termux-setup.sh --no-launch
+opencode auth login
+opencode web
+```
 
-CI runs a **clean temporary-workspace smoke test** and checks runtime status/diagnostics and host-compatible launchers before artifacts upload. The Termux archive is assembled on Linux and is **not a verified Android device binary**. End-to-end OpenCode model calls, provider logins, physical devices, and kernel isolation require separate tests. See [the workflow](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for current success/failure and download links; only use an artifact after its relevant job passes.
+</details>
 
-For a full OpenCode installation, use the platform setup scripts below
-(Linux, macOS, Windows, Termux), which handle the platform-specific engine
-installation. Portable OMH runtime packages supplement these rather than
-replace them. One-line install commands for every platform: [INSTALL.md](INSTALL.md).
+OpenCode's local web interface normally listens at **http://127.0.0.1:4097**. The interactive OpenCode service and the **OMH dashboard** are different servers.
 
-## Platforms — the same harness, every shell
+### Run the independent OMH runtime
 
-| Platform | Shell | Setup |
-|---|---|---|
-| **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
-| **macOS** (Apple Silicon or Intel) | Terminal | `bash macos-setup.sh` — installs the official macOS binary (1.19.6) to `~/.local/bin`, clears the Gatekeeper quarantine flag, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (Homebrew, else the official tarball) for the OMH runtime/MCP bridge. |
-| **Windows** (PowerShell, x64 or ARM64) | PowerShell | `.\windows-setup.ps1` — installs the official Windows binary (1.19.6) to `%LOCALAPPDATA%\Programs\opencode`, adds it to your user PATH, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (winget, else the official zip) for the OMH runtime/MCP bridge. |
-| **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
+Requires **Node.js 22+** and a trusted workspace:
 
-### Version notes
+```bash
+node scripts/omh-runtime.mjs doctor
+node scripts/omh-runtime.mjs status
+node scripts/omh-dashboard.mjs
+```
 
-- Linux, macOS and Windows installers target OpenCode **1.19.6**.
-- Termux runs OpenCode **1.17.9** (guysoft/opencode-termux v0.2.1, the latest Android release as of 2026-11-21) — upstream publishes no Android binary, and its Linux glibc binary cannot run under Android's Bionic libc. Same config, slightly older engine. For the exact 1.19.6 build on the phone, use proot instead: `pkg install proot-distro && proot-distro install ubuntu`, then run `linux-setup.sh` inside the Ubuntu container.
+Open the local runtime dashboard at **http://127.0.0.1:4177**. Runtime state is stored in the workspace's `.omh` directory unless `OMH_WORKSPACE` or `OMH_STATE_DIR` is configured.
 
-### One config, everywhere
+## MCP integrations
 
-`opencode.json` is the single source of truth. The four platform setup scripts install this configuration to the platform config folder (`~/.config/opencode/` on Linux/macOS/Termux, `%USERPROFILE%\.config\opencode\` on Windows). Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
+**Model Context Protocol (MCP)** provides a standard way for compatible agents to access approved tools and contextual resources. OMH's built-in MCP integration is intentionally scoped; it is not an unrestricted shell tool.
 
-## Adding keys
+Register the OMH MCP server in your installed OpenCode config:
 
-Keys go in the machine, not in the repo. Three ways:
+```bash
+node scripts/install-omh-runtime.mjs
+node scripts/install-omh-runtime.mjs --check
+```
 
-1. **ChatGPT Plus/Pro** — `opencode auth login --provider openai` (see above).
-2. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
-3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, then restart the local OpenCode server.
+This installs the runtime modules and registers the `omh-runtime` local MCP command. The exposed tools include:
 
-## Eval
+| Category | Example MCP tools | Behavior |
+| --- | --- | --- |
+| Health | `omh_status`, `omh_doctor` | Inspect runtime and host prerequisites |
+| Memory | `omh_memory_search` | Search approved, scoped notes |
+| Tasks | `omh_task_list`, `omh_queue_read` | Inspect tasks or queue a bounded read-only workspace inspection |
+| Tracing | `omh_trace_recent` | Return redacted trace summaries |
+| Skills | `omh_skill_propose`, `omh_skill_proposals` | Submit and review proposals; no automatic publishing |
+| Agent messages | `omh_agent_send`, `omh_agent_inbox` | Exchange informational mailbox messages |
 
-`eval/` holds a small task set (breadth tasks plus an exec-verified hard subset) and a runner that grades by running the model's actual artifact, so a stub fails. `bash eval/run.sh`. A live run needs a signed-in provider or a key. See `eval/README.md`.
+OMH validates MCP input schemas before accessing state. This bridge does **not** expose arbitrary command execution, bypass manual approvals, or grant filesystem permissions automatically. Additional MCP services—including Vercel's OAuth MCP—require their own setup: [MCP and runtime guide](docs/omh-runtime.md) · [Vercel integration](docs/vercel-live.md).
 
-## License
+## Providers and authentication
 
-OpenMind Harness is licensed under the **GNU General Public License v3.0**; see [LICENSE](LICENSE) and [LICENSE.md](LICENSE.md) for licensing and third-party component notices.
+Provider definitions live in **[opencode.json](opencode.json)**. The configured default is `google/gemini-3.5-flash-lite`; the separate small-model setting is `experientiallabs/deepseek-v4.1-flash:free`. **A small model is not automatic failover** for a failing primary model.
 
-## Experimental OMH modules
+| Connection | Examples | Authentication |
+| --- | --- | --- |
+| Major hosted providers | OpenAI, Anthropic, Google Gemini, DeepSeek | OpenCode login or appropriate API credentials |
+| OpenAI-compatible gateways | OpenRouter, OrcaRouter, Experiential Labs, APInex, GitHub Models | Provider-issued API keys / tokens |
+| Additional endpoints | Z.AI / GLM, Moonshot / Kimi, Qwen / DashScope | Provider-issued API keys |
+| Other hosted providers | Groq, Mistral, xAI, Together | Provider-issued API keys |
+| Local models | Ollama, LM Studio | Local service availability |
+| Custom endpoint | User-defined OpenAI-compatible API | Explicit URL, model and bearer token |
+| Antigravity bridge | Google account-connected models | Separate OAuth bridge configuration |
 
-The independent [Smart Router policy engine](modules/smart-router.mjs) supports manual, balanced, budget and quality selection, filtered failover, and cost/budget calculations. Run its tests with `node --test modules/smart-router.test.mjs`. **It is not wired into the live OpenCode provider pipeline yet**; it does not discover provider health or prices, and no automatic routing or cost enforcement should be assumed. See [the unified agent roadmap](docs/omh-unified-agent-roadmap.md) for the remaining work.
+These are **configuration options**, not a claim that every account, model, endpoint, or credential has been live-tested. Availability and billing are controlled by each provider.
+
+```bash
+# Let OpenCode present the available sign-in methods
+opencode auth login
+
+# After configuring your provider, run a quick model request
+opencode run --model google/gemini-3.5-flash-lite "Say hello in one sentence."
+```
+
+Keep credentials out of Git, logs, screenshots and chat messages. The OpenCode login flow may support different authentication methods depending on the installed version. See [features and providers](docs/features.md).
+
+## Local runtime and dashboard
+
+The independent OMH runtime includes a persistent task queue, agent mailboxes, memory, workflow dependencies, optional scheduled tasks, skill proposal review, and tracing. The dashboard displays observed state rather than fabricating running agents.
+
+```bash
+node scripts/omh-runtime.mjs status
+node scripts/omh-runtime.mjs doctor
+node --test modules/*.test.mjs
+```
+
+The dashboard's ordinary actions are bounded. Additional governance operations require an explicitly configured local administrator token; they do not enable arbitrary agent execution. A worker must actually be running for queued tasks to execute. [Read the runtime and dashboard guide](docs/omh-runtime.md).
+
+### Security and isolation
+
+- **Loopback first.** Local interfaces should stay on `127.0.0.1`. If exposing OpenCode remotely, configure authentication and network controls before changing the bind address.
+- **No implicit sandbox success.** Bubblewrap isolation requires a compatible Linux kernel, namespaces and mounts. Check the actual environment; unsupported isolation fails closed.
+- **No hidden credential collection.** Store keys using provider-supported credentials or environment variables, never committed configuration files.
+- **Human review remains meaningful.** Skill publishing, sensitive state changes and privileged operations have explicit boundaries.
+
+## Platforms
+
+| Platform | Setup | Notes |
+| --- | --- | --- |
+| Linux | [linux-setup.sh](linux-setup.sh) | Hosts, VMs, containers |
+| macOS | [macos-setup.sh](macos-setup.sh) | Apple Silicon and Intel |
+| Windows | [windows-setup.ps1](windows-setup.ps1) | PowerShell, x64 and ARM64 |
+| Android / Termux | [termux-setup.sh](termux-setup.sh) | Android shell environment; separate OpenCode build |
+
+**[Full installation guide](INSTALL.md)** contains prerequisites and platform-specific details. GitHub Actions also assembles [portable runtime packages](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for these targets. They are **Node.js launcher bundles, not standalone native executables**, and the Termux package is not a verified device binary.
+
+## Testing and project status
+
+- [Full module regression](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml)
+- [Installer matrix](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/installer-test.yml)
+- [Portable package build](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml)
+- [Experimental live Vercel/MCP](docs/vercel-live.md)
+- [Current capability notes](docs/features.md) and [integration roadmap](docs/omh-unified-agent-roadmap.md)
+
+Check the **latest workflow run and exact commit** before treating any binary, integration or provider as release-ready. Passing unit tests does not prove real credentials, remote MCP authorization, host sandboxing or an external provider's availability.
+
+## Documentation
+
+| Guide | Contents |
+| --- | --- |
+| [INSTALL.md](INSTALL.md) | Platform installs and first-use steps |
+| [Features](docs/features.md) | Provider/agent/runtime capabilities |
+| [OMH runtime and MCP](docs/omh-runtime.md) | CLI, daemon, dashboard, tool boundaries |
+| [Vercel + remote MCP](docs/vercel-live.md) | Protected remote connectivity |
+| [Agent integration roadmap](docs/omh-unified-agent-roadmap.md) | Completed and pending integration work |
+| [Evaluations](eval/README.md) | Harness benchmark and runner |
+| [Licensing](LICENSE.md) | Third-party components and notices |
+
+---
+
+<p align="center">
+  <strong>OpenMind Harness · MCP-aware · Multi-provider · Local-first</strong><br>
+  <sub>Open-source software under <a href="LICENSE">GPL-3.0</a>. Built around explicit access controls and verifiable runtime state.</sub>
+</p>
