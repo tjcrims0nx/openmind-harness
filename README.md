@@ -29,15 +29,18 @@ OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-ag
 
 **What is implemented today:** OpenCode handles interactive conversations, model selection and its own agent/tool loop. OMH supplies independent Node.js modules, a CLI/daemon, an opt-in MCP bridge, and a dashboard. Some OMH orchestration features remain **experimental** and are **not yet integrated into OpenCode's standard UI or model execution loop**. Do not confuse configured functionality with a running provider, active worker, or verified sandbox.
 
-## Current development status
+## Build status · November 23, 2026
 
-| | iPad app | Lab MCP | Harness runtime |
-| --- | --- | --- | --- |
-| **State** | **Needs verification** | **PR #6 in progress** | **Local runtime available** |
-| **Evidence** | Startup failure, failed CI, provider-settings captures | Evidence tests passed; real-schema execution test pending | Module CI and portable packages |
-| **Details** | [iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) | [Lab integration PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) | [Harness Actions](https://github.com/tjcrims0nx/openmind-harness/actions) |
+| <strong>iPad startup</strong> | <strong>Provider settings</strong> | <strong>Lab integration</strong> |
+| :---: | :---: | :---: |
+| ❌ **Startup failure captured** | ⚠️ **UI shown; providers disconnected** | 🧪 **PR #6 under development** |
+| [iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) | [Features](docs/features.md) | [Full Lab integration PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) |
 
-**Actual diagnostic screenshots:** [iPad startup and iOS CI failure](#development-screenshots-and-diagnostics)
+### Latest diagnostic screenshots
+
+**November 23 captures:** iOS CI failed build · OMH provider-settings screen · iPad bootstrap screen.
+
+The actual screenshot files have been located, but are not yet uploaded as GitHub image assets. This page intentionally avoids broken image references. [**See the diagnostic details below ↓**](#development-screenshots-and-diagnostics)
 
 ## At a glance
 
@@ -250,18 +253,15 @@ The dashboard's ordinary actions are bounded. Additional governance operations r
 
 ## Development screenshots and diagnostics
 
-**Real captures · November 22–23, 2026** — These are development screenshots rather than final marketing artwork. The iOS launch and build issues remain under investigation.
+### Evidence from November 23, 2026
 
-<table>
-<tr>
-<td width="50%" align="center"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" alt="Actual OpenMind Harness iPad startup diagnostic capture" width="100%"><br><strong>Startup diagnostic</strong><br><sub>Native startup display — launch not yet verified</sub></td>
-<td width="50%" align="center"><img src="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg" alt="Actual failed iOS GitHub Actions build screenshot" width="52%"><br><strong>iOS build checks</strong><br><sub>Unsigned IPA build failure; not a release-ready IPA</sub></td>
-</tr>
-</table>
+| Capture | Visible finding | Outstanding check |
+| --- | --- | --- |
+| **01 — iOS CI** | Failed unsigned IPA build; simulator/smoke checks skipped | Obtain a successful build and installable IPA |
+| **02 — Provider settings** | Native blue/cyan OMH settings UI with disconnected providers | Verify secure credentials, authentication and persistence |
+| **03 — Native startup** | Full-screen OMH launch with bootstrap failure and diagnostic log | Confirm launch and stable harness connectivity |
 
-The recent provider-settings captures show provider lists and disconnected states, not verified authenticated sessions. Those screens are separate from the failure diagnostics.
-
-**Live verification:** [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) · [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions).
+**These are failure/configuration captures, not release-success screenshots.** Source images must be committed before the README can render a gallery. Follow [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) or [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions) for live verification.
 
 ## Testing and project status
 
