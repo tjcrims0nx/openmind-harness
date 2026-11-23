@@ -172,6 +172,45 @@
         "baseURL": "{env:OPENMIND_CUSTOM_BASE_URL}"
       },
       "models": {}
+    },
+    "zai": {
+      "name": "GLM (Z.AI)",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:ZAI_API_KEY}",
+        "baseURL": "https://api.z.ai/api/paas/v4"
+      },
+      "models": {
+        "glm-4.5": {
+          "name": "GLM 4.5"
+        }
+      }
+    },
+    "moonshotai": {
+      "name": "Kimi (Moonshot AI)",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:MOONSHOT_API_KEY}",
+        "baseURL": "https://api.moonshot.ai/v1"
+      },
+      "models": {
+        "kimi-k2.5": {
+          "name": "Kimi K2.5"
+        }
+      }
+    },
+    "qwen": {
+      "name": "Qwen (Alibaba Cloud)",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "{env:DASHSCOPE_API_KEY}",
+        "baseURL": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+      },
+      "models": {
+        "qwen-plus": {
+          "name": "Qwen Plus"
+        }
+      }
     }
   },
   "experimental": {
