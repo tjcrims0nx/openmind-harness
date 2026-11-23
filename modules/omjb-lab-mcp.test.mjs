@@ -18,6 +18,13 @@ test('campaigns require finite budgets and valid provider selectors',async()=>{
   {targets:['openai:test'],max_requests:1,max_usd:0,estimated_request_cost:0}
  ])await assert.rejects(invoke('omjb_lab_run_campaign',args));
 });
+test('campaign target selectors reject extra colons before execution',async()=>{
+ for(const selector of ['openai:model:extra','ollama:model:latest','gemini:bad::model']){
+  await assert.rejects(invoke('omjb_lab_run_campaign',{
+   targets:[selector],max_requests:1,max_usd:1,estimated_request_cost:0.1
+  }),/Invalid targets/);
+ }
+});
 test('unknown tools and malformed RPC requests cannot invoke a process',async()=>{
  await assert.rejects(invoke('run_shell',{}));
  const r=await handleRPC({jsonrpc:'2.0',id:12,method:'tools/call',params:{name:'run_shell',arguments:{}}});
