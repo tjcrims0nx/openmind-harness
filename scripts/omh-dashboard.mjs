@@ -16,13 +16,14 @@ import {WorkspaceManager} from '../modules/workspaces.mjs';
 import {sandboxAvailable} from '../modules/sandbox.mjs';
 import {readHeartbeat} from '../modules/runtime-health.mjs';
 import {connectorStatuses,verifyConnector} from '../modules/provider-auth.mjs';
+import {handleChat} from '../lib/omh-chat.mjs';
 
 const HOST = '127.0.0.1';
 const JSON_LIMIT = 4096;
 function safeEqual(a,b){if(typeof a!=='string'||typeof b!=='string')return false;const first=Buffer.from(a);const second=Buffer.from(b);return first.length===second.length&&timingSafeEqual(first,second);}
-async function readJson(request){
+async function readJson(request,limit=JSON_LIMIT){
  let size=0;const chunks=[];
- for await(const part of request){size+=part.length;if(size>JSON_LIMIT)throw new Error('Request too large');chunks.push(part);}
+ for await(const part of request){size+=part.length;if(size>limit)throw new Error('Request too large');chunks.push(part);}
  const value=JSON.parse(Buffer.concat(chunks).toString('utf8'));
  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Object required');
  return value;
@@ -111,6 +112,28 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
         (request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' &&
          request.headers['sec-fetch-site'] !== 'none')) {
       return send(403, 'Local dashboard requests only');
+    }
+    if(request.url==='/api/chat'&&['GET','POST'].includes(request.method)){
+      const port=server.address().port;
+      if(request.method==='POST'&&(
+        request.headers.origin!==`http://${HOST}:${port}`||
+        !safeEqual(request.headers['x-omh-csrf'],csrf)))
+       return send(403,'Chat submission not authorized');
+      let body;
+      if(request.method==='POST'){
+       if(request.headers['content-type']?.split(';')[0].trim()!=='application/json')
+        return send(415,'JSON required');
+       try{body=await readJson(request,22000);}
+       catch{return send(400,'Invalid chat payload');}
+      }
+      const adapter={
+       setHeader(name,value){response.setHeader(name,value);return this;},
+       status(code){response.statusCode=code;return this;},
+       json(data){response.setHeader('Content-Type','application/json; charset=utf-8');response.end(JSON.stringify(data));return this;}
+      };
+      return handleChat({method:request.method,headers:request.headers,body},adapter,{
+       accessCheck:()=>({ok:true,status:200})
+      });
     }
     if(request.method==='GET'&&request.url==='/api/connectors')return send(200,JSON.stringify({providers:connectorStatuses()}),'application/json; charset=utf-8');
     if(request.method==='POST'&&request.url==='/api/connectors/verify'){
