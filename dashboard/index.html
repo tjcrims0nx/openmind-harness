@@ -28,7 +28,14 @@
     <section id="chat" class="omh-chat" aria-label="AI conversation">
       <header class="chat-heading"><div><span class="chat-eyebrow">OPENMIND HARNESS · UNIVERSAL AI WORKSPACE</span><h1>Chat</h1><p>Choose your provider in OpenCode. Your conversations stay on your connected runtime.</p></div><span class="chat-mode" id="chat-availability">Checking runtime</span></header>
       <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-label="Chat conversation">
-        <div class="chat-welcome" id="chat-welcome"><img src="/app-icon.webp" alt="" width="56" height="56"><h2>What are we building?</h2><p>One place for your models, agents and tools. Connect a chat-capable runtime to start a conversation.</p></div>
+        <div class="chat-atmosphere" aria-hidden="true"><div class="chat-radiant"></div><div class="chat-lattice"></div><div class="chat-dither"></div></div>
+        <div class="chat-welcome" id="chat-welcome">
+          <div class="chat-orb" aria-hidden="true"><span class="orb-glow"></span><span class="orb-ring ring-one"></span><span class="orb-ring ring-two"></span><img src="/app-icon.webp" alt="" width="56" height="56"></div>
+          <span class="chat-kicker">YOUR AI WORKSPACE</span>
+          <h2>What are we building?</h2>
+          <p>One place for your models, agents and tools. Connect a chat-capable runtime to start a conversation.</p>
+          <div class="chat-quick-start" aria-label="Conversation ideas"><button type="button" data-chat-suggestion="Help me plan my next project">Plan a project</button><button type="button" data-chat-suggestion="Review my current workspace">Review workspace</button><button type="button" data-chat-suggestion="Help me write and debug code">Write code</button></div>
+        </div>
       </div>
       <div id="chat-notice" class="chat-notice" role="status">This dashboard currently has a read-only runtime connection, not a model chat endpoint. Chat messages cannot be sent yet.</div>
       <form id="chat-form" class="chat-composer" aria-label="Compose message">
