@@ -1,0 +1,40 @@
+name: OMH OpenUI frontend candidate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend-next/**'
+      - '.github/workflows/openui-frontend.yml'
+  pull_request:
+    paths:
+      - 'frontend-next/**'
+      - '.github/workflows/openui-frontend.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install candidate UI dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate TypeScript and build frontend
+        run: npm run build
+      - name: Verify branded assets and chat shell
+        run: |
+          node -e "const fs=require('fs');const html=fs.readFileSync('dist/index.html','utf8');if(!html.includes('assets/'))process.exit(1);if(!fs.existsSync('dist/app-icon.webp'))process.exit(1);"
+      - name: Upload unpromoted UI candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: omh-openui-frontend-candidate
+          path: frontend-next/dist/
+          if-no-files-found: error
+          retention-days: 7
