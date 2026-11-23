@@ -1,3 +1,8 @@
+> [!WARNING]
+> **BETA — ACTIVE TESTING REQUIRED**
+>
+> OpenMind Harness is currently in beta and requires further testing and validation. Features, integrations, and platform support may be incomplete, unstable, or change without notice. Expect bugs; verify behavior in a non-production environment before relying on it for important work. Please report reproducible issues through [GitHub Issues](https://github.com/tjcrims0nx/openmind-harness/issues).
+
 <p align="center">
   <img src="docs/images/omh-hero-mcp.webp" alt="OpenMind Harness · local AI runtime, agents, providers and MCP" width="100%">
 </p>
