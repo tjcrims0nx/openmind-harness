@@ -15,7 +15,7 @@ const tools=[
  {name:'omjb_lab_run_case',description:'Execute a reviewed Guardrail Lab case through the native OMJB runner. Live providers require explicit operator opt-in.',inputSchema:{type:'object',properties:{case_id:{type:'string',pattern:'^GL-[0-9]{3}$'},target:{type:'string',enum:['echo','openai','anthropic','ollama','gemini']}},required:['case_id','target'],additionalProperties:false}},
  {name:'omjb_lab_run_campaign',description:'Run a bounded multi-provider campaign against the operator-selected, human-reviewed benign corpus.',inputSchema:{type:'object',properties:{targets:{type:'array',items:{type:'string',maxLength:96},minItems:1,maxItems:4},max_requests:{type:'integer',minimum:1,maximum:100},max_usd:{type:'number',minimum:0,maximum:100},estimated_request_cost:{type:'number',minimum:0,maximum:10}},required:['targets','max_requests','max_usd','estimated_request_cost'],additionalProperties:false}}
 ];
-const providers=/^(openai|anthropic|gemini|ollama|deepseek|groq|together):[a-zA-Z0-9][a-zA-Z0-9._:\/-]{0,75}$/;
+const providers=/^(openai|anthropic|gemini|ollama|deepseek|groq|together):[a-zA-Z0-9][a-zA-Z0-9._/-]{0,75}$/;
 function validate(name,args){
  const t=tools.find(x=>x.name===name);
  if(!t)throw Error('Unknown Lab operation');
