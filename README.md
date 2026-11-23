@@ -19,7 +19,6 @@
 <a href="#-providers">Providers</a> ·
 <a href="#-mcp--plugins">MCP</a> ·
 <a href="#-jailbreak-lab">Jailbreak Lab</a> ·
-<a href="#-ipad-development">iPad</a> ·
 <a href="#-docs--links">Docs</a>
 </sub></p>
 
@@ -148,25 +147,6 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 | 🖥️ Unified dashboard and iPad operation | Integration pending |
 
 **Execution is not yet verified end to end.** The evidence fixture tests passed 3/3, but the Lab CLI requires its real SQLite schema (including `started_at`); the simplified evidence fixture cannot validate run creation. Live provider calls require explicit operator opt-in, approved inputs and bounded budgets. See [PR details](https://github.com/tjcrims0nx/openmind-harness/pull/6).
-
-### 📱 iPad development
-
-Native iPad work lives in a separate repository: **[omh-iOS](https://github.com/tjcrims0nx/omh-iOS)**.
-
-<sub>Development evidence · November 23, 2026. These are actual diagnostics, **not** successful release screenshots.</sub>
-
-<table>
-<tr>
-<td width="50%" align="center"><a href="docs/images/diagnostics/omh-startup-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" width="100%" alt="OMH native iPad startup failure diagnostic"></a><br><sub>⚠️ Startup / bootstrap failure</sub></td>
-<td width="50%" align="center"><a href="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg"><img src="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg" width="65%" alt="Failed iOS unsigned IPA build"></a><br><sub>❌ Unsigned IPA build check</sub></td>
-</tr>
-</table>
-
-- 🧩 **Provider settings:** UI captures exist; authenticated connections and persistence still need testing.
-- 🧪 **Verification:** green build, simulator launch, physical iPad startup, runtime connectivity and signing.
-- 📦 **IPA:** CI outputs are unsigned and require signing; these captures do not prove an installable, working release.
-
-[View iOS build runs](https://github.com/tjcrims0nx/omh-iOS/actions) · [Read iPad project](https://github.com/tjcrims0nx/omh-iOS).
 
 ### 🛡️ Security & verification
 
