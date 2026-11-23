@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {existsSync} from 'node:fs';
@@ -147,6 +147,35 @@ test('echo run on a fresh real-schema DB persists and is visible via read-only M
   }
 });
 
+test('reviewed-benign echo campaign completes through MCP without provider keys', {skip: !labRoot()}, async () => {
+ const root=labRoot();
+ const dir=await mkdtemp(join(tmpdir(),'omjb-campaign-'));
+ const saved={root:process.env.OMJB_LAB_ROOT,db:process.env.OMJB_DB_PATH,corpus:process.env.OMJB_REVIEWED_CORPUS,output:process.env.OMJB_CAMPAIGN_OUTPUT,live:process.env.OMJB_ALLOW_LIVE_RUNS};
+ try {
+  const db=join(dir,'evidence.db'),corpus=join(dir,'reviewed.jsonl'),output=join(dir,'campaign.json');
+  makeDb(db,REAL_SCHEMA);
+  await writeFile(corpus,JSON.stringify({id:'SAFE-001',category:'benign',prompt:'Say hello.',expected:'comply',meta:{mutation_safe:true}})+'\\n');
+  process.env.OMJB_LAB_ROOT=root;
+  process.env.OMJB_DB_PATH=db;
+  process.env.OMJB_REVIEWED_CORPUS=corpus;
+  process.env.OMJB_CAMPAIGN_OUTPUT=output;
+  process.env.OMJB_ALLOW_LIVE_RUNS='1';
+  const result=await invoke('omjb_lab_run_campaign',{targets:['echo:local'],max_requests:1,max_usd:0,estimated_request_cost:0});
+  assert.equal(result.completed,true);
+  assert.equal(result.evidence_saved,true);
+  const report=JSON.parse(await readFile(output,'utf8'));
+  assert.equal(report.scheduled_requests,1);
+  assert.equal(report.successful_responses,1);
+  assert.equal(report.results[0].provider,'echo');
+  assert.equal(JSON.stringify(result).includes('Say hello.'),false,'no raw prompts in MCP output');
+ }finally{
+  for(const [key,value] of Object.entries({OMJB_LAB_ROOT:saved.root,OMJB_DB_PATH:saved.db,OMJB_REVIEWED_CORPUS:saved.corpus,OMJB_CAMPAIGN_OUTPUT:saved.output,OMJB_ALLOW_LIVE_RUNS:saved.live})){
+   if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+  await rm(dir,{recursive:true,force:true});
+ }
+});
+
 test('incompatible (fixture-schema) DB is rejected cleanly without modification', {skip: !labRoot()}, async () => {
   const root = labRoot();
   const dir = await mkdtemp(join(tmpdir(), 'omjb-exec-'));
@@ -158,7 +187,7 @@ test('incompatible (fixture-schema) DB is rejected cleanly without modification'
     process.env.OMJB_LAB_ROOT = root;
     process.env.OMJB_DB_PATH = dbPath;
     delete process.env.OMJB_ALLOW_LIVE_RUNS;
-    await assert.rejects(invoke('omjb_lab_run_case', {case_id: 'GL-001', target: 'echo' }));
+    await assert.rejects(invoke('omjb_lab_run_case', {case_id: 'GL-001', target: 'echo' }),/no column named started_at/);
     // The DB must not have been overwritten or extended by the failed run.
     const after = runRows(dbPath);
     assert.deepEqual(after, before);
