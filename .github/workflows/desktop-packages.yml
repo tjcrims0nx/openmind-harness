@@ -1,0 +1,59 @@
+name: OMH Desktop packages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - 'dashboard/**'
+      - 'modules/**'
+      - 'lib/omh-chat.mjs'
+      - 'scripts/omh-dashboard.mjs'
+      - '.github/workflows/desktop-packages.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'dashboard/**'
+      - 'modules/**'
+      - 'lib/omh-chat.mjs'
+      - 'scripts/omh-dashboard.mjs'
+      - '.github/workflows/desktop-packages.yml'
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux
+          - os: windows-2022
+            target: win
+          - os: macos-15
+            target: mac
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install desktop build tooling
+        run: npm install --no-audit --no-fund
+      - name: Check desktop source and chat contract
+        run: node --test desktop.test.cjs
+      - name: Package OMH desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:${{ matrix.target }}
+      - name: Upload unsigned desktop installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: omh-desktop-${{ matrix.target }}
+          path: dist/desktop/**
+          if-no-files-found: error
+          retention-days: 14
