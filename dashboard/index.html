@@ -27,12 +27,13 @@
     <section class="pane" id="connectors-panel" hidden aria-label="Provider connectors"><h2>Connector settings · Providers</h2><p>Credentials are supplied to the local harness, never entered here. Verification requires the local administrator token.</p><div id="connector-list" aria-live="polite">Loading provider status…</div></section>
     <section id="chat" class="omh-chat" aria-label="AI conversation">
       <header class="chat-heading">
-        <div><span class="chat-eyebrow">OPENMIND HARNESS · UNIVERSAL AI WORKSPACE</span><h1>Chat</h1><p>Your models, agents, and tools. Choose a provider and start a conversation.</p></div>
+        <div><span class="chat-eyebrow">OPENMIND HARNESS</span><h1>Chat</h1><p>Talk to your models in one workspace.</p></div>
         <span class="chat-mode" id="chat-availability">Checking chat providers</span>
       </header>
       <div class="chat-toolbar" aria-label="Chat controls">
         <label for="chat-provider">Provider</label><select id="chat-provider" aria-label="Choose AI provider"><option value="">Checking providers…</option></select>
         <span class="chat-model" id="chat-model">No model selected</span>
+        <button type="button" id="chat-connect" hidden>Connect</button>
         <button type="button" id="chat-reset" aria-label="Start a new conversation">+ New chat</button>
       </div>
       <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-label="Chat conversation">
@@ -40,18 +41,18 @@
         <div class="chat-welcome" id="chat-welcome">
           <div class="chat-orb" aria-hidden="true"><span class="orb-glow"></span><span class="orb-ring ring-one"></span><span class="orb-ring ring-two"></span><img src="/app-icon.webp" alt="OMH neon hexagonal logo" width="148" height="148"></div>
           <span class="chat-kicker">YOUR AI WORKSPACE</span>
-          <h2>What are we building?</h2>
-          <p>One place for your models, agents and tools. Choose a configured provider to start.</p>
+          <h2>What can I help you build?</h2>
+          <p>Choose a model, ask a question, or start with an idea.</p>
           <div class="chat-quick-start" aria-label="Conversation ideas"><button type="button" data-chat-suggestion="Help me plan my next project">Plan a project</button><button type="button" data-chat-suggestion="Review my current workspace">Review workspace</button><button type="button" data-chat-suggestion="Help me write and debug code">Write code</button></div>
         </div>
       </div>
-      <div id="chat-notice" class="chat-notice" role="status">Checking configured providers…</div>
+      <div id="chat-notice" class="chat-notice" role="status">Checking available chat providers…</div>
       <form id="chat-form" class="chat-composer" aria-label="Compose message">
         <label class="visually-hidden" for="chat-input">Message OpenMind Harness</label>
         <textarea id="chat-input" placeholder="Message OMH…" rows="2" maxlength="8000" aria-describedby="chat-notice"></textarea>
         <div class="chat-compose-foot"><span id="chat-hint">Select a configured model to begin</span><button type="submit" id="chat-send" disabled aria-label="Send message">Send ↗</button></div>
       </form>
-      <p class="chat-footnote">Provider API keys stay on the server. <button type="button" id="chat-open-tools">Open workspace tools</button></p>
+      <p class="chat-footnote">Provider credentials stay on the server. <button type="button" id="chat-open-tools">Workspace tools</button></p>
     </section>
     <div id="hub" hidden>
       <section class="hero" aria-label="OpenMind Harness"><h1>OMH</h1><p>OPENMIND HARNESS</p><small>Multi-agent <i>·</i> Memory <i>·</i> Workflows <i>·</i> Sandbox</small></section>
