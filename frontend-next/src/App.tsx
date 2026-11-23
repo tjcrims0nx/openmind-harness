@@ -55,8 +55,8 @@ export function App(){
    const list=Array.isArray(data.providers)?data.providers as Provider[]:[];
    setProviders(list);
    const first=list.find(p=>p.available);
-   setProviderId(current=>list.some(p=>p.id===current&&p.available)?current:first?.id??'');
-   setNotice(first?'Ready. Choose a model and start typing.':'No configured model yet. Add a provider API key to your OMH runtime.');
+   setProviderId(current=>list.some(p=>p.id===current&&p.available)?current:'');
+   setNotice(first?'Providers ready. Select the model you want to use.':'No configured model yet. Add a provider API key to your OMH runtime.');
    if(first)setShowConnect(false);
   }catch(error){
    setProviders([]);
