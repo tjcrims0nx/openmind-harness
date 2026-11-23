@@ -1,8 +1,11 @@
 # OpenMind Jailbreak Lab — MCP integration (evidence + execution bridge)
 
-The **evidence server** in this optional integration is read-only and connects the independent [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) evidence database with OpenMind Harness / OpenCode. It does **not** copy the lab's prompt corpus or execute test campaigns. It is opt-in and disabled unless you register it yourself.
+This optional integration connects the independent [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) to OMH / OpenCode through **two complementary MCP servers**:
 
-The adapter is designed for authorized, evidence-based AI security evaluation and displays only aggregate information. It does **not** expose raw test prompts, model responses, sensitive adjudication notes, stored configurations, provider secrets, or filesystem contents.
+- **Evidence bridge** (`server.mjs`) — strictly read-only access to aggregate run results, comparisons and pending reviews. No raw prompts, responses, private notes or credentials are returned.
+- **Execution bridge** (`lab-server.mjs`) — launches selected Guardrail Lab cases or bounded, reviewed-benign multi-provider campaigns using the Lab's own Python engine. It is separately registered and **live model calls are disabled by default**.
+
+The complete Lab workflow remains an integration goal; these bridges are an initial operational foundation rather than a finished all-in-one UI.
 
 ## Requirements
 
@@ -43,9 +46,9 @@ The OMH installer **copies** the plugin into the installed runtime, but never re
 | `omjb_pending_reviews` | Unadjudicated result count for a run |
 | `omjb_compare_runs` | Aggregate detector label changes between two runs |
 
-All calls are schema-validated and invoke a **fixed** local Python helper in SQLite query-only mode. No model call, campaign launch, shell command, arbitrary file read, corpus export, injection rewriting, or privileged approval is available. Heuristic flags are explicitly unconfirmed, not proof of a jailbreak.
+The **evidence server's** calls are schema-validated and invoke a **fixed** Python helper in SQLite query-only mode. The evidence server does not launch campaigns or models; the separately configured execution server described below can perform approved runs. Heuristic flags are explicitly unconfirmed, not proof of a jailbreak.
 
-The Lab stores evidence in SQLite and already supports summary, regression, provenance and adjudication via the `omjb` CLI. For full analysis and manually reviewed cases, operate the Lab directly through its documented CLI, not by broadening this MCP surface.
+The Lab stores evidence in SQLite and already supports summary, regression, provenance and adjudication via the `omjb` CLI. For detailed analysis or reviewer workflows not yet exposed through OMH, use the Lab's documented CLI.
 
 ## Tests
 
@@ -54,15 +57,15 @@ node --test modules/omjb-mcp.test.mjs
 node --test modules/*.test.mjs
 ```
 
-The tests construct a temporary evidence store with private sentinel strings and confirm they never appear in MCP responses. The test also checks that SQLite remains unchanged and rejects non-allowlisted tool calls, extra arguments and invalid IDs.
+The read-only tests construct a temporary evidence store with private sentinel strings and confirm they never appear in MCP responses. The test also checks that SQLite remains unchanged and rejects non-allowlisted tool calls, extra arguments and invalid IDs.
 
 ## Security and provenance
 
 - Lab repo and its independent license stay separate. No source dataset or external license is silently bundled.
-- The MCP adapter only reads an operator-specified local SQLite file and returns metadata. If the path is absent, it reports unconfigured status.
+- The evidence adapter only reads an operator-specified SQLite file and returns metadata. The separately enabled execution adapter can write run results using the Lab's own CLI.
 - Generated or model-supplied text is not trusted as instructions. Do not connect this tool to untrusted network endpoints.
 - Evidence and review labels must be interpreted in context. Automated scoring cannot replace human adjudication.
-- Features involving actively executing adversarial tests or contacting providers are deliberately **not** part of the read-only plugin.
+- The evidence server never runs prompts; the execution server can run approved campaigns only with the operator's explicit configuration and bounded limits.
 
 ## Lab execution bridge (early integration)
 
