@@ -51,11 +51,7 @@
       }
     },
     "ollama": {},
-    "openai": {
-      "options": {
-        "apiKey": "{env:OPENAI_API_KEY}"
-      }
-    },
+    "openai": {},
     "openrouter": {
       "models": {
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
