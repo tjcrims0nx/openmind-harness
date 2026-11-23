@@ -1,0 +1,66 @@
+{
+  "name": "openmind-harness-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenMind Harness desktop shell for Windows, macOS and Linux",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win nsis portable --publish never",
+    "dist:mac": "electron-builder --mac dmg zip --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "app.openmind.harness.desktop",
+    "productName": "OpenMind Harness",
+    "directories": {
+      "output": "../dist/desktop"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dashboard",
+        "to": "omh-runtime/dashboard"
+      },
+      {
+        "from": "../scripts",
+        "to": "omh-runtime/scripts"
+      },
+      {
+        "from": "../modules",
+        "to": "omh-runtime/modules"
+      }
+    ],
+    "asar": true,
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development"
+    },
+    "artifactName": "OMH-Desktop-${version}-${os}-${arch}.${ext}",
+    "publish": null
+  }
+}
