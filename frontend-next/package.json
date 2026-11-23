@@ -1,0 +1,29 @@
+{
+  "name": "omh-openui-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/copy-assets.mjs",
+    "dev": "npm run assets && vite --host 127.0.0.1",
+    "build": "npm run assets && tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "check": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@openuidev/react-ui": "0.18.12",
+    "@openuidev/react-headless": "0.18.12",
+    "@openuidev/react-lang": "1.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zustand": "^4.5.7",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2"
+  }
+}
