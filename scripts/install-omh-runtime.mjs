@@ -55,6 +55,8 @@ else{
  await cp(join(source,'lib'),join(dest,'lib'),{recursive:true,force:true});
  await cp(join(source,'modules'),join(dest,'modules'),{recursive:true,force:true});
  await cp(join(source,'dashboard'),join(dest,'dashboard'),{recursive:true,force:true});
+ await mkdir(join(dest,'plugins'),{recursive:true});
+ await cp(join(source,'plugins','omjb-mcp'),join(dest,'plugins','omjb-mcp'),{recursive:true,force:true});
  for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-live.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});
  const tmp=configPath+'.'+randomUUID()+'.tmp';
  await writeFile(tmp,JSON.stringify(merged,null,2)+'\n',{mode:0o600});
