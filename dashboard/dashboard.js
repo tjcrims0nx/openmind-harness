@@ -315,7 +315,7 @@ const chatProvider=$('#chat-provider');
 const chatSend=$('#chat-send');
 const chatNotice=$('#chat-notice');
 function selectedChatProvider(){return chatProviders.find(p=>p.id===chatProvider.value&&p.available);}
-function chatReady(){return remote&&!!selectedChatProvider()&&!chatBusy;}
+function chatReady(){return !!selectedChatProvider()&&!chatBusy;}
 function renderChatControls(){
  const selected=selectedChatProvider();
  chatSend.disabled=!chatReady()||!$('#chat-input').value.trim();
@@ -344,12 +344,6 @@ function resetChat(){
  renderChatControls();
 }
 async function loadChatProviders(){
- if(!remote){
-  chatNotice.textContent='Use the OpenCode editor for on-device chat; web chat requires the authenticated Vercel endpoint.';
-  chatProvider.replaceChildren(new Option('Chat available on Vercel',''));
-  renderChatControls();
-  return;
- }
  try {
   const response=await runtimeFetch('/api/chat',{signal:AbortSignal.timeout(12000)});
   if(!response.ok)throw Error('Provider configuration unavailable (HTTP '+response.status+')');
@@ -389,13 +383,24 @@ $('#chat-form').onsubmit=async event=>{
  const content=$('#chat-input').value.trim();
  if(!content)return;
  const provider=selectedChatProvider();
+ if(!remote&&!csrf){
+  try {
+   const session=await fetch('/api/session',{signal:AbortSignal.timeout(10000)});
+   if(!session.ok)throw Error('Local chat session unavailable');
+   csrf=(await session.json()).csrf;
+  }catch(error){
+   chatNotice.textContent=error.message;
+   chatNotice.dataset.severity='warning';
+   return;
+  }
+ }
  const pending=[...chatHistory,{role:'user',content}].slice(-16);
  chatBusy=true;
  renderChatControls();
  try{
   const response=await runtimeFetch('/api/chat',{
    method:'POST',
-   headers:{'Content-Type':'application/json'},
+   headers:{'Content-Type':'application/json',...(!remote?{'X-OMH-CSRF':csrf}:{})},
    body:JSON.stringify({provider:provider.id,messages:pending}),
    signal:AbortSignal.timeout(30000)
   });
