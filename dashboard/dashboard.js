@@ -454,7 +454,7 @@ $('#clear').onclick = () => {
 async function load() {
   $('#refresh').disabled = true;
   try {
-    const response = await runtimeFetch('/api/state', {signal: AbortSignal.timeout(10000)});
+    const response = await runtimeFetch('/api/state', {cache: 'no-store', signal: AbortSignal.timeout(10000)});
     if (!response.ok) throw Error('State unavailable');
     state = await response.json();
     refreshed = Date.now();
