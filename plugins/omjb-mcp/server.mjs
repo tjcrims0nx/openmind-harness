@@ -38,6 +38,8 @@ function checkArgs(name,args){
 }
 export function queryEvidence(name,args={}){
  const valid=checkArgs(name,args);
+ if(!process.env.OMJB_DB_PATH)
+  return Promise.resolve({configured:false,note:'Set OMJB_DB_PATH to an existing OpenMind Jailbreak Lab SQLite database.'});
  const [cmd,makeArgs]=COMMANDS[name],numbers=makeArgs(valid);
  const python=process.env.OMJB_PYTHON||'python3';
  // No shell, no user-supplied command or path arguments. The Python helper
