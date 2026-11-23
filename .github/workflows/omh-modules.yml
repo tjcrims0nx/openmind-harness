@@ -17,8 +17,16 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      # The OMJB execution-compatibility tests need a real Lab installation;
+      # without it they skip. Check the Lab out so they actually run in CI.
+      - uses: actions/checkout@v5
+        with:
+          repository: tjcrims0nx/OpenMind-Jailbreak-Lab
+          path: lab
       - name: Test OMH modules
         run: node --test modules/*.test.mjs
+        env:
+          OMJB_LAB_ROOT: ${{ github.workspace }}/lab
 
       - name: Validate runtime and chat module syntax
         run: |

@@ -41,10 +41,15 @@ INSERT INTO results VALUES(1,1,'GL-001','review',1,'TEST_PROMPT','TEST_RESPONSE'
 `;
 
 function labRoot() {
-  const candidates = [process.env.OMJB_LAB_ROOT, '/home/hatch/workspace/openmind-jailbreak-lab-git'];
-  for (const c of candidates) {
-    if (c && existsSync(join(c, 'omjb', 'cli.py'))) return c;
+  // An explicitly set OMJB_LAB_ROOT must point at a real Lab checkout;
+  // a missing one is a configuration error, not a reason to skip.
+  if (process.env.OMJB_LAB_ROOT) {
+    return existsSync(join(process.env.OMJB_LAB_ROOT, 'omjb', 'cli.py'))
+      ? process.env.OMJB_LAB_ROOT
+      : null;
   }
+  const fallback = '/home/hatch/workspace/openmind-jailbreak-lab-git';
+  if (existsSync(join(fallback, 'omjb', 'cli.py'))) return fallback;
   return null;
 }
 
@@ -67,6 +72,18 @@ function resultRows(dbPath) {
   db.close();
   return rows;
 }
+
+// An explicitly set OMJB_LAB_ROOT must point at a real Lab checkout.
+// Without this, a misconfigured CI would silently skip the execution
+// tests and report success. When the variable is unset, the execution
+// tests skip cleanly (local dev without the Lab).
+test('OMJB_LAB_ROOT, when set, points at a real Lab checkout', async () => {
+  if (!process.env.OMJB_LAB_ROOT) return;
+  assert.ok(
+    existsSync(join(process.env.OMJB_LAB_ROOT, 'omjb', 'cli.py')),
+    'OMJB_LAB_ROOT is set but does not contain omjb/cli.py: ' + process.env.OMJB_LAB_ROOT
+  );
+});
 
 test('execution fixture uses the Lab real schema (started_at present)', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'omjb-exec-'));
