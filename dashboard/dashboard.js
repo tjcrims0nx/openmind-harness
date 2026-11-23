@@ -306,6 +306,13 @@ $('#dock-tabs').onkeydown = event => {
 };
 // Chat is the primary workspace. Until a separately authenticated model-chat
 // endpoint exists, retain draft text locally and never fabricate assistant output.
+for (const suggestion of document.querySelectorAll('[data-chat-suggestion]')) {
+ suggestion.addEventListener('click', () => {
+  $('#chat-input').value = suggestion.dataset.chatSuggestion;
+  $('#chat-input').focus();
+  $('#chat-notice').textContent = 'Draft ready. A chat-capable OMH backend must be connected before messages can be sent.';
+ });
+}
 $('#chat-open-tools').onclick = () => {
  active = 'workspace';
  renderView();
