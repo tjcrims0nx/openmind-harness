@@ -8,7 +8,7 @@ const base='https://omh-openui-test.example';
 const headers={Authorization:'Bearer '+token,'Sec-Fetch-Site':'same-origin'};
 const request=(path,method='GET',body,moreHeaders={})=>new Request(base+path,{
  method,
- headers:{...headers,...moreHeaders,...(body?{'Content-Type':'application/json','Origin':base}:{})},
+ headers:{...headers,...(body?{'Content-Type':'application/json','Origin':base}:{}),...moreHeaders},
  ...(body?{body:JSON.stringify(body)}:{})
 });
 test('denies unconfigured and unauthorized calls; never leaks provider secrets',async()=>{
