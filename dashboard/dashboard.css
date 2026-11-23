@@ -880,3 +880,40 @@ select {
  .chat-composer { padding:8px; border-radius:16px; }
  .chat-composer textarea { min-height:70px; }
 }
+
+/* OMH chat atmosphere: original lightweight CSS effects selected to fit the
+   static dashboard. Visual direction references 23rd's animated UI catalog;
+   no React/shadcn component code is bundled into this vanilla-JS page. */
+.chat-thread { position:relative; isolation:isolate; background:radial-gradient(ellipse at 50% 30%,#102037 0%,#081422 40%,#050d17 100%); }
+.chat-atmosphere { position:absolute; z-index:-1; inset:0; overflow:hidden; pointer-events:none; opacity:.8; }
+.chat-radiant { position:absolute; inset:-55%; background:repeating-conic-gradient(from 15deg at 50% 50%,transparent 0deg 7deg,#00b8ed13 8deg,transparent 10deg 19deg); animation:omh-radiant-drift 52s linear infinite; mask-image:radial-gradient(ellipse at center,black 7%,transparent 49%); }
+.chat-lattice { position:absolute; inset:0; background-image:linear-gradient(130deg,#46c9fa0e 1px,transparent 1px),linear-gradient(35deg,#46c9fa0b 1px,transparent 1px); background-size:48px 56px; mask-image:linear-gradient(180deg,black,transparent 80%); }
+.chat-dither { position:absolute; inset:0; background-image:radial-gradient(#59cfff40 .7px,transparent 1px); background-size:8px 8px; opacity:.16; mask-image:radial-gradient(ellipse at 50% 35%,black,transparent 74%); }
+.chat-welcome {position:relative; z-index:1; width:min(100%,540px); display:grid; justify-items:center;}
+.chat-orb { width:150px; height:150px; display:grid; place-items:center; position:relative; margin-bottom:12px; }
+.chat-orb img { position:relative; z-index:2; width:60px; height:60px; border-radius:18px; margin:0; filter:drop-shadow(0 0 14px #39cbf570); box-shadow:none; }
+.orb-glow { position:absolute; inset:28px; border-radius:50%; background:radial-gradient(circle,#41edff38,#0879c522 45%,transparent 72%); filter:blur(9px); animation:omh-orb-breathe 4.5s ease-in-out infinite; }
+.orb-ring { position:absolute; border:1px solid #26d8fa6b; border-radius:50%; box-shadow:0 0 25px #05b4e817,inset 0 0 25px #05b4e812; }
+.ring-one { inset:15px; transform:rotateX(65deg) rotateZ(-30deg); animation:omh-orb-tilt 12s ease-in-out infinite alternate; }
+.ring-two { inset:3px; border-color:#9c6efe55; transform:rotateY(65deg) rotateZ(25deg); animation:omh-orb-tilt 17s ease-in-out infinite alternate-reverse; }
+.chat-kicker { font:600 10px/1.5 ui-monospace,monospace; letter-spacing:.28em; color:#5be8fa; margin-bottom:8px; }
+.chat-welcome h2 { font-size:clamp(26px,4vw,39px); letter-spacing:-.04em; line-height:1.2; }
+.chat-welcome p { max-width:420px; margin-inline:auto; }
+.chat-quick-start { display:flex; justify-content:center; gap:9px; flex-wrap:wrap; margin-top:22px; }
+.chat-quick-start button { padding:9px 12px; font-size:12px; color:#c5e7f6; background:#0c2232dd; border:1px solid #235575; border-radius:99px; transition:background .2s,border-color .2s,transform .2s; }
+.chat-quick-start button:hover { border-color:#53daf1; background:#133248; transform:translateY(-2px); }
+.chat-quick-start button:focus-visible { outline:2px solid #6beef9; outline-offset:3px; }
+@keyframes omh-radiant-drift { to { transform:rotate(360deg); } }
+@keyframes omh-orb-breathe { 50% { opacity:.55; transform:scale(1.15); } }
+@keyframes omh-orb-tilt { to { transform:rotateY(-45deg) rotateZ(70deg); } }
+@media(max-width:720px) {
+ .chat-orb {width:120px;height:120px; margin-bottom:6px;}
+ .ring-one {inset:13px;} .ring-two {inset:3px;}
+ .chat-welcome h2 {font-size:27px;}
+ .chat-quick-start {gap:7px; margin-top:17px;}
+ .chat-quick-start button {font-size:11px; padding:8px 10px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .chat-radiant,.orb-glow,.orb-ring {animation:none !important;}
+ .chat-quick-start button {transition:none;}
+}
