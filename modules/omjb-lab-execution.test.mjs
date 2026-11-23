@@ -4,7 +4,6 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {existsSync} from 'node:fs';
-import {execFile} from 'node:child_process';
 import {DatabaseSync} from 'node:sqlite';
 import {invoke} from '../plugins/omjb-mcp/lab-server.mjs';
 import {queryEvidence} from '../plugins/omjb-mcp/server.mjs';
@@ -20,9 +19,9 @@ import {queryEvidence} from '../plugins/omjb-mcp/server.mjs';
 // cleanly, and that the read-only plugin sees persisted runs.
 //
 // Execution tests need a Lab installation (OMJB_LAB_ROOT pointing at a
-// checkout containing omjb/cli.py). They skip cleanly when none is present
-// (e.g. CI without the Lab checked out). The schema-compatibility test runs
-// without the Lab CLI.
+// checkout containing omjb/cli.py). CI configures this path and fails if
+// it is invalid. Without the variable, local development can skip the
+// execution-only cases. The schema-compatibility test is independent.
 
 const REAL_SCHEMA = `
 CREATE TABLE runs(id INTEGER PRIMARY KEY,name TEXT,target TEXT,config TEXT,started_at REAL,finished_at REAL);
@@ -41,16 +40,8 @@ INSERT INTO results VALUES(1,1,'GL-001','review',1,'TEST_PROMPT','TEST_RESPONSE'
 `;
 
 function labRoot() {
-  // An explicitly set OMJB_LAB_ROOT must point at a real Lab checkout;
-  // a missing one is a configuration error, not a reason to skip.
-  if (process.env.OMJB_LAB_ROOT) {
-    return existsSync(join(process.env.OMJB_LAB_ROOT, 'omjb', 'cli.py'))
-      ? process.env.OMJB_LAB_ROOT
-      : null;
-  }
-  const fallback = '/home/hatch/workspace/openmind-jailbreak-lab-git';
-  if (existsSync(join(fallback, 'omjb', 'cli.py'))) return fallback;
-  return null;
+  const root = process.env.OMJB_LAB_ROOT;
+  return root && existsSync(join(root, 'omjb', 'cli.py')) ? root : null;
 }
 
 function makeDb(path, schema) {
