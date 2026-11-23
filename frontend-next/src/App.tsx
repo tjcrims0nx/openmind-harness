@@ -21,7 +21,7 @@ export function App(){
  const [history,setHistory]=useState<ChatMessage[]>([]);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('Connect to load your configured models.');
- const [showConnect,setShowConnect]=useState(!local);
+ const [showConnect,setShowConnect]=useState(false);
  const [menu,setMenu]=useState(false);
  const [view,setView]=useState<(typeof MENU)[number]>('Chat');
  const thread=useRef<HTMLDivElement>(null);
