@@ -48,7 +48,7 @@ test('OMJB MCP reports aggregates without exporting prompts, responses or notes'
  const fixture=[
   'import sqlite3,sys',
   'db=sqlite3.connect(sys.argv[1])',
-  "db.executescript(\"\"\"CREATE TABLE runs(id INTEGER PRIMARY KEY,name TEXT,target TEXT,config TEXT,finished_at REAL); CREATE TABLE results(id INTEGER PRIMARY KEY,run_id INTEGER,probe_id TEXT,detector_label TEXT,bypass INTEGER,prompt TEXT,response TEXT); CREATE TABLE adjudications(id INTEGER PRIMARY KEY,result_id INTEGER,label TEXT,notes TEXT); INSERT INTO runs VALUES(1,'PRIVATE_SECRET','target','secret_token',100); INSERT INTO runs VALUES(2,'PRIVATE_SECRET','target','secret_token',100); INSERT INTO results VALUES(1,1,'GL-001','review',1,'SENSITIVE_PROMPT','SENSITIVE_RESPONSE'); INSERT INTO results VALUES(2,2,'GL-001','refusal',0,'SENSITIVE_PROMPT','SENSITIVE_RESPONSE'); INSERT INTO adjudications VALUES(1,1,'unclear','PRIVATE_REVIEW_NOTES');\"\"\")",
+  "db.executescript(\"\"\"CREATE TABLE runs(id INTEGER PRIMARY KEY,name TEXT,target TEXT,config TEXT,finished_at REAL); CREATE TABLE results(id INTEGER PRIMARY KEY,run_id INTEGER,probe_id TEXT,detector_label TEXT,bypass INTEGER,prompt TEXT,response TEXT); CREATE TABLE adjudications(id INTEGER PRIMARY KEY,result_id INTEGER,label TEXT,notes TEXT); INSERT INTO runs VALUES(1,'PRIVATE_SECRET','target','secret_token',100); INSERT INTO runs VALUES(2,'PRIVATE_SECRET','target','secret_token',100); INSERT INTO results VALUES(1,1,'GL-001','review',1,'SENSITIVE_PROMPT','SENSITIVE_RESPONSE'); INSERT INTO results VALUES(2,2,'GL-001','refusal',0,'SENSITIVE_PROMPT','SENSITIVE_RESPONSE'); INSERT INTO adjudications VALUES(1,1,'unclear','PRIVATE_REVIEW_NOTES'); INSERT INTO results VALUES(3,1,'GL-002','SENSITIVE_LABEL_SECRET',0,'SENSITIVE_PROMPT','SENSITIVE_RESPONSE'); INSERT INTO adjudications VALUES(2,3,'PRIVATE_REVIEW_LABEL_SECRET','PRIVATE_REVIEW_NOTES');\"\"\")",
   'db.commit()',
   'db.close()'
  ].join('\n');
@@ -57,18 +57,20 @@ test('OMJB MCP reports aggregates without exporting prompts, responses or notes'
  process.env.OMJB_PYTHON=python;
  const before=(await stat(db)).mtimeMs;
  const status=await queryEvidence('omjb_status');
- assert.deepEqual(status,{configured:true,runs:2,observations:2,read_only:true});
+ assert.deepEqual(status,{configured:true,runs:2,observations:3,read_only:true});
  const runs=await queryEvidence('omjb_list_runs',{limit:5});
  assert.equal(runs.runs[0].id,2);
  const summary=await queryEvidence('omjb_run_summary',{run_id:1});
  assert.equal(summary.heuristic_flags_unconfirmed,1);
  assert.equal(summary.reviewed_outcomes.unclear,1);
+ assert.equal(summary.reviewed_outcomes.other_redacted,1);
+ assert.equal(summary.detector_labels.other_redacted,1);
  const review=await queryEvidence('omjb_pending_reviews',{run_id:2});
  assert.equal(review.pending_review,1);
  const compare=await queryEvidence('omjb_compare_runs',{baseline_id:1,candidate_id:2});
  assert.equal(compare.changed_detector_labels,1);
  const all=JSON.stringify({status,runs,summary,review,compare});
- for(const secret of ['SENSITIVE_PROMPT','SENSITIVE_RESPONSE','PRIVATE_SECRET','PRIVATE_REVIEW_NOTES','secret_token'])
+ for(const secret of ['SENSITIVE_PROMPT','SENSITIVE_RESPONSE','PRIVATE_SECRET','PRIVATE_REVIEW_NOTES','secret_token','SENSITIVE_LABEL_SECRET','PRIVATE_REVIEW_LABEL_SECRET'])
   assert.equal(all.includes(secret),false,'no private evidence leak');
  assert.equal((await stat(db)).mtimeMs,before,'read-only query must not alter the database');
  const handler=await request(8,'tools/call',{name:'omjb_run_summary',arguments:{run_id:1}});
