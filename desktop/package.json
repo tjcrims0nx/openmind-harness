@@ -5,15 +5,16 @@
   "description": "OpenMind Harness desktop shell for Windows, macOS and Linux",
   "main": "main.cjs",
   "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --publish never",
-    "dist:win": "electron-builder --win nsis portable --publish never",
-    "dist:mac": "electron-builder --mac dmg zip --publish never",
-    "dist:linux": "electron-builder --linux AppImage deb --publish never"
+    "start": "node make-icon.cjs && electron .",
+    "dist": "node make-icon.cjs && electron-builder --publish never",
+    "dist:win": "node make-icon.cjs && electron-builder --win nsis portable --publish never",
+    "dist:mac": "node make-icon.cjs && electron-builder --mac dmg zip --publish never",
+    "dist:linux": "node make-icon.cjs && electron-builder --linux AppImage deb --publish never"
   },
   "devDependencies": {
     "electron": "45.4.1",
-    "electron-builder": "26.18.0"
+    "electron-builder": "26.18.0",
+    "sharp": "0.34.5"
   },
   "build": {
     "appId": "app.openmind.harness.desktop",
@@ -23,7 +24,8 @@
     },
     "files": [
       "main.cjs",
-      "package.json"
+      "package.json",
+      "icon.png"
     ],
     "extraResources": [
       {
@@ -37,6 +39,10 @@
       {
         "from": "../modules",
         "to": "omh-runtime/modules"
+      },
+      {
+        "from": "../lib",
+        "to": "omh-runtime/lib"
       }
     ],
     "asar": true,
@@ -61,6 +67,7 @@
       "category": "Development"
     },
     "artifactName": "OMH-Desktop-${version}-${os}-${arch}.${ext}",
-    "publish": null
+    "publish": null,
+    "icon": "icon.png"
   }
 }
