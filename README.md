@@ -16,7 +16,7 @@
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions">Build status</a>
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, macOS, Windows, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It supports Linux, macOS, Windows and Android/Termux with shared provider and agent configuration. The harness runtime and local dashboard are separate from any mobile app. No server, no account, no subscription — the harness and your keys live on your machine.
 
 **Reliability note (November 22, 2026):** The previous `google/gemini-3.8-flash` default was observed to hang for 120 and 180 seconds with no output, while `gemini-3.5-flash-lite` returned a response in approximately 6 seconds using the same key and setup. OMH now defaults to Flash Lite. The 3.8 model remains optional, not automatically selected. See [model troubleshooting and sandbox platform limits](docs/omh-runtime.md#model-reliability-and-host-isolation).
 
@@ -24,9 +24,9 @@
 
 OpenCode runs its standard agent loop (prompt → model → tools → execute → observe → repeat) with sessions, a config file, provider/model switching, and file and shell tools. OMH also includes experimental local runtime modules for tasks, workflows, memory, isolated execution, team workspaces and traces. They run through a separate CLI and are not yet integrated into the OpenCode UI. Full feature list: [docs/features.md](docs/features.md).
 
-Two OpenCode server modes (the OMH iPad home additionally uses its own native UIKit runtime client):
+Two OpenCode server modes:
 
-- **`opencode web`** — the full web UI (default port **4097**). Linux/Termux setup scripts launch it; the iOS/iPadOS app embeds the OpenCode editor in a WKWebView. The separate OMH runtime dashboard is also available as a secondary web view on iPad.
+- **`opencode web`** — the full web UI (default port **4097**). The supported platform installers launch it locally, and the independent OMH dashboard is available through its own local runtime.
 - **`opencode serve`** — the API server only (default port **4096**), for headless use or driving it from another client.
 
 Both bind `127.0.0.1` by default (this device only) and run with no password (`OPENCODE_SERVER_PASSWORD` is deliberately unset — the UI is only reachable from the device itself). To reach the UI from another device, set a password first and bind all interfaces: `OPENCODE_SERVER_PASSWORD='…' opencode web --hostname 0.0.0.0`. Never expose it without a password.
@@ -61,7 +61,7 @@ Pick a provider in the web UI's model picker; add its key once per machine (see 
 | Together | catalog (empty in 1.19.6 — see note) | `TOGETHER_API_KEY` | The 1.19.6 model catalog lists no Together models yet; the provider is configured and the picker shows models once the catalog updates or a `models` entry is added. |
 | OrcaRouter | `orcarouter/z-ai/glm-5.3-flash-free` | `ORCAROUTER_API_KEY` | Free model, verified live. |
 | OpenRouter | catalog (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, …) | `OPENROUTER_API_KEY` | OpenRouter's free models. |
-| Antigravity | `antigravity/gemini-3-flash` | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. Needs the loopback bridge (starts automatically in the iOS app; start it by hand on Linux/Termux). |
+| Antigravity | `antigravity/gemini-3-flash` | Google account OAuth (`openmind-antigravity-login`) | Google's agentic models (Gemini, Claude) through your Google account — no API key. Needs the loopback bridge, started on the host. |
 | APInex | pinned free (`free/deepseek-v4.1-flash`, `free/glm-5.3-flash`, `free/gemini-3.8-flash`, `free/gpt-6-luna`, `free/claude-sonnet-4.6`) | `APINEX_API_KEY` | Gateway: Claude, GPT, Gemini, DeepSeek, GLM, Qwen, Kimi, Grok on one key (22 free models listed live). **Needs a one-time $5 top-up to unlock the free tier** — until then every model call returns a billing error ("Make a single top-up of $5 or more to unlock 25M free tokens daily for life"). The key itself works (the model list answers); the account just has no usable free tokens yet. |
 | Pollinations | `pollinations/gpt-oss-20b` | none (keyless) | Free, no signup, no key. One model (GPT-OSS 20B). **Direct endpoint verified live (answers), but the harness run stalls** — OpenCode produces no output and the call never starts, twice in a row. Not reliable as a harness provider; kept as a spare. Rate-limited to about one request per 45 seconds per IP. |
 | GitHub Models | pinned (`openai/gpt-4.1`, `deepseek/DeepSeek-R1`, `meta/Meta-Llama-3.3-70B-Instruct`) | `GITHUB_TOKEN` (a GitHub personal access token) | Free for any GitHub user — no card. One endpoint, many model families (GPT, DeepSeek, Llama, Mistral, Phi). Needs a PAT; not yet tested live. |
@@ -84,18 +84,11 @@ Pick a method (verified in OpenCode 1.19.6):
 | Method | How it works | Where to use it |
 |---|---|---|
 | `ChatGPT Pro/Plus (browser)` | Opens a browser; sign-in completes through a `localhost:1455` callback. | Linux, Termux (the phone browser shares Termux's localhost). |
-| `ChatGPT Pro/Plus (headless)` | Device code — a short code to enter at `auth.openai.com/codex/device`. No browser needed where OpenCode runs. | **iPad guest (use this one)**, SSH, containers. |
+| `ChatGPT Pro/Plus (headless)` | Device code — a short code to enter at `auth.openai.com/codex/device`. No browser needed where OpenCode runs. | Headless Linux hosts, SSH, containers. |
 | `Manually enter API Key` | API-key login (API billing, not the subscription). | Only if you want API billing instead of Plus. |
 
 Login state is stored in `~/.local/share/opencode/auth.json` (mode `0600`).
 
-**On the iPad**, use the app's Terminal (`>_` in the control bar) — the browser callback cannot reach the guest's loopback from iPad Safari, so the in-app web UI's `/connect` browser flow does not work for ChatGPT there. In the guest terminal run:
-
-```sh
-opencode auth login --provider openai --method "ChatGPT Pro/Plus (headless)"
-```
-
-Enter the shown code at `auth.openai.com/codex/device` in Safari. If the headless sign-in is refused by OpenAI's security checks, the reliable alternative is to sign in once on Linux or Termux (browser flow) and copy `~/.local/share/opencode/auth.json` into the guest at `/root/.local/share/opencode/auth.json` — same file, same login. Never paste the file's contents into chat; copy the file itself.
 
 ## Antigravity — Google account sign-in
 
@@ -105,9 +98,9 @@ Antigravity is Google's agentic platform (Cloud Code Assist): Gemini and Claude 
 openmind-antigravity-login
 ```
 
-Sign in with your Google account in the browser that opens (or with `--manual` on the iPad guest Terminal and headless machines: the script prints the sign-in URL, you paste back the redirect URL). Tokens are stored at `~/.config/opencode/antigravity-auth.json` (mode `0600`) — access token, refresh token, your email, and the Google Cloud project id the API needs. The bridge refreshes the token itself when it expires.
+Sign in with your Google account in the browser that opens (or with `--manual` on headless machines: the script prints the sign-in URL, you paste back the redirect URL). Tokens are stored at `~/.config/opencode/antigravity-auth.json` (mode `0600`) — access token, refresh token, your email, and the Google Cloud project id the API needs. The bridge refreshes the token itself when it expires.
 
-Start the bridge (the iOS app starts it automatically when the guest boots):
+Start the bridge:
 
 ```sh
 node ~/.local/bin/openmind-antigravity-bridge.mjs
@@ -139,7 +132,6 @@ replace them. One-line install commands for every platform: [INSTALL.md](INSTALL
 
 | Platform | Shell | Setup |
 |---|---|---|
-| **iOS / iPadOS** | iPad: native UIKit sidebar/detail workspace; iPhone: native shell with WebKit dashboard; both have embedded OpenCode editor | Separate app repository: [omh-iOS](https://github.com/tjcrims0nx/omh-iOS). Native iPad work is under [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4), pending exact-commit simulator and device verification. GitHub Actions publishes an unsigned IPA that requires signing. |
 | **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
 | **macOS** (Apple Silicon or Intel) | Terminal | `bash macos-setup.sh` — installs the official macOS binary (1.19.6) to `~/.local/bin`, clears the Gatekeeper quarantine flag, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (Homebrew, else the official tarball) for the OMH runtime/MCP bridge. |
 | **Windows** (PowerShell, x64 or ARM64) | PowerShell | `.\windows-setup.ps1` — installs the official Windows binary (1.19.6) to `%LOCALAPPDATA%\Programs\opencode`, adds it to your user PATH, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (winget, else the official zip) for the OMH runtime/MCP bridge. |
@@ -147,12 +139,12 @@ replace them. One-line install commands for every platform: [INSTALL.md](INSTALL
 
 ### Version notes
 
-- iOS guest, Linux, macOS and Windows run OpenCode **1.19.6** (same release).
+- Linux, macOS and Windows installers target OpenCode **1.19.6**.
 - Termux runs OpenCode **1.17.9** (guysoft/opencode-termux v0.2.1, the latest Android release as of 2026-11-21) — upstream publishes no Android binary, and its Linux glibc binary cannot run under Android's Bionic libc. Same config, slightly older engine. For the exact 1.19.6 build on the phone, use proot instead: `pkg install proot-distro && proot-distro install ubuntu`, then run `linux-setup.sh` inside the Ubuntu container.
 
 ### One config, everywhere
 
-`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (the [omh-iOS](https://github.com/tjcrims0nx/omh-iOS) build fetches it from this repo), and all four setup scripts install this exact file to the platform config folder (`~/.config/opencode/` on Linux/macOS/Termux, `%USERPROFILE%\.config\opencode\` on Windows). Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
+`opencode.json` is the single source of truth. The four platform setup scripts install this configuration to the platform config folder (`~/.config/opencode/` on Linux/macOS/Termux, `%USERPROFILE%\.config\opencode\` on Windows). Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
 
 ## Adding keys
 
@@ -160,11 +152,7 @@ Keys go in the machine, not in the repo. Three ways:
 
 1. **ChatGPT Plus/Pro** — `opencode auth login --provider openai` (see above).
 2. **Web UI** — open the model picker in the OpenCode UI and connect a provider there (the `/connect` flow).
-3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, or in the iOS app's Terminal (`>_` in the control bar) in the guest shell, then restart the server from the `⋯` menu.
-
-## The iOS app
-
-The iOS/iPadOS app is a separate packaging of this harness: a native UIKit shell running an iSH-ARM64 / Alpine guest, with the embedded OpenCode editor and a loopback OMH runtime dashboard. **On the current development branch**, iPadOS launches a native UIKit sidebar/detail workspace that reads the OMH dashboard's `/api/state` endpoint; the browser-based dashboard remains available as a secondary screen. iPhone keeps a different, WebKit-first home. The app lives in [tjcrims0nx/omh-iOS](https://github.com/tjcrims0nx/omh-iOS), with [iPad workspace documentation](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/IPAD_WORKSPACE.md), [build and verification guidance](https://github.com/tjcrims0nx/omh-iOS/blob/rebrand/omh/docs/BUILD_AND_VERIFY.md), and [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4). The build fetches a **pinned revision** of this harness; changes here reach the app only when that pin is updated and the guest/IPA is rebuilt. An unsigned IPA needs signing, and green compilation alone does not verify a simulator launch, working runtime or physical iPad installation.
+3. **Environment** — export the variable in your shell, e.g. `export EXPLABS_API_KEY=…`, then restart the local OpenCode server.
 
 ## Eval
 
@@ -172,7 +160,7 @@ The iOS/iPadOS app is a separate packaging of this harness: a native UIKit shell
 
 ## License
 
-OpenMind Harness is licensed under the **GNU General Public License v3.0** (see [LICENSE](LICENSE)), because it compiles and statically links the [iSH](https://github.com/ish-app/ish) / [iSH-ARM64](https://github.com/OpenMinis/ish-arm64) emulator, which is GPLv3 with the additional App Store terms in [`LICENSE.IOS`](https://github.com/tjcrims0nx/omh-iOS/blob/main/ish-arm64/LICENSE.IOS) (in the omh-iOS repo). Those additional terms apply to OpenMind Harness as well. See [LICENSE.md](LICENSE.md) for the third-party component list.
+OpenMind Harness is licensed under the **GNU General Public License v3.0**; see [LICENSE](LICENSE) and [LICENSE.md](LICENSE.md) for licensing and third-party component notices.
 
 ## Experimental OMH modules
 
