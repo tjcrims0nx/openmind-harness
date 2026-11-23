@@ -47,6 +47,7 @@ function createWindow(){
  windowRef=new BrowserWindow({
   width:1320,height:870,minWidth:390,minHeight:600,
   backgroundColor:'#06051a',title:'OpenMind Harness',
+  icon:join(__dirname,'icon.png'),
   show:false,autoHideMenuBar:process.platform!=='darwin',
   webPreferences:{
    nodeIntegration:false,contextIsolation:true,sandbox:true,
