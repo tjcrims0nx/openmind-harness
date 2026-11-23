@@ -73,6 +73,14 @@ The dashboard keeps the web access token only in page memory; reloading the page
 
 Supported remote actions are **cancel queued task, retry failed read-only task, pause schedule, disable plugin, and reject skill proposal**. Only the local trusted worker actually processes queued work. The Vercel bridge does not permit enabling plugins, approving skills, resuming schedules, arbitrary commands, or native agent launches. Keep privileged review on the trusted local dashboard/CLI.
 
+## Web chat (separate from the live gateway)
+
+The OMH **Chat** tab now uses the authenticated `/api/chat` serverless route. It is distinct from the read-only Linux gateway and does not require `OMH_LIVE_URL` when the goal is simply to chat with a configured hosted model. The `OMH_WEB_ACCESS_TOKEN` environment variable is **still required**, and must be at least 32 bytes.
+
+Set at least one of the following **server-only** Vercel environment variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `TOGETHER_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`, `MOONSHOT_API_KEY` or `DASHSCOPE_API_KEY`. Optional server-only model overrides take the form `OMH_CHAT_OPENAI_MODEL`, `OMH_CHAT_GEMINI_MODEL`, etc. Redeploy after changing variables. **Do not store these keys in browser settings, the public repository, or `NEXT_PUBLIC_*` variables.**
+
+The provider selector indicates which server credentials are present. Chat messages are processed by the selected provider, while the browser retains only the current conversation in memory. This is not currently a persistent chat archive and does not claim to operate the local OpenCode agent/tool loop. Remote runtime telemetry, MCP access and privileged task operations still require separately configuring the Linux gateway.
+
 ## Remote MCP test endpoint
 
 For clients that support stateless HTTP JSON-RPC MCP:
