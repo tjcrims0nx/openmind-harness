@@ -19,7 +19,7 @@
   <a href="#providers-and-authentication">Providers</a> •
   <a href="#local-runtime-and-dashboard">Runtime</a> •
   <a href="#platforms">Platforms</a> •
-  <a href="#diagnostics-and-verification">Diagnostics</a> •
+  <a href="#development-screenshots-and-diagnostics">Screenshots</a> •
   <a href="#documentation">Docs</a>
 </p>
 
@@ -37,7 +37,7 @@ OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-ag
 | **Evidence** | Startup failure, failed CI, provider-settings captures | Evidence tests passed; real-schema execution test pending | Module CI and portable packages |
 | **Details** | [iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) | [Lab integration PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) | [Harness Actions](https://github.com/tjcrims0nx/openmind-harness/actions) |
 
-**Latest visual diagnostics:** [iPad startup](#development-screenshots-and-diagnostics) · [Providers UI](#development-screenshots-and-diagnostics) · [iOS build failure](#development-screenshots-and-diagnostics)
+**Actual diagnostic screenshots:** [iPad startup and iOS CI failure](#development-screenshots-and-diagnostics)
 
 ## At a glance
 
@@ -250,19 +250,18 @@ The dashboard's ordinary actions are bounded. Additional governance operations r
 
 ## Development screenshots and diagnostics
 
-**Captured 22–23 November 2026** · Native iPad bring-up and iOS CI
+**Real captures · November 22–23, 2026** — These are development screenshots rather than final marketing artwork. The iOS launch and build issues remain under investigation.
 
-The recent screenshots are **not a successful IPA release**. They show an actual startup error, the providers configuration screen, and a failed CI check. The original screenshots have been identified, but the image assets are **not yet uploaded to this GitHub repository**; they cannot be displayed here until that upload is complete.
+<table>
+<tr>
+<td width="50%" align="center"><img src="docs/images/diagnostics/omh-startup-2026-11-23.jpg" alt="Actual OpenMind Harness iPad startup diagnostic capture" width="100%"><br><strong>Startup diagnostic</strong><br><sub>Native startup display — launch not yet verified</sub></td>
+<td width="50%" align="center"><img src="docs/images/diagnostics/omh-ios-ci-2026-11-23.jpg" alt="Actual failed iOS GitHub Actions build screenshot" width="52%"><br><strong>iOS build checks</strong><br><sub>Unsigned IPA build failure; not a release-ready IPA</sub></td>
+</tr>
+</table>
 
-| Screen | What is visible | Status |
-| --- | --- | --- |
-| **iPad startup / boot log** | OpenMind Harness splash, boot progress and diagnostic output | Startup error observed; working launch unverified |
-| **Providers settings** | Provider list, disconnected states and settings navigation | UI captured; provider sign-in unverified |
-| **iOS CI** | Unsigned IPA build failed; dependent checks skipped | Build not release-ready |
+The recent provider-settings captures show provider lists and disconnected states, not verified authenticated sessions. Those screens are separate from the failure diagnostics.
 
-**Follow the live build evidence:** [omh-iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) · [omh-iOS repository](https://github.com/tjcrims0nx/omh-iOS) · [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions)
-
-*Visual policy:* Only label real device screenshots as screenshots. Keep concept artwork separate, remove any exposed tokens or personal account information, and publish captures under `docs/images/diagnostics/` with descriptive filenames.
+**Live verification:** [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) · [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions).
 
 ## Testing and project status
 
