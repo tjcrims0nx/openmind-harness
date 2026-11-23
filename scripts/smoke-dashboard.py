@@ -39,6 +39,8 @@ def seed(cli):
 def exercise(page, url, mobile):
     page.goto(url)
     expect(page.locator("#connection")).to_have_text("Connected")
+    expect(page.locator("#chat")).to_be_visible()
+    expect(page.locator("#chat-send")).to_be_disabled()
     assert page.locator(".brand img").evaluate("img => img.complete && img.naturalWidth > 0")
     if mobile:
         page.locator("#menu").click()
@@ -66,6 +68,9 @@ def exercise(page, url, mobile):
             expect(button).to_have_attribute("aria-pressed", "true")
             if key == "workspace":
                 expect(page.locator("#hub")).to_be_visible()
+            elif key == "chat":
+                expect(page.locator("#chat")).to_be_visible()
+                expect(page.locator("#chat-send")).to_be_disabled()
             else:
                 label = page.locator(f"#navigation [data-view={key}] b").text_content()
                 expect(page.locator("#view-heading")).to_have_text(label)
