@@ -4,6 +4,8 @@ import {RuntimeView} from './RuntimeView';
 
 type Provider={id:string;label:string;model:string;available:boolean};
 type ChatMessage={role:'user'|'assistant';content:string};
+const logoUrl=import.meta.env.BASE_URL+'app-icon.webp';
+const demoMode=window.location.hostname.endsWith('.github.io') || new URLSearchParams(window.location.search).get('demo')==='1';
 const MENU=['Chat','Workspace','Agents','Tasks','Memory','Workflows','Plugins','Logs'] as const;
 
 function sameOriginChat(){
@@ -13,6 +15,7 @@ function sameOriginChat(){
 
 export function App(){
  const local=sameOriginChat();
+ const demo=demoMode;
  const [token,setToken]=useState('');
  const [tokenDraft,setTokenDraft]=useState('');
  const [providers,setProviders]=useState<Provider[]>([]);
@@ -29,6 +32,10 @@ export function App(){
  const selected=providers.find(p=>p.id===providerId&&p.available);
 
  const api=useCallback(async (method:'GET'|'POST',body?:unknown,signal?:AbortSignal)=>{
+  if(demo){
+   if(method==='GET')return {providers:[{id:'demo',label:'Demo · sample only',model:'Offline UI preview',available:true}]};
+   return {provider:'demo',model:'Offline UI preview',text:'**Demo response** — this is sample content for testing the OMH chat interface. No AI provider was contacted. Your message was not sent to a server.'};
+  }
   const headers:Record<string,string>={};
   if(!local){
    if(!token)throw new Error('Dashboard access token required.');
@@ -47,7 +54,7 @@ export function App(){
   const data=await response.json().catch(()=>({})) as Record<string,unknown>;
   if(!response.ok)throw new Error(typeof data.error==='string'?data.error:'Chat request failed (HTTP '+response.status+')');
   return data;
- },[local,token]);
+ },[local,token,demo]);
 
  const refreshProviders=useCallback(async()=>{
   try{
@@ -56,7 +63,7 @@ export function App(){
    setProviders(list);
    const first=list.find(p=>p.available);
    setProviderId(current=>list.some(p=>p.id===current&&p.available)?current:'');
-   setNotice(first?'Providers ready. Select the model you want to use.':'No configured model yet. Add a provider API key to your OMH runtime.');
+   setNotice(demo?'DEMO MODE · Offline sample chat; no model requests or real runtime data.':first?'Providers ready. Select the model you want to use.':'No configured model yet. Add a provider API key to your OMH runtime.');
    if(first)setShowConnect(false);
   }catch(error){
    setProviders([]);
@@ -65,7 +72,7 @@ export function App(){
    setNotice(message);
    if(!local)setShowConnect(true);
   }
- },[api,local]);
+ },[api,local,demo]);
  useEffect(()=>{void refreshProviders();},[refreshProviders]);
  useEffect(()=>{thread.current?.scrollTo({top:thread.current.scrollHeight,behavior:'smooth'});},[history,busy]);
  useEffect(()=>()=>abort.current?.abort(),[]);
@@ -84,8 +91,8 @@ export function App(){
   try{
    const result=await api('POST',{provider:requestedProvider,messages:input},controller.signal);
    if(typeof result.text!=='string'||!result.text.trim())throw new Error('Model returned an empty answer.');
-   setHistory([...input,{role:'assistant',content:result.text}].slice(-16));
-   setNotice('Response from '+selected.label+' · '+(typeof result.model==='string'?result.model:selected.model));
+   setHistory([...input,{role:'assistant' as const,content:result.text}].slice(-16));
+   setNotice(demo?'DEMO MODE · Generated sample response, not an AI reply.':'Response from '+selected.label+' · '+(typeof result.model==='string'?result.model:selected.model));
   }catch(error){
    setHistory(history); // failed request does not silently enter conversation context
    setDraft(content);
@@ -102,8 +109,9 @@ export function App(){
  function selectView(next:(typeof MENU)[number]){setView(next);setMenu(false);}
 
  return <div className="omh-shell">
+  {demo&&<div className="demo-banner" role="status"><strong>PUBLIC UI DEMO</strong> · Sample responses and data only · No AI or Harness connected</div>}
   <aside className={'sidebar'+(menu?' expanded':'')}>
-   <div className="brand"><img src="/app-icon.webp" alt="OpenMind Harness"/><div><strong>OMH</strong><span>OPENMIND HARNESS</span></div></div>
+   <div className="brand"><img src={logoUrl} alt="OpenMind Harness"/><div><strong>OMH</strong><span>OPENMIND HARNESS</span></div></div>
    <div className="sidebar-label">WORKSPACE</div>
    <nav aria-label="Main navigation">
     {MENU.map((item,index)=><button key={item} className={view===item?'selected':''} onClick={()=>selectView(item)}>
@@ -116,10 +124,10 @@ export function App(){
   <div className="stage">
    <header className="app-header"><div className="header-left">
     <button className="menu-toggle" aria-label="Toggle navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)}>☰</button>
-    <img src="/app-icon.webp" alt="" className="header-logo"/>
+    <img src={logoUrl} alt="" className="header-logo"/>
     <strong>OpenMind Harness</strong><span className="divider">/</span><span>{view}</span>
-   </div><div className="header-right"><span className="status"><span className={'small-dot'+(selected?' connected':'')}/>{selected?'Model ready':'Not connected'}</span>
-   <button onClick={()=>{setShowConnect(true);setTokenDraft('');}} className="settings-button">Connect</button></div></header>
+   </div><div className="header-right"><span className="status"><span className={'small-dot'+(selected?' connected':'')}/>{demo?'Demo mode':selected?'Model ready':'Not connected'}</span>
+   {!demo&&<button onClick={()=>{setShowConnect(true);setTokenDraft('');}} className="settings-button">Connect</button>}</div></header>
    {view==='Chat'?<main className="chat-layout">
     <div className="chat-top">
      <div><span className="eyebrow">UNIVERSAL AI WORKSPACE</span><h1>Chat</h1></div>
@@ -135,7 +143,7 @@ export function App(){
      {history.length===0?<div className="empty-state">
        <img src="/app-icon.webp" alt="OMH hexagon" className="hero-logo"/>
        <h2>What can I help you build?</h2>
-       <p>Start a conversation with your chosen AI model.</p>
+       <p>{demo?'Try the layout with sample replies. No AI model is connected.':'Choose your provider and start a real conversation.'}</p>
        <div className="suggestions">{['Plan a project','Review some code','Explain a concept'].map(x=><button key={x} onClick={()=>setDraft(x)}>{x}</button>)}</div>
      </div>:<div className="messages">{history.map((m,i)=><article className={'message '+m.role} key={i}>
        <span className="message-role">{m.role==='user'?'YOU':(selected?.label??'ASSISTANT').toUpperCase()}</span>
@@ -150,9 +158,9 @@ export function App(){
        <div className="compose-row"><span>{selected?selected.model:'Select a provider to begin'} · Shift+Enter for a new line</span>
        <button type="submit" disabled={!selected||!draft.trim()||busy}>{busy?'Sending…':'Send ↑'}</button></div>
      </form>
-     <div className="privacy-note">Keys stay on your server. Messages are sent only to the provider you select.</div>
+     <div className="privacy-note">{demo?'Public preview · messages remain inside this browser tab.':'Keys stay on your server. Messages are sent only to the provider you select.'}</div>
     </div>
-   </main>:<RuntimeView view={view} token={token} local={local} onConnect={()=>setShowConnect(true)}/>}
+   </main>:<RuntimeView view={view} token={token} local={local} demo={demo} onConnect={()=>setShowConnect(true)}/>}
   </div>
   {showConnect&&<div className="dialog-cover" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setShowConnect(false);}}>
     <section className="connect-dialog" role="dialog" aria-modal="true" aria-labelledby="connect-title">
