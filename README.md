@@ -16,7 +16,7 @@
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions">Build status</a>
 </p>
 
-> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
+> OpenMind Harness is [OpenCode](https://opencode.ai) with a universal multi-provider config: one OpenAI-compatible interface that any provider plugs into. The configured default is Google Gemini (`google/gemini-3.5-flash-lite`, requiring a valid provider credential); the small-model fallback is an Experiential Labs DeepSeek route. It runs the same everywhere — iOS app, Linux server, macOS, Windows, Android/Termux — with the same providers, the same default, the same fallback. Only the shell differs. No server, no account, no subscription — the harness and your keys live on your machine.
 
 **Reliability note (November 22, 2026):** The previous `google/gemini-3.8-flash` default was observed to hang for 120 and 180 seconds with no output, while `gemini-3.5-flash-lite` returned a response in approximately 6 seconds using the same key and setup. OMH now defaults to Flash Lite. The 3.8 model remains optional, not automatically selected. See [model troubleshooting and sandbox platform limits](docs/omh-runtime.md#model-reliability-and-host-isolation).
 
@@ -130,24 +130,29 @@ On Linux, macOS or Termux, unpack an artifact and run `sh bin/omh status` or `sh
 
 CI runs a **clean temporary-workspace smoke test** and checks runtime status/diagnostics and host-compatible launchers before artifacts upload. The Termux archive is assembled on Linux and is **not a verified Android device binary**. End-to-end OpenCode model calls, provider logins, physical devices, and kernel isolation require separate tests. See [the workflow](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for current success/failure and download links; only use an artifact after its relevant job passes.
 
-For a full OpenCode installation, use the Linux or Termux setup scripts below, which handle the platform-specific engine installation. Portable OMH runtime packages supplement these rather than replace them.
+For a full OpenCode installation, use the platform setup scripts below
+(Linux, macOS, Windows, Termux), which handle the platform-specific engine
+installation. Portable OMH runtime packages supplement these rather than
+replace them. One-line install commands for every platform: [INSTALL.md](INSTALL.md).
 
-## Platforms — the same harness, three shells
+## Platforms — the same harness, every shell
 
 | Platform | Shell | Setup |
 |---|---|---|
 | **iOS / iPadOS** | iPad: native UIKit sidebar/detail workspace; iPhone: native shell with WebKit dashboard; both have embedded OpenCode editor | Separate app repository: [omh-iOS](https://github.com/tjcrims0nx/omh-iOS). Native iPad work is under [PR #4](https://github.com/tjcrims0nx/omh-iOS/pull/4), pending exact-commit simulator and device verification. GitHub Actions publishes an unsigned IPA that requires signing. |
 | **Linux** (Cosyra container, Oracle VM, any server) | Terminal / server | `bash linux-setup.sh` — installs the official Linux binary (1.19.6) to `~/.local/bin`, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Falls back to `npm i -g opencode-ai` if the download fails. |
+| **macOS** (Apple Silicon or Intel) | Terminal | `bash macos-setup.sh` — installs the official macOS binary (1.19.6) to `~/.local/bin`, clears the Gatekeeper quarantine flag, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (Homebrew, else the official tarball) for the OMH runtime/MCP bridge. |
+| **Windows** (PowerShell, x64 or ARM64) | PowerShell | `.\windows-setup.ps1` — installs the official Windows binary (1.19.6) to `%LOCALAPPDATA%\Programs\opencode`, adds it to your user PATH, installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097. Node.js 22+ is installed on demand (winget, else the official zip) for the OMH runtime/MCP bridge. |
 | **Android** (Termux) | Termux on the phone | `bash termux-setup.sh` — installs the native Android OpenCode build (guysoft/opencode-termux, 1.17.9 — see version note), installs the config + skill + guard plugin, launches `opencode web` on http://127.0.0.1:4097 (open it in the phone browser). No separate Android app. |
 
 ### Version notes
 
-- iOS guest and Linux run OpenCode **1.19.6** (same release).
+- iOS guest, Linux, macOS and Windows run OpenCode **1.19.6** (same release).
 - Termux runs OpenCode **1.17.9** (guysoft/opencode-termux v0.2.1, the latest Android release as of 2026-11-21) — upstream publishes no Android binary, and its Linux glibc binary cannot run under Android's Bionic libc. Same config, slightly older engine. For the exact 1.19.6 build on the phone, use proot instead: `pkg install proot-distro && proot-distro install ubuntu`, then run `linux-setup.sh` inside the Ubuntu container.
 
 ### One config, everywhere
 
-`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (the [omh-iOS](https://github.com/tjcrims0nx/omh-iOS) build fetches it from this repo), and both setup scripts install this exact file to `~/.config/opencode/`. Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
+`opencode.json` is the single source of truth. The iOS guest image is built from this exact file (the [omh-iOS](https://github.com/tjcrims0nx/omh-iOS) build fetches it from this repo), and all four setup scripts install this exact file to the platform config folder (`~/.config/opencode/` on Linux/macOS/Termux, `%USERPROFILE%\.config\opencode\` on Windows). Edit it in one place and every platform picks it up on its next install or rebuild. No per-platform config differences: same providers, same model IDs, same defaults, same agents.
 
 ## Adding keys
 

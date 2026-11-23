@@ -15,8 +15,10 @@ The iOS/iPadOS app is a separate repo: [tjcrims0nx/omh-iOS](https://github.com/t
   task-routed agents `fast` and `reviewer`). Both setup scripts install this
   file, and the omh-iOS build fetches a **pinned commit** from this repo. Update the
   iOS pin and rebuild the guest image to propagate a new config. Edit the source in one place.
-- `linux-setup.sh`, `termux-setup.sh` — install the harness on Linux and
-  Termux. `README.md` documents the platforms.
+- `linux-setup.sh`, `macos-setup.sh`, `windows-setup.ps1`, `termux-setup.sh` —
+  install the harness on Linux, macOS, Windows and Termux. `INSTALL.md`
+  lists the one-line install command per platform. `README.md` documents
+  the platforms.
 - `skills/openmind-harness/SKILL.md` — the starter skill (Agent Skills standard).
   Installed to `~/.config/opencode/skills/` by the setup scripts and into the iOS guest image.
 - `plugins/openmind-guard/` — the guard plugin (pre-tool denies, post-tool
