@@ -16,3 +16,7 @@ public/
 
 # Portable runtime archive staging
 dist/
+
+# Desktop Electron dependency and icon outputs
+desktop/node_modules/
+desktop/icon.png
