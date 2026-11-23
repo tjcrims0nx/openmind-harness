@@ -18,6 +18,14 @@ test('campaigns require finite budgets and valid provider selectors',async()=>{
   {targets:['openai:test'],max_requests:1,max_usd:0,estimated_request_cost:0}
  ])await assert.rejects(invoke('omjb_lab_run_campaign',args));
 });
+test('campaign preflight enforces the full requested cost, not one request',async()=>{
+ await assert.rejects(invoke('omjb_lab_run_campaign',{
+  targets:['openai:model'],max_requests:10,max_usd:0.05,estimated_request_cost:0.01
+ }),/maximum estimated total cost/);
+ await assert.rejects(invoke('omjb_lab_run_campaign',{
+  targets:['echo:local'],max_requests:2,max_usd:0,estimated_request_cost:0.1
+ }),/both be zero/);
+});
 test('campaign target selectors reject extra colons before execution',async()=>{
  for(const selector of ['openai:model:extra','ollama:model:latest','gemini:bad::model']){
   await assert.rejects(invoke('omjb_lab_run_campaign',{
