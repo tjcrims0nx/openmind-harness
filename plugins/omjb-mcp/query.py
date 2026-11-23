@@ -14,6 +14,22 @@ from urllib.parse import quote
 def output(value):
     sys.stdout.write(json.dumps(value, separators=(",", ":"), ensure_ascii=True) + "\n")
 
+# Labels are database content, not trusted schema values. Never reflect arbitrary
+# label strings, which may contain prompt fragments or credentials.
+SAFE_LABELS = frozenset({
+    "unknown", "review", "refusal", "unclear", "pass", "fail",
+    "held", "failure", "success", "inconclusive", "manual_review",
+    "boundary_held", "potential_failure", "controls_passed",
+})
+
+def safe_counts(rows):
+    counts = {}
+    for row in rows:
+        label = str(row["label"]).lower()
+        label = label if label in SAFE_LABELS else "other_redacted"
+        counts[label] = counts.get(label, 0) + row["n"]
+    return counts
+
 def main():
     if len(sys.argv) != 4:
         raise ValueError("expected command and two bounded numeric arguments")
@@ -75,8 +91,8 @@ def main():
             ).fetchall()
             output({"found": True, "run_id": a, "observations": counts["total"],
                     "heuristic_flags_unconfirmed": counts["flags"] or 0,
-                    "detector_labels": {str(row["label"])[:64]: row["n"] for row in labels},
-                    "reviewed_outcomes": {str(row["label"])[:64]: row["n"] for row in reviewed},
+                    "detector_labels": safe_counts(labels),
+                    "reviewed_outcomes": safe_counts(reviewed),
                     "note": "Heuristic flags are not verified bypasses; manual review is distinct."})
         elif command == "reviews":
             exists = conn.execute("SELECT 1 FROM runs WHERE id=?", (a,)).fetchone()
