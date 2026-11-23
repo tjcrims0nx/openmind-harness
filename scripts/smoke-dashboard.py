@@ -41,7 +41,20 @@ def exercise(page, url, mobile):
     expect(page.locator("#connection")).to_have_text("Connected")
     expect(page.locator("#chat")).to_be_visible()
     expect(page.locator("#chat-send")).to_be_disabled()
+    expect(page.locator("#chat")).to_be_visible()
+    expect(page.locator("#chat-provider")).to_be_visible()
+    expect(page.locator("#chat-input")).to_be_visible()
+    expect(page.locator(".telemetry")).to_be_hidden()
+    assert page.locator(".chat-orb img").evaluate(
+        "img => getComputedStyle(img).clipPath !== 'none'")
     assert page.locator(".brand img").evaluate("img => img.complete && img.naturalWidth > 0")
+    if mobile:
+        # On small screens the editor must stay visible above the fold.
+        # A hero that pushes the composer below the viewport is a regression.
+        assert page.locator("#chat-form").evaluate(
+            "form => form.getBoundingClientRect().bottom <= innerHeight + 2")
+        assert page.locator("#chat-thread").evaluate(
+            "panel => panel.getBoundingClientRect().height < innerHeight * .65")
     if mobile:
         page.locator("#menu").click()
         expect(page.locator("#rail")).to_be_visible()
