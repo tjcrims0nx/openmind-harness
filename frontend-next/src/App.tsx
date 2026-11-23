@@ -84,7 +84,7 @@ export function App(){
   try{
    const result=await api('POST',{provider:requestedProvider,messages:input},controller.signal);
    if(typeof result.text!=='string'||!result.text.trim())throw new Error('Model returned an empty answer.');
-   setHistory([...input,{role:'assistant',content:result.text}].slice(-16));
+   setHistory([...input,{role:'assistant' as const,content:result.text}].slice(-16));
    setNotice('Response from '+selected.label+' · '+(typeof result.model==='string'?result.model:selected.model));
   }catch(error){
    setHistory(history); // failed request does not silently enter conversation context
