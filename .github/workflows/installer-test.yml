@@ -56,6 +56,12 @@ jobs:
       - name: Run Windows installer (no launch)
         shell: pwsh
         run: .\windows-setup.ps1 -NoLaunch
+      - name: Add opencode to PATH for later steps
+        shell: pwsh
+        # The installer adds %LOCALAPPDATA%\Programs\opencode to the user
+        # PATH in the registry (new shells see it), but GitHub Actions
+        # steps do not re-read the registry PATH, so tell the runner too.
+        run: Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA 'Programs\opencode')
       - name: Verify opencode installed
         shell: pwsh
         run: opencode --version
