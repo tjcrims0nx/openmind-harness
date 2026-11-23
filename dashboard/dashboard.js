@@ -342,3 +342,35 @@ async function load() {
 $('#refresh').onclick = load;
 renderView();
 load();
+
+
+async function loadConnectorStatuses(){
+ const target=document.querySelector('#connector-list');
+ if(!target||remote){if(target)target.textContent='Provider verification is available only on the local harness.';return;}
+ try{
+  const response=await runtimeFetch('/api/connectors');
+  if(!response.ok)throw Error('Provider status unavailable');
+  const data=await response.json();
+  target.replaceChildren();
+  for(const provider of data.providers){
+   const line=document.createElement('div');
+   line.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #263548';
+   const name=document.createElement('strong');name.textContent=provider.id;
+   const status=document.createElement('span');status.textContent=provider.status;
+   const button=document.createElement('button');button.type='button';button.textContent='Verify';button.disabled=provider.status!=='configured'||provider.id==='custom';
+   button.addEventListener('click',async()=>{
+    button.disabled=true;status.textContent='Verifying…';
+    try{
+     if(!csrf){const session=await runtimeFetch('/api/session');if(!session.ok)throw Error('Session unavailable');csrf=(await session.json()).csrf;}
+     if(!adminToken)adminToken=prompt('Enter local dashboard administrator token:')||undefined;
+     if(!adminToken)throw Error('Administrator token required');
+     const result=await runtimeFetch('/api/connectors/verify',{method:'POST',headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf,'X-OMH-Admin-Token':adminToken},body:JSON.stringify({id:provider.id})});
+     if(!result.ok)throw Error(result.status===403?'Not authorized':'Verification request failed');
+     status.textContent=(await result.json()).status;
+    }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+   });
+   line.append(name,status,button);target.append(line);
+  }
+ }catch(e){target.textContent=e.message;}
+}
+loadConnectorStatuses();
