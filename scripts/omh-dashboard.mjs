@@ -15,6 +15,7 @@ import {redact} from '../modules/trace.mjs';
 import {WorkspaceManager} from '../modules/workspaces.mjs';
 import {sandboxAvailable} from '../modules/sandbox.mjs';
 import {readHeartbeat} from '../modules/runtime-health.mjs';
+import {connectorStatuses,verifyConnector} from '../modules/provider-auth.mjs';
 
 const HOST = '127.0.0.1';
 const JSON_LIMIT = 4096;
@@ -110,6 +111,20 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
         (request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' &&
          request.headers['sec-fetch-site'] !== 'none')) {
       return send(403, 'Local dashboard requests only');
+    }
+    if(request.method==='GET'&&request.url==='/api/connectors')return send(200,JSON.stringify({providers:connectorStatuses()}),'application/json; charset=utf-8');
+    if(request.method==='POST'&&request.url==='/api/connectors/verify'){
+      const port=server.address().port;
+      if(request.headers.origin!==`http://${HOST}:${port}`||
+         !safeEqual(request.headers['x-omh-csrf'],csrf)||
+         !adminEnabled||!safeEqual(request.headers['x-omh-admin-token'],adminToken)||
+         request.headers['content-type']?.split(';')[0].trim()!=='application/json')
+        return send(403,'Connector verification not authorized');
+      try{
+        const body=await readJson(request);
+        if(typeof body.id!=='string'||Object.keys(body).length!==1)return send(400,'Invalid provider');
+        return send(200,JSON.stringify(await verifyConnector(body.id)),'application/json; charset=utf-8');
+      }catch{return send(400,'Invalid verification request');}
     }
     if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject','/api/schedules/resume','/api/plugins/enable','/api/skills/accept'].includes(request.url)) {
       const port=server.address().port;
