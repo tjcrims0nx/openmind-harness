@@ -4,43 +4,73 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#040910">
-  <title>Runtime dashboard · OpenMind Harness</title>
+  <title>OMH Control Center · OpenMind Harness</title>
   <link rel="icon" href="/app-icon.webp">
   <link rel="stylesheet" href="/dashboard.css">
   <script type="module" src="/dashboard.js"></script>
 </head>
 <body>
-  <aside class="rail" id="rail">
-    <div class="brand"><img src="/app-icon.webp" width="56" height="56" alt=""><div><b>OMH</b><small>OPENMIND<br>HARNESS</small></div></div>
-    <nav aria-label="Workspace navigation" id="navigation"></nav>
-    <div class="health"><span class="indicator"></span> <strong id="health-title">Connecting</strong><p id="health-detail">Reading workspace</p><div class="wave" aria-hidden="true"></div></div>
-  </aside>
   <header class="topbar">
-    <button id="menu" aria-controls="rail" aria-expanded="false" aria-label="Workspace navigation"></button>
-    <div class="location"><img src="/app-icon.webp" width="26" height="26" alt="OpenMind Harness"><span data-icon="workspaces"></span>Workspace <span class="slash">/</span> <strong>Local</strong></div>
-    <nav id="shortcuts" aria-label="Quick views"></nav>
+    <button id="menu" aria-controls="rail" aria-expanded="false" aria-label="Control Center navigation"></button>
+    <div class="brand"><img src="/app-icon.webp" width="32" height="32" alt=""><div><b>OMH</b><small>CONTROL CENTER</small></div></div>
     <div class="connection"><i class="indicator"></i><span id="connection" role="status">Connecting</span></div>
     <button id="refresh" aria-label="Refresh runtime state" title="Refresh runtime state"></button>
   </header>
+  <nav class="rail" id="rail" aria-label="Control Center sections">
+    <div class="rail-sections" id="rail-sections"></div>
+    <div class="health"><span class="indicator"></span> <strong id="health-title">Connecting</strong><p id="health-detail">Reading workspace</p></div>
+  </nav>
   <main>
     <div id="error" role="alert" hidden></div>
-    <section class="pane" id="connectors-panel" aria-label="Provider connectors"><h2>Connector settings · Providers</h2><p>Credentials are supplied to the local harness, never entered here. Verification requires the local administrator token.</p><div id="connector-list" aria-live="polite">Loading provider status…</div></section>
-    <div id="hub">
-      <section class="hero" aria-label="OpenMind Harness"><h1>OMH</h1><p>OPENMIND HARNESS</p><small>Multi-agent <i>·</i> Memory <i>·</i> Workflows <i>·</i> Sandbox</small></section>
+
+    <section class="pane offline-card" id="offline-card" hidden>
+      <h2>Harness offline</h2>
+      <p>The dashboard cannot reach a running harness, so there is no live data to show. Nothing here is broken — the harness simply is not running or is not reachable from this page.</p>
+      <div class="offline-steps" id="offline-steps"></div>
+      <p class="offline-note">Provider verification and task actions need the local harness. They stay unavailable until the harness is reachable.</p>
+    </section>
+
+    <section id="view-overview" aria-label="Overview">
+      <div class="status-cards" id="status-cards" aria-label="Live status"></div>
+      <div class="overview-grid">
+        <section class="pane"><h2><span data-icon="agents"></span>Agent team <em id="agent-count"></em></h2><div id="agent-feed"></div></section>
+        <section class="pane"><h2><span data-icon="list"></span>Task queue <em id="task-count"></em></h2><div id="task-feed"></div></section>
+        <section class="pane"><h2><span data-icon="traces"></span>Recent activity</h2><div id="trace-feed"></div></section>
+        <section class="dock pane" aria-label="Runtime inspector"><div id="dock-tabs" role="tablist" aria-label="Inspector views"></div><div id="dock-content" role="tabpanel" tabindex="0"></div></section>
+      </div>
+    </section>
+
+    <section id="view-activity" aria-label="Activity" hidden>
       <form class="query" id="search-form" role="search">
-        <div class="query-line"><span data-icon="console"></span><input id="search" type="search" placeholder="Search this workspace…" aria-label="Search this workspace"><button class="send" aria-label="Run search"><span data-icon="arrow"></span></button></div>
-        <div class="query-options"><label for="scope"><span data-icon="list"></span>Search in</label><select id="scope"><option value="all">All runtime views</option></select></div>
+        <div class="query-line"><span data-icon="search"></span><input id="search" type="search" placeholder="Search activity…" aria-label="Search activity"><button class="send" aria-label="Run search"><span data-icon="arrow"></span></button></div>
+        <div class="query-options"><label for="scope"><span data-icon="list"></span>Search in</label><select id="scope"><option value="all">All activity views</option></select></div>
       </form>
-      <section id="results" class="pane" aria-label="Search results" hidden><div class="section-head"><h2>Search results</h2><button id="clear">Clear</button></div><div id="matches" aria-live="polite"></div></section>
-      <nav class="tiles" id="tiles" aria-label="Explore harness features"></nav>
-    </div>
-    <section class="pane detail" id="detail" hidden><div class="section-head"><h1 id="view-heading" tabindex="-1"></h1><label id="filter-label">Status <select id="filter"><option value="all">All statuses</option><option>queued</option><option>running</option><option>completed</option><option>failed</option><option>cancelled</option></select></label></div><div id="activity"></div></section>
-    <section class="dock pane" aria-label="Runtime inspector"><div id="dock-tabs" role="tablist" aria-label="Inspector views"></div><div id="dock-content" role="tabpanel" tabindex="0"></div></section>
+      <div id="results" class="pane" hidden><div class="section-head"><h2>Search results</h2><button id="clear">Clear</button></div><div id="matches" aria-live="polite"></div></div>
+      <div class="activity-tabs" id="activity-tabs" role="tablist" aria-label="Activity views"></div>
+      <section class="pane detail"><div class="section-head"><h2 id="view-heading" tabindex="-1"></h2><label id="filter-label">Status <select id="filter"><option value="all">All statuses</option><option>queued</option><option>running</option><option>completed</option><option>failed</option><option>cancelled</option></select></label></div><div id="activity"></div></section>
+    </section>
+
+    <section id="view-settings" aria-label="Settings" hidden>
+      <section class="pane settings-pane" aria-label="Providers">
+        <div class="section-head"><h2>Providers</h2><span class="section-note" id="providers-note"></span></div>
+        <p class="pane-intro">Credentials are supplied to the local harness, never entered here. Verification requires the local administrator token and only runs on the local harness.</p>
+        <div id="provider-list" aria-live="polite">Loading provider status…</div>
+      </section>
+      <section class="pane settings-pane" aria-label="MCP plugins">
+        <div class="section-head"><h2>MCP plugins</h2><span class="section-note" id="plugins-note"></span></div>
+        <p class="pane-intro">Registered capabilities. Enable and disable are governance actions; enabling a plugin needs the administrator token.</p>
+        <div id="plugin-list" aria-live="polite">Loading plugins…</div>
+      </section>
+      <section class="pane settings-pane" aria-label="Schedules">
+        <div class="section-head"><h2>Schedules</h2></div>
+        <div id="schedule-list" aria-live="polite">Loading schedules…</div>
+      </section>
+      <section class="pane settings-pane" aria-label="Skill proposals">
+        <div class="section-head"><h2>Skill proposals</h2></div>
+        <div id="skill-list" aria-live="polite">Loading proposals…</div>
+      </section>
+    </section>
   </main>
-  <aside class="telemetry" aria-label="Runtime activity">
-    <section class="pane"><h2><span data-icon="agents"></span>Agent team <em id="agent-count"></em></h2><div id="agent-feed"></div></section>
-    <section class="pane"><h2><span data-icon="list"></span>Task queue <em id="task-count"></em></h2><div id="task-feed"></div></section>
-    <section class="pane"><h2><span data-icon="traces"></span>Recent activity</h2><div id="trace-feed"></div></section>
-  </aside>
+  <nav class="bottomnav" id="bottomnav" aria-label="Control Center sections"></nav>
 </body>
 </html>

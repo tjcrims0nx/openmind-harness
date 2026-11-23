@@ -92,6 +92,10 @@ export async function readState(state) {
     traces: traces.reverse().map(({at, type, fields}) =>
       redact({at, type, id: fields?.id, kind: fields?.kind, status: fields?.status})),
     workspaces: workspaces.sort().slice(0, LIMIT),
+    // Provider list only (id + configured/disconnected + verified flag); no
+    // keys or secrets. The remote dashboard shows this in Settings; the
+    // local dashboard still verifies through /api/connectors/verify.
+    providers: connectorStatuses(),
   };
 }
 

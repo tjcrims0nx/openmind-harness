@@ -1,19 +1,20 @@
 const $ = selector => document.querySelector(selector);
+const sections = {overview: 'Overview', activity: 'Activity', settings: 'Settings'};
+const sectionIcons = {overview: 'workspace', activity: 'traces', settings: 'build'};
 const views = {
   workspace: 'Workspace', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
   skills: 'Skills', plugins: 'Plugins', traces: 'Trace', sandbox: 'Sandbox', schedules: 'Schedules',
   workspaces: 'Workspaces',
 };
-const features = {
-  memory: 'Persistent context & project notes', agents: 'Roles, queues & activity',
-  workflows: 'Track dependent steps', tasks: 'Inspect background jobs',
-  skills: 'Review proposal status', plugins: 'Registered capabilities',
-  traces: 'Execution history & events', sandbox: 'Isolated task activity',
+const activityViews = {
+  tasks: 'Tasks', workflows: 'Workflows', traces: 'Traces',
+  sandbox: 'Sandbox', memory: 'Memory', workspaces: 'Workspaces',
 };
 const tabs = {console: 'Console', workspaces: 'Workspaces', schedules: 'Schedules', traces: 'Logs'};
 const filterable = new Set(['tasks', 'workflows', 'sandbox']);
 let state;
-let active = 'workspace';
+let active = 'overview';
+let activityView = 'tasks';
 let tab = 'console';
 let query;
 let refreshed;
@@ -56,14 +57,20 @@ function icon(name) {
   return svg;
 }
 
-function viewButton(view, label = views[view], description, symbol = view) {
+function sectionButton(section) {
   const button = el('button');
   button.type = 'button';
-  button.dataset.view = view;
-  const caption = el('span');
-  caption.append(el('b', label));
-  if (description) caption.append(el('small', description));
-  button.append(icon(symbol), caption);
+  button.dataset.section = section;
+  button.append(icon(sectionIcons[section]), el('span', sections[section]));
+  return button;
+}
+
+function activityTabButton(view) {
+  const button = el('button');
+  button.type = 'button';
+  button.dataset.activityView = view;
+  button.setAttribute('role', 'tab');
+  button.append(icon(view), el('span', activityViews[view]));
   return button;
 }
 
@@ -71,7 +78,7 @@ const time = value => value ? new Date(value).toLocaleTimeString([], {hour: '2-d
 const date = value => value ? new Date(value).toLocaleString() : '';
 const title = word => word ? word[0].toUpperCase() + word.slice(1) : '';
 const row = (name, status, detail, id) => ({name, status, detail, id});
-const taskCount = () => Object.values(state.counts).reduce((sum, count) => sum + count, 0);
+const taskCount = () => state ? Object.values(state.counts).reduce((sum, count) => sum + count, 0) : 0;
 
 function records(view) {
   if (!state) return [];
@@ -133,6 +140,115 @@ function showRows(container, rows, empty) {
   container.append(list);
 }
 
+function statusCard(label, value, detail, tone) {
+  const card = el('div', undefined, 'status-card' + (tone ? ' ' + tone : ''));
+  card.append(el('span', label, 'label'));
+  card.append(el('div', value, 'value'));
+  if (detail) card.append(el('div', detail, 'detail'));
+  return card;
+}
+
+function renderStatusCards() {
+  const container = $('#status-cards');
+  container.replaceChildren();
+  if (!state) {
+    container.append(
+      statusCard('Harness', 'Offline', remote ? 'No live harness reachable from Vercel.' : 'No local harness responding.', 'offline'),
+      statusCard('Worker', 'Unknown', 'Start the harness to see worker status.'),
+      statusCard('Agents', '—', 'No roles loaded.'),
+      statusCard('Tasks', '—', 'No tasks recorded.'),
+    );
+    return;
+  }
+  const counts = Object.entries(state.counts).filter(([, count]) => count > 0)
+    .map(([status, count]) => count + ' ' + status).join(' · ') || 'No tasks';
+  container.append(
+    statusCard('Harness', 'Online', (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown') + ' · Node ' + (state.platform?.node || '?'), 'online'),
+    statusCard('Worker', state.worker?.online ? 'Online' : 'Offline', state.worker?.online ? 'Daemon heartbeat current.' : 'Daemon heartbeat missing.', state.worker?.online ? 'online' : 'offline'),
+    statusCard('Agents', String(state.agents.length) + ' roles', state.agents.filter(a => a.running).length + ' running · ' + state.agents.filter(a => a.queued).length + ' queued'),
+    statusCard('Tasks', String(taskCount()), counts + (refreshed ? ' · Updated ' + time(refreshed) : '')),
+  );
+}
+
+function renderOfflineCard() {
+  const card = $('#offline-card');
+  card.hidden = Boolean(state);
+  if (state) return;
+  const steps = $('#offline-steps');
+  steps.replaceChildren();
+  const step = (heading, body) => {
+    const div = el('div', undefined, 'offline-step');
+    div.append(el('b', heading));
+    const p = el('p');
+    p.textContent = body;
+    div.append(p);
+    steps.append(div);
+  };
+  if (remote) {
+    step('1 · Start a Linux harness', 'On the machine that runs the harness, start the live gateway and the dashboard daemon so Vercel has something to connect to.');
+    step('2 · Check the Vercel settings', 'The Vercel project needs OMH_LIVE_URL (the public tunnel to the harness), OMH_LIVE_TOKEN, and OMH_WEB_ACCESS_TOKEN set as environment variables, then a redeploy.');
+    step('3 · Refresh this page', 'Once the harness is running and the settings are set, Refresh here and the status cards should turn green.');
+  } else {
+    step('1 · Start the harness', 'Run the runtime dashboard on this machine, then Refresh. The dashboard reads live state from the local harness.');
+    step('2 · Check the port', 'If the dashboard itself loaded but state did not, the harness daemon may not be running. Restart it and try again.');
+  }
+}
+
+function renderProviders() {
+  const target = $('#provider-list');
+  const note = $('#providers-note');
+  if (!state || !state.providers) {
+    target.textContent = remote
+      ? 'Provider list is unavailable while the harness is offline.'
+      : 'Provider list is unavailable while the harness is offline.';
+    note.textContent = '';
+    return;
+  }
+  note.textContent = state.providers.filter(p => p.status === 'configured').length + ' of ' + state.providers.length + ' configured';
+  target.replaceChildren();
+  for (const provider of state.providers) {
+    const line = el('div', undefined, 'provider-row');
+    line.append(el('strong', provider.id));
+    const status = el('span', provider.status === 'configured' ? 'Configured' : 'Not configured', 'status');
+    line.append(status);
+    if (!remote) {
+      const button = el('button', 'Verify');
+      button.type = 'button';
+      button.disabled = provider.status !== 'configured' || provider.id === 'custom';
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        status.textContent = 'Verifying…';
+        try {
+          if (!csrf) {
+            const session = await runtimeFetch('/api/session');
+            if (!session.ok) throw Error('Session unavailable');
+            csrf = (await session.json()).csrf;
+          }
+          if (!adminToken) adminToken = prompt('Enter local dashboard administrator token:') || undefined;
+          if (!adminToken) throw Error('Administrator token required');
+          const result = await runtimeFetch('/api/connectors/verify', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-OMH-CSRF': csrf, 'X-OMH-Admin-Token': adminToken}, body: JSON.stringify({id: provider.id})});
+          if (!result.ok) throw Error(result.status === 403 ? 'Not authorized' : 'Verification request failed');
+          status.textContent = (await result.json()).status;
+        } catch (e) { status.textContent = e.message; } finally { button.disabled = false; }
+      });
+      line.append(button);
+    }
+    target.append(line);
+  }
+  if (remote) {
+    const hint = el('p', 'Verification runs on the local harness only. This page shows which providers are configured; it never sees your keys.', 'empty');
+    target.append(hint);
+  }
+}
+
+function renderSettings() {
+  renderProviders();
+  showRows($('#plugin-list'), records('plugins'), 'No plugins registered.');
+  showRows($('#schedule-list'), records('schedules'), 'No schedules configured.');
+  showRows($('#skill-list'), records('skills'), 'No skill proposals.');
+  $('#plugins-note').textContent = state ? state.plugins.filter(p => p.enabled).length + ' of ' + state.plugins.length + ' enabled' : '';
+}
+
 function renderDock() {
   const panel = $('#dock-content');
   panel.setAttribute('aria-labelledby', 'tab-' + tab);
@@ -151,42 +267,54 @@ function renderDock() {
 function renderSearch() {
   $('#results').hidden = !query;
   if (!query) return;
-  const keys = query.scope === 'all' ? Object.keys(views).filter(v => v !== 'workspace') : [query.scope];
+  const keys = query.scope === 'all' ? Object.keys(activityViews) : [query.scope];
   const rows = keys.flatMap(key => records(key)
     .filter(r => [r.name, r.status, r.detail, r.id].some(s => s?.toLowerCase().includes(query.term)))
-    .map(r => ({...r, detail: [views[key], r.detail].filter(Boolean).join(' · ')})));
+    .map(r => ({...r, detail: [activityViews[key] || views[key], r.detail].filter(Boolean).join(' · ')})));
   showRows($('#matches'), rows, 'No matching runtime records.');
 }
 
-function renderView() {
-  $('#hub').hidden = active !== 'workspace';
-  $('#detail').hidden = active === 'workspace';
-  for (const button of document.querySelectorAll('[data-view]')) {
-    button.setAttribute('aria-pressed', button.dataset.view === active);
+function renderActivity() {
+  for (const button of document.querySelectorAll('[data-activity-view]')) {
+    const selected = button.dataset.activityView === activityView;
+    button.setAttribute('aria-selected', selected);
+    button.tabIndex = selected ? 0 : -1;
   }
-  if (active !== 'workspace') {
-    $('#view-heading').textContent = views[active];
-    $('#filter-label').hidden = !filterable.has(active);
-    const rows = records(active).filter(r => !filterable.has(active) || $('#filter').value === 'all' || r.queueStatus === $('#filter').value);
-    showRows($('#activity'), rows, 'No records match this view.');
-  }
+  $('#view-heading').textContent = activityViews[activityView];
+  $('#filter-label').hidden = !filterable.has(activityView);
+  const rows = records(activityView).filter(r => !filterable.has(activityView) || $('#filter').value === 'all' || r.queueStatus === $('#filter').value);
+  showRows($('#activity'), rows, state ? 'No records match this view.' : 'No records — the harness is offline.');
   renderSearch();
+}
+
+function renderSection() {
+  $('#view-overview').hidden = active !== 'overview';
+  $('#view-activity').hidden = active !== 'activity';
+  $('#view-settings').hidden = active !== 'settings';
+  for (const button of document.querySelectorAll('[data-section]')) {
+    button.setAttribute('aria-pressed', button.dataset.section === active);
+  }
+  toggleMenu(false);
+  if (active === 'activity') renderActivity();
+  if (active === 'settings') renderSettings();
   renderDock();
 }
 
 function renderFeeds() {
-  $('#agent-count').textContent = state.agents.length;
-  $('#task-count').textContent = taskCount();
-  $('#health-detail').textContent = state.agents.length + ' roles · ' + taskCount() + ' tasks · Worker ' + (state.worker?.online?'online':'offline') + ' · ' + (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown');
+  $('#agent-count').textContent = state ? state.agents.length : '';
+  $('#task-count').textContent = state ? taskCount() : '';
+  $('#health-detail').textContent = state
+    ? state.agents.length + ' roles · ' + taskCount() + ' tasks · Worker ' + (state.worker?.online ? 'online' : 'offline') + ' · ' + (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown')
+    : 'No live data — the harness is offline.';
   const feeds = [
-    ['#agent-feed', records('agents').map(r => row(title(r.name), r.status))],
-    ['#task-feed', records('tasks').slice(0, 4)],
-    ['#trace-feed', state.traces.slice(0, 4).map(t => row(t.type, time(t.at)))],
+    ['#agent-feed', state ? records('agents').map(r => row(title(r.name), r.status)) : []],
+    ['#task-feed', state ? records('tasks').slice(0, 4) : []],
+    ['#trace-feed', state ? state.traces.slice(0, 4).map(t => row(t.type, time(t.at))) : []],
   ];
   for (const [selector, rows] of feeds) {
     const feed = $(selector);
     feed.replaceChildren();
-    if (!rows.length) feed.append(el('p', 'No activity recorded.', 'empty'));
+    if (!rows.length) feed.append(el('p', state ? 'No activity recorded.' : 'No activity — the harness is offline.', 'empty'));
     for (const r of rows) {
       const item = el('div', undefined, 'feed-row');
       item.append(el('span', r.name), el('small', r.status));
@@ -201,13 +329,18 @@ function toggleMenu(open) {
 }
 
 document.addEventListener('click', event => {
-  const button = event.target.closest('[data-view]');
+  const button = event.target.closest('[data-section]');
   if (!button) return;
-  active = button.dataset.view;
+  active = button.dataset.section;
+  renderSection();
+});
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-activity-view]');
+  if (!button) return;
+  activityView = button.dataset.activityView;
   $('#filter').value = 'all';
-  toggleMenu(false);
-  renderView();
-  if (active !== 'workspace') $('#view-heading').focus({preventScroll: true});
+  renderActivity();
+  $('#view-heading').focus({preventScroll: true});
 });
 document.addEventListener('click', async event => {
   const button=event.target.closest('button[data-action][data-task-id]');
@@ -271,12 +404,14 @@ for (const node of document.querySelectorAll('[data-icon]')) node.replaceWith(ic
 $('#refresh').append(icon('refresh'));
 $('#menu').append(icon('menu'));
 $('#menu').onclick = () => toggleMenu($('#menu').getAttribute('aria-expanded') !== 'true');
-for (const [key, label] of Object.entries(views)) {
-  $('#navigation').append(viewButton(key));
-  if (key !== 'workspace') $('#scope').add(new Option(label, key));
+for (const section of Object.keys(sections)) {
+  $('#rail-sections').append(sectionButton(section));
+  $('#bottomnav').append(sectionButton(section));
 }
-for (const [key, description] of Object.entries(features)) $('#tiles').append(viewButton(key, views[key], description));
-$('#shortcuts').append(viewButton('workspace', 'Overview', null, 'panel'), viewButton('agents', 'Agent team'), viewButton('tasks', 'Queue', null, 'list'));
+for (const view of Object.keys(activityViews)) {
+  $('#activity-tabs').append(activityTabButton(view));
+  if (view !== 'tasks') $('#scope').add(new Option(activityViews[view], view));
+}
 for (const [key, label] of Object.entries(tabs)) {
   const button = el('button');
   button.id = 'tab-' + key;
@@ -302,7 +437,7 @@ $('#dock-tabs').onkeydown = event => {
   button.click();
   button.focus();
 };
-$('#filter').onchange = renderView;
+$('#filter').onchange = renderActivity;
 $('#search-form').onsubmit = event => {
   event.preventDefault();
   query = {term: $('#search').value.trim().toLowerCase(), scope: $('#scope').value};
@@ -323,8 +458,10 @@ async function load() {
     if (!response.ok) throw Error('State unavailable');
     state = await response.json();
     refreshed = Date.now();
+    renderStatusCards();
+    renderOfflineCard();
     renderFeeds();
-    renderView();
+    renderSection();
     $('#connection').textContent = 'Connected';
     $('#health-title').textContent = 'Harness online';
     document.body.dataset.online = 'true';
@@ -333,6 +470,10 @@ async function load() {
     $('#connection').textContent = 'Offline';
     $('#health-title').textContent = 'Harness offline';
     document.body.dataset.online = 'false';
+    renderStatusCards();
+    renderOfflineCard();
+    renderFeeds();
+    renderSection();
     $('#error').textContent = remote ? ('Remote runtime unavailable: '+error.message) : (state ? 'Refresh failed. Showing the last snapshot. Use Refresh to retry.' : 'Runtime state unavailable. Use Refresh to retry.');
     $('#error').hidden = false;
   } finally {
@@ -340,37 +481,8 @@ async function load() {
   }
 }
 $('#refresh').onclick = load;
-renderView();
+renderStatusCards();
+renderOfflineCard();
+renderFeeds();
+renderSection();
 load();
-
-
-async function loadConnectorStatuses(){
- const target=document.querySelector('#connector-list');
- if(!target||remote){if(target)target.textContent='Provider verification is available only on the local harness.';return;}
- try{
-  const response=await runtimeFetch('/api/connectors');
-  if(!response.ok)throw Error('Provider status unavailable');
-  const data=await response.json();
-  target.replaceChildren();
-  for(const provider of data.providers){
-   const line=document.createElement('div');
-   line.className='connector-row';
-   const name=document.createElement('strong');name.textContent=provider.id;
-   const status=document.createElement('span');status.textContent=provider.status;
-   const button=document.createElement('button');button.type='button';button.textContent='Verify';button.disabled=provider.status!=='configured'||provider.id==='custom';
-   button.addEventListener('click',async()=>{
-    button.disabled=true;status.textContent='Verifying…';
-    try{
-     if(!csrf){const session=await runtimeFetch('/api/session');if(!session.ok)throw Error('Session unavailable');csrf=(await session.json()).csrf;}
-     if(!adminToken)adminToken=prompt('Enter local dashboard administrator token:')||undefined;
-     if(!adminToken)throw Error('Administrator token required');
-     const result=await runtimeFetch('/api/connectors/verify',{method:'POST',headers:{'Content-Type':'application/json','X-OMH-CSRF':csrf,'X-OMH-Admin-Token':adminToken},body:JSON.stringify({id:provider.id})});
-     if(!result.ok)throw Error(result.status===403?'Not authorized':'Verification request failed');
-     status.textContent=(await result.json()).status;
-    }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
-   });
-   line.append(name,status,button);target.append(line);
-  }
- }catch(e){target.textContent=e.message;}
-}
-loadConnectorStatuses();

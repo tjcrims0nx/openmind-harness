@@ -25,7 +25,7 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   const base = `http://127.0.0.1:${port}`;
   const page = await fetch(base);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Runtime dashboard/);
+  assert.match(await page.text(), /OMH Control Center/);
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
 
   const empty = await (await fetch(base + '/api/state')).json();
@@ -75,6 +75,15 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   assert.equal(data.memory[0].title, 'Conventions');
   assert.equal(data.traces[0].id, first.id);
   assert.deepEqual(data.workspaces, ['reviewer']);
+  // Providers list is part of state now (Settings view on the remote
+  // dashboard) and must carry no secrets — only id, method, status, verified.
+  assert.ok(Array.isArray(data.providers));
+  assert.ok(data.providers.length > 0);
+  for (const provider of data.providers) {
+    assert.deepEqual(Object.keys(provider).sort(), ['id', 'method', 'status', 'verified']);
+    assert.equal(provider.method, 'api_key');
+    assert.ok(['configured', 'disconnected'].includes(provider.status));
+  }
 
   assert.equal((await fetch(base + '/api/state', {method: 'POST'})).status, 405);
   assert.equal((await fetch(base + '/api/state', {headers: {'Sec-Fetch-Site': 'cross-site'}})).status, 403);
