@@ -24,8 +24,21 @@
   </header>
   <main>
     <div id="error" role="alert" hidden></div>
-    <section class="pane" id="connectors-panel" aria-label="Provider connectors"><h2>Connector settings · Providers</h2><p>Credentials are supplied to the local harness, never entered here. Verification requires the local administrator token.</p><div id="connector-list" aria-live="polite">Loading provider status…</div></section>
-    <div id="hub">
+    <section class="pane" id="connectors-panel" hidden aria-label="Provider connectors"><h2>Connector settings · Providers</h2><p>Credentials are supplied to the local harness, never entered here. Verification requires the local administrator token.</p><div id="connector-list" aria-live="polite">Loading provider status…</div></section>
+    <section id="chat" class="omh-chat" aria-label="AI conversation">
+      <header class="chat-heading"><div><span class="chat-eyebrow">OPENMIND HARNESS · UNIVERSAL AI WORKSPACE</span><h1>Chat</h1><p>Choose your provider in OpenCode. Your conversations stay on your connected runtime.</p></div><span class="chat-mode" id="chat-availability">Checking runtime</span></header>
+      <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-label="Chat conversation">
+        <div class="chat-welcome" id="chat-welcome"><img src="/app-icon.webp" alt="" width="56" height="56"><h2>What are we building?</h2><p>One place for your models, agents and tools. Connect a chat-capable runtime to start a conversation.</p></div>
+      </div>
+      <div id="chat-notice" class="chat-notice" role="status">This dashboard currently has a read-only runtime connection, not a model chat endpoint. Chat messages cannot be sent yet.</div>
+      <form id="chat-form" class="chat-composer" aria-label="Compose message">
+        <label class="visually-hidden" for="chat-input">Message OpenMind Harness</label>
+        <textarea id="chat-input" placeholder="Message OMH…" rows="2" maxlength="8000" aria-describedby="chat-notice"></textarea>
+        <div class="chat-compose-foot"><span id="chat-hint">Connect a chat backend to enable sending</span><button type="submit" id="chat-send" disabled aria-label="Send message">Send ↗</button></div>
+      </form>
+      <p class="chat-footnote">The dashboard's existing runtime APIs do not execute chat prompts. <button type="button" id="chat-open-tools">Open workspace tools</button></p>
+    </section>
+    <div id="hub" hidden>
       <section class="hero" aria-label="OpenMind Harness"><h1>OMH</h1><p>OPENMIND HARNESS</p><small>Multi-agent <i>·</i> Memory <i>·</i> Workflows <i>·</i> Sandbox</small></section>
       <form class="query" id="search-form" role="search">
         <div class="query-line"><span data-icon="console"></span><input id="search" type="search" placeholder="Search this workspace…" aria-label="Search this workspace"><button class="send" aria-label="Run search"><span data-icon="arrow"></span></button></div>
