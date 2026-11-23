@@ -410,7 +410,7 @@ for (const section of Object.keys(sections)) {
 }
 for (const view of Object.keys(activityViews)) {
   $('#activity-tabs').append(activityTabButton(view));
-  if (view !== 'tasks') $('#scope').add(new Option(activityViews[view], view));
+  $('#scope').add(new Option(activityViews[view], view));
 }
 for (const [key, label] of Object.entries(tabs)) {
   const button = el('button');

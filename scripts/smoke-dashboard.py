@@ -1,4 +1,10 @@
-"""Exercise the installed dashboard with a temporary workspace in Chromium or WebKit."""
+"""Exercise the installed dashboard with a temporary workspace in Chromium or WebKit.
+
+Targets the OMH Control Center layout: three sections (Overview, Activity,
+Settings) with a bottom nav on mobile and a left rail on desktop; Activity
+holds the Tasks / Workflows / Traces / Sandbox / Memory / Workspaces tabs;
+Settings holds Providers, MCP plugins, Schedules, and skill proposals.
+"""
 import json
 import os
 import shutil
@@ -13,6 +19,7 @@ CONTENT = {"agents": "reviewer", "workflows": "Depends on", "tasks": "workspace.
            "memory": "Build conventions", "skills": "build-review", "plugins": "trace-index",
            "traces": "memory.updated", "sandbox": "sandbox.exec", "schedules": "Every 60 s",
            "workspaces": "reviewer"}
+ACTIVITY = ["tasks", "workflows", "traces", "sandbox", "memory", "workspaces"]
 TABS = {"console": "runtime status", "workspaces": "reviewer", "schedules": "Every 60 s",
         "traces": "memory.updated"}
 
@@ -36,6 +43,14 @@ def seed(cli):
     cli("plugin:enable", {"name": "trace-index", "approved": True})
 
 
+def goto_section(page, mobile, section):
+    if mobile:
+        page.locator(f"#bottomnav [data-section={section}]").click()
+    else:
+        page.locator(f"#rail-sections [data-section={section}]").click()
+    expect(page.locator(f"#view-{section}")).to_be_visible()
+
+
 def exercise(page, url, mobile):
     page.goto(url)
     expect(page.locator("#connection")).to_have_text("Connected")
@@ -46,42 +61,43 @@ def exercise(page, url, mobile):
         page.keyboard.press("Escape")
         expect(page.locator("#rail")).to_be_hidden()
 
-    def overview():
-        if mobile:
-            page.locator("#menu").click()
-        page.locator("#navigation [data-view=workspace]").click()
-        expect(page.locator("#hub")).to_be_visible()
+    # Overview: status cards plus the live feeds.
+    goto_section(page, mobile, "overview")
+    expect(page.locator("#status-cards .status-card")).to_have_count(4)
+    expect(page.locator("#agent-count")).to_have_text("4")
+    expect(page.locator("#task-count")).to_have_text("6")
+    expect(page.locator("#agent-feed")).to_contain_text("Reviewer")
+    expect(page.locator("#task-feed")).to_contain_text("workspace.read")
 
-    for area in ["navigation", "tiles"] + ([] if mobile else ["shortcuts"]):
-        buttons = page.locator(f"#{area} button")
-        keys = buttons.evaluate_all("buttons => buttons.map(b => b.dataset.view)")
-        assert keys
-        for key in keys:
-            if area == "tiles":
-                overview()
-            if mobile and area == "navigation":
-                page.locator("#menu").click()
-            button = page.locator(f"#{area} [data-view={key}]")
-            button.click()
-            expect(button).to_have_attribute("aria-pressed", "true")
-            if key == "workspace":
-                expect(page.locator("#hub")).to_be_visible()
-            else:
-                label = page.locator(f"#navigation [data-view={key}] b").text_content()
-                expect(page.locator("#view-heading")).to_have_text(label)
-                expect(page.locator("#activity")).to_contain_text(CONTENT[key])
-            if key in {"workflows", "tasks", "sandbox"} and area == "navigation":
-                select = page.locator("#filter")
-                records = page.locator("#activity li")
-                for value in select.locator("option").evaluate_all("options => options.map(o => o.value)"):
-                    select.select_option(value)
-                    if key == "tasks" and value in {"queued", "cancelled", "completed", "failed"}:
-                        assert records.count() > 0, value
-                    if value != "all":
-                        for status in records.locator(".status").all_text_contents():
-                            assert status.lower() == value or (value == "queued" and status == "Blocked")
-                select.select_option("all")
-    overview()
+    # Activity: every tab renders its records, with the status filter where it applies.
+    goto_section(page, mobile, "activity")
+    for key in ACTIVITY:
+        button = page.locator(f"#activity-tabs [data-activity-view={key}]")
+        button.click()
+        expect(button).to_have_attribute("aria-selected", "true")
+        expect(page.locator("#view-heading")).to_have_text(button.text_content().strip())
+        expect(page.locator("#activity")).to_contain_text(CONTENT[key])
+        if key in {"workflows", "tasks", "sandbox"}:
+            select = page.locator("#filter")
+            records = page.locator("#activity li")
+            for value in select.locator("option").evaluate_all("options => options.map(o => o.value)"):
+                select.select_option(value)
+                if key == "tasks" and value in {"queued", "cancelled", "completed", "failed"}:
+                    assert records.count() > 0, value
+                if value != "all":
+                    for status in records.locator(".status").all_text_contents():
+                        assert status.lower() == value or (value == "queued" and status == "Blocked")
+            select.select_option("all")
+
+    # Settings: providers, plugins, schedules, and skill proposals.
+    goto_section(page, mobile, "settings")
+    expect(page.locator("#provider-list .provider-row").first).to_be_visible()
+    expect(page.locator("#plugin-list")).to_contain_text("trace-index")
+    expect(page.locator("#schedule-list")).to_contain_text("Every 60 s")
+    expect(page.locator("#skill-list")).to_contain_text("build-review")
+
+    # Console dock tabs and keyboard navigation, back on Overview.
+    goto_section(page, mobile, "overview")
     for key, expected in TABS.items():
         button = page.locator("#tab-" + key)
         button.click()
@@ -92,6 +108,8 @@ def exercise(page, url, mobile):
         expect(page.locator("#tab-" + selected)).to_be_focused()
     page.locator("#tab-console").click()
 
+    # Search lives in the Activity section.
+    goto_section(page, mobile, "activity")
     search = page.get_by_role("searchbox")
     search.fill("BUILD CONVENTIONS")
     search.press("Enter")
@@ -99,7 +117,9 @@ def exercise(page, url, mobile):
     expect(page.locator("#matches")).to_contain_text("Build conventions")
     search.fill("")
     page.get_by_role("button", name="Run search").click()
-    for scope in CONTENT:
+    # Search scopes are the activity views only; skills, plugins, and
+    # schedules live in Settings and are not searched.
+    for scope in ACTIVITY:
         page.locator("#scope").select_option(scope)
         expect(page.locator("#matches")).to_contain_text(CONTENT[scope])
     page.locator("#scope").select_option("all")
@@ -149,7 +169,8 @@ def run(root):
             page.goto(url)
             expect(page.locator("#connection")).to_have_text("Connected")
             expect(page.locator("#task-count")).to_have_text("0")
-            page.locator("#tiles [data-view=tasks]").click()
+            goto_section(page, False, "activity")
+            page.locator("#activity-tabs [data-activity-view=tasks]").click()
             expect(page.locator("#activity")).to_have_text("No records match this view.")
             seed(cli)
             for label, width, height in [("desktop", 1280, 720), ("mobile", 390, 844)]:
@@ -165,7 +186,8 @@ def run(root):
 
             # Dashboard actions are wired to the real queue and retain confirmation gates.
             page.set_viewport_size({"width": 1280, "height": 720})
-            page.locator("#navigation [data-view=tasks]").click()
+            goto_section(page, False, "activity")
+            page.locator("#activity-tabs [data-activity-view=tasks]").click()
             page.on("dialog", lambda dialog: dialog.accept("test-only-admin-token-00000000000000000000" if dialog.type == "prompt" else None))
             retry = page.locator("#activity button[data-action=retry]").first
             expect(retry).to_be_visible()
@@ -175,26 +197,21 @@ def run(root):
             cancel = page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")
             cancel.click()
             assert cli("task:list") and next(t for t in cli("task:list") if t["id"] == retry_id)["status"] == "cancelled"
-            page.locator("#navigation [data-view=schedules]").click()
-            page.locator("#activity button[data-action=pause]").click()
+            goto_section(page, False, "settings")
+            page.locator("#schedule-list button[data-action=pause]").click()
             assert cli("schedule:list")[0]["enabled"] is False
-            page.locator("#navigation [data-view=plugins]").click()
-            page.locator("#activity button[data-action=disable]").click()
+            page.locator("#plugin-list button[data-action=disable]").click()
             assert cli("plugin:list")[0]["enabled"] is False
-            page.locator("#navigation [data-view=skills]").click()
-            page.locator("#activity button[data-action=reject]").first.click()
+            page.locator("#skill-list button[data-action=reject]").first.click()
             assert any(p["status"] == "rejected" for p in cli("skill:proposals"))
             # An admin token is needed for restoring paused or disabled capabilities.
-            page.locator("#navigation [data-view=schedules]").click()
-            page.locator("#activity button[data-action=resume]").click()
+            page.locator("#schedule-list button[data-action=resume]").click()
             assert cli("schedule:list")[0]["enabled"] is True
-            page.locator("#navigation [data-view=plugins]").click()
-            page.locator("#activity button[data-action=enable]").click()
+            page.locator("#plugin-list button[data-action=enable]").click()
             assert cli("plugin:list")[0]["enabled"] is True
-            page.locator("#navigation [data-view=skills]").click()
-            page.locator("#activity button[data-action=accept]").click()
+            page.locator("#skill-list button[data-action=accept]").click()
             assert any(p["status"] == "accepted" for p in cli("skill:proposals"))
-            page.locator("#navigation [data-view=workspace]").click()
+            goto_section(page, False, "overview")
             page.locator("#refresh").click()
             expect(page.locator("#connection")).to_have_text("Connected")
 
