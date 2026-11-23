@@ -33,7 +33,7 @@ OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-ag
 | Capability | What it does | State |
 | --- | --- | --- |
 | **MCP integrations** | Registers a scoped OMH MCP server; optional external MCP integrations | Available; restricted tool set |
-| **Jailbreak Lab evidence MCP** | Query run summaries, pending reviews and regression differences without exposing prompt text | Proposed in [PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6); opt-in, not a default integration |
+| **OpenMind Jailbreak Lab integration** | Native Lab execution, bounded campaigns, evidence, scoring and review workflows | In development in [PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6); full integration not yet released |
 | **Multi-provider models** | Shared OpenCode configuration for hosted and local models | Configured; provider credentials required |
 | **Agent roles** | Planner, implementer, tester, reviewer and fast-agent definitions | Configured; native OMH execution separate |
 | **Tasks and workflows** | Durable queue, dependencies, retries, scheduling and cancellation semantics | Experimental local runtime |
@@ -163,23 +163,23 @@ This installs the runtime modules and registers the `omh-runtime` local MCP comm
 
 OMH validates MCP input schemas before accessing state. This bridge does **not** expose arbitrary command execution, bypass manual approvals, or grant filesystem permissions automatically. Additional MCP services—including Vercel's OAuth MCP—require their own setup: [MCP and runtime guide](docs/omh-runtime.md) · [Vercel integration](docs/vercel-live.md).
 
-### OpenMind Jailbreak Lab evidence plugin (opt-in, PR #6)
+### OpenMind Jailbreak Lab — full integration (in development)
 
-The [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) evidence connector is being developed as a **separate read-only MCP plugin** in [OMH PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6). It is intended to let an authorized MCP client inspect the lab's existing SQLite evidence without importing the lab corpus, running prompts, generating bypasses or contacting model providers.
+The goal of [OMH PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6) is to bring the **complete [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) workflow into OMH**, not merely expose stored evidence. The Lab's own Python packages remain the execution engine; OMH provides orchestration, MCP integration and, ultimately, a unified dashboard.
 
-| Tool | Purpose |
+| Lab capability | Integration status |
 | --- | --- |
-| `omjb_status` | Count recorded runs and observations |
-| `omjb_list_runs` | List runs with most recent first and identify incomplete runs |
-| `omjb_run_summary` | Report categorized findings and adjudication counts for a run |
-| `omjb_pending_reviews` | Count outstanding human reviews for a run |
-| `omjb_compare_runs` | Identify changes in case labels between two runs |
+| Evidence queries, run summaries, pending-review counts and regression differences | Five-tool read-only MCP foundation in PR #6 |
+| Launch a reviewed Guardrail Lab case via the native Lab CLI | Initial opt-in execution MCP added to PR #6 |
+| Run a bounded reviewed-benign multi-provider evaluation | Initial opt-in execution MCP added to PR #6 |
+| Corpus browser, Guardrail Lab and versioned benchmark selection | Planned |
+| Mutation engine, trace replay, guard evaluation and provenance | Planned |
+| Human adjudication, scoring, exports and campaign history screens | Planned |
+| Unified OMH dashboard and native iPad workflow | Planned; not yet implemented |
 
-**Access boundary:** An operator explicitly selects an existing database using `OMJB_DB_PATH`. The helper uses Python's standard-library SQLite support in query-only mode. The design rejects invalid tool names and schemas, does not create or modify a database, and excludes raw prompts, model responses, notes, credentials and arbitrary file paths from its MCP results. This is a **metadata and evidence-review interface**, not a live test runner.
+The execution bridge is separate from the evidence bridge. **Provider calls are disabled by default** and require explicit operator opt-in and finite campaign budgets. The native Lab enforces eligibility checks; OMH does not replace those checks or treat heuristic findings as confirmed failures.
 
-**Reported fixture verification (November 23, 2026):** 3/3 regression tests passed against a synthetic evidence fixture containing 3 runs and 7 observations. The tests covered all five tools, ordering and unfinished-run flags, review counts, a changed label between two runs, private-text exclusion, unchanged database timestamp, and rejection of malformed requests. These are **fixture-level results**, not evidence of production database compatibility, live model operation, or cross-platform release readiness.
-
-**Release status:** PR #6 is staged for review. Full platform CI, portable packaging, compatibility with the current Lab schema, and Python availability must be checked before treating the plugin as ready for general use. It is **not automatically enabled**. Consult the PR's setup documentation and checks for the exact opt-in registration procedure rather than assuming that installation enables it.
+**Reported test-fixture evidence (November 23, 2026):** The read-only evidence bridge passed 3/3 regression tests with 3 runs and 7 observations. These results do not establish that the new execution bridge, full Lab integration, portable packages, or iPad app work end to end. See the [PR](https://github.com/tjcrims0nx/openmind-harness/pull/6) and its [integration guide](plugins/omjb-mcp/README.md) after merge for operational setup.
 
 ## Providers and authentication
 
