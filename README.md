@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/omh-hero-mcp.svg" width="100%" alt="OpenMind Harness — MCP servers, providers, agents, workflows, memory, sandbox and dashboard">
+  <img src="docs/images/omh-hero-mcp.webp" width="100%" alt="OpenMind Harness — MCP servers, providers, agents, workflows, memory, sandbox and dashboard">
 </p>
 
 <h1 align="center">OpenMind Harness</h1>
