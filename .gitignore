@@ -20,3 +20,9 @@ dist/
 # Desktop Electron dependency and icon outputs
 desktop/node_modules/
 desktop/icon.png
+
+# Candidate OpenUI React frontend artifacts
+frontend-next/node_modules/
+frontend-next/dist/
+frontend-next/public/
+frontend-next/*.tsbuildinfo
