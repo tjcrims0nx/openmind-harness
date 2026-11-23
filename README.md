@@ -4,7 +4,7 @@
 
 <h1 align="center">OpenMind Harness</h1>
 
-<p align="center"><strong>One environment for AI coding agents, MCP tools and local orchestration.</strong></p>
+<p align="center"><strong>Local-first AI agent orchestration · Universal model providers · MCP integrations</strong></p>
 
 <p align="center">
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Harness tests"></a>
@@ -28,6 +28,14 @@
 OpenMind Harness (**OMH**) combines an [OpenCode](https://opencode.ai) coding-agent setup with a separately implemented **local orchestration runtime**. Use your chosen model providers, register MCP tools, manage repeatable tasks and workflows, record redacted traces, and inspect activity in a local dashboard.
 
 **What is implemented today:** OpenCode handles interactive conversations, model selection and its own agent/tool loop. OMH supplies independent Node.js modules, a CLI/daemon, an opt-in MCP bridge, and a dashboard. Some OMH orchestration features remain **experimental** and are **not yet integrated into OpenCode's standard UI or model execution loop**. Do not confuse configured functionality with a running provider, active worker, or verified sandbox.
+
+## Latest development snapshot
+
+> **iPad / iOS:** The latest shared diagnostics show startup and CI failures. A working native iPad IPA is **not yet verified**. Provider-settings screens are development captures, not confirmation of successful provider authentication.
+>
+> **Jailbreak Lab MCP:** The initial evidence and execution integrations are under review in [PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6). A real-schema SQLite compatibility test remains required before calling the execution bridge verified.
+
+**Track the current evidence:** [iOS Actions](https://github.com/tjcrims0nx/omh-iOS/actions) · [Harness Actions](https://github.com/tjcrims0nx/openmind-harness/actions) · [Open PRs](https://github.com/tjcrims0nx/openmind-harness/pulls).
 
 ## At a glance
 
@@ -238,19 +246,17 @@ The dashboard's ordinary actions are bounded. Additional governance operations r
 
 **[Full installation guide](INSTALL.md)** contains prerequisites and platform-specific details. GitHub Actions also assembles [portable runtime packages](https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml) for these targets. They are **Node.js launcher bundles, not standalone native executables**, and the Termux package is not a verified device binary.
 
-## Diagnostics and verification
+## Development screenshots and diagnostics
 
-The latest shared OMH diagnostics include an **iPad startup/bootstrap failure**, a **GitHub Actions iOS build failure**, and **provider-settings UI captures**. These are development evidence, not proof of a production-ready iOS release. Original image files are not yet published in this repository; do not treat design illustrations as runtime screenshots.
+The recent images supplied during the iPad bring-up cover **the OMH startup diagnostic panel, failing iOS CI checks, and the provider configuration interface**. These are different from the branded concept illustrations. The screenshot binaries still need to be committed before this section can show an actual image gallery; no missing-image placeholders are linked.
 
-| Area | What the captured diagnostics show | What still needs verification |
-| --- | --- | --- |
-| iPad startup | Native app boot screen with a startup/bootstrap failure and a visible diagnostic log | Successful on-device launch, working local runtime and repeatable startup |
-| iOS CI | A failed build job in the iOS repository workflow | Green build, simulator smoke test and installable IPA |
-| Provider settings | Screens showing provider configuration entries and connection states | Successful authenticated sessions and persisted provider settings |
+| Diagnostic | Interpretation |
+| --- | --- |
+| iPad startup panel | A visible launch/debugging interface; a stable native launch has not been demonstrated |
+| iOS build run | A failed workflow check, not a distributable IPA |
+| Providers settings | Provider configuration screens; connection success requires separate tests |
 
-**Where to check:** [OMH CI workflows](https://github.com/tjcrims0nx/openmind-harness/actions) · [iOS build workflows](https://github.com/tjcrims0nx/omh-iOS/actions) · [iOS app repository](https://github.com/tjcrims0nx/omh-iOS).
-
-> Screenshots must be checked for exposed provider keys, personal account details or tokens before they are committed. Keep diagnostic captures in `docs/images/diagnostics/` and clearly label them by date and platform when published. Actual runtime screenshots should remain separate from concept artwork.
+For the actual machine-readable state, inspect [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) and [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions). Preserve diagnostic screenshots under `docs/images/diagnostics/` after redacting personal details and secrets.
 
 ## Testing and project status
 
