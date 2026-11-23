@@ -15,7 +15,7 @@ const tools=[
  {name:'omjb_lab_run_case',description:'Execute a reviewed Guardrail Lab case through the native OMJB runner. Live providers require explicit operator opt-in.',inputSchema:{type:'object',properties:{case_id:{type:'string',pattern:'^GL-[0-9]{3}$'},target:{type:'string',enum:['echo','openai','anthropic','ollama','gemini']}},required:['case_id','target'],additionalProperties:false}},
  {name:'omjb_lab_run_campaign',description:'Run a bounded multi-provider campaign against the operator-selected, human-reviewed benign corpus.',inputSchema:{type:'object',properties:{targets:{type:'array',items:{type:'string',maxLength:96},minItems:1,maxItems:4},max_requests:{type:'integer',minimum:1,maximum:100},max_usd:{type:'number',minimum:0,maximum:100},estimated_request_cost:{type:'number',minimum:0,maximum:10}},required:['targets','max_requests','max_usd','estimated_request_cost'],additionalProperties:false}}
 ];
-const providers=/^(openai|anthropic|gemini|ollama|deepseek|groq|together):[a-zA-Z0-9][a-zA-Z0-9._/-]{0,75}$/;
+const providers=/^(openai|anthropic|gemini|ollama|deepseek|groq|together|echo):[a-zA-Z0-9][a-zA-Z0-9._/-]{0,75}$/;
 function validate(name,args){
  const t=tools.find(x=>x.name===name);
  if(!t)throw Error('Unknown Lab operation');
@@ -27,8 +27,13 @@ function validate(name,args){
   if(!Array.isArray(args.targets)||args.targets.length<1||args.targets.length>4||!args.targets.every(t=>typeof t==='string'&&providers.test(t)))throw Error('Invalid targets');
   if(!Number.isInteger(args.max_requests)||args.max_requests<1||args.max_requests>100)throw Error('Invalid request cap');
   if(!Number.isFinite(args.max_usd)||args.max_usd<0||args.max_usd>100||!Number.isFinite(args.estimated_request_cost)||args.estimated_request_cost<0||args.estimated_request_cost>10)throw Error('Invalid cost budget');
-  if(args.estimated_request_cost===0&&args.targets.some(t=>!t.startsWith('ollama:')))throw Error('Remote targets require nonzero estimated cost');
-  if(args.max_usd<args.estimated_request_cost)throw Error('Budget below estimated request cost');
+  const localOnly=args.targets.every(t=>t.startsWith('ollama:')||t.startsWith('echo:'));
+  if(!localOnly&&(args.max_usd<=0||args.estimated_request_cost<=0))throw Error('Remote targets require positive estimated cost and budget');
+  if((args.max_usd===0)!==(args.estimated_request_cost===0))throw Error('Budget and estimated cost must both be zero for free/local runs');
+  // This is the requested campaign ceiling, not merely the cost of one request.
+  // Compare with tolerance for binary floating point rounding.
+  if(args.max_requests*args.estimated_request_cost>args.max_usd+1e-10)
+   throw Error('Campaign budget below maximum estimated total cost');
  }
  return args;
 }
@@ -39,10 +44,21 @@ function config(){
  if(!db||!isAbsolute(db))throw Error('OMJB_DB_PATH must be an absolute SQLite file path');
  return {root,db,python:process.env.OMJB_PYTHON||'python3'};
 }
+function safeLabFailure(stderr){
+ // Preserve actionable known Lab errors, never expose raw tracebacks,
+ // prompts, tokens or arbitrary provider-supplied messages through MCP.
+ const last=String(stderr||'').trim().split(/\r?\n/).at(-1)||'';
+ const matched=last.match(/^(?:sqlite3\.)?(OperationalError|IntegrityError|ValueError|RuntimeError): (.{1,180})$/);
+ if(!matched)return 'Lab command failed; inspect local logs';
+ const detail=matched[2];
+ if(/^(?:table [a-z_][\w]* has no column named [a-z_][\w]*|no such (?:table|column): [a-z_][\w.]*|missing environment variable [A-Z_][A-Z_0-9]*|campaign budget [a-z -]+|remote provider campaigns require positive [a-z -]+)$/i.test(detail))
+  return 'Lab '+matched[1]+': '+detail;
+ return 'Lab '+matched[1]+'; inspect local logs';
+}
 function run(c,args,timeout){
  const env={...process.env,PYTHONPATH:c.root};
- return new Promise((ok,fail)=>execFile(c.python,['-m',...args],{cwd:c.root,env,timeout,maxBuffer:65536,windowsHide:true},(err,out)=>{
-  if(err)return fail(Error(err.killed?'Lab operation timed out':'Lab command failed; inspect the Lab locally'));
+ return new Promise((ok,fail)=>execFile(c.python,['-m',...args],{cwd:c.root,env,timeout,maxBuffer:65536,windowsHide:true},(err,out,stderr)=>{
+  if(err)return fail(Error(err.killed?'Lab operation timed out':safeLabFailure(stderr)));
   ok(out);
  }));
 }
