@@ -154,6 +154,8 @@ def run(root):
             page.goto(url)
             expect(page.locator("#connection")).to_have_text("Connected")
             expect(page.locator("#task-count")).to_have_text("0")
+            expect(page.locator("#chat")).to_be_visible()
+            page.locator("#navigation [data-view=workspace]").click()
             page.locator("#tiles [data-view=tasks]").click()
             expect(page.locator("#activity")).to_have_text("No records match this view.")
             seed(cli)
