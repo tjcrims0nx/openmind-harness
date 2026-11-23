@@ -29,6 +29,11 @@ test('server-side provider configuration never returns credentials',async()=>{
  assert.equal(configured.model,'gpt-test');
  assert.doesNotMatch(JSON.stringify(res.payload),/test-secret-never-returned/);
 });
+test('Gemini default uses a supported current Flash-Lite identifier',()=>{
+ const provider=listChatProviders({GEMINI_API_KEY:'dummy'}).find(p=>p.id==='gemini');
+ assert.equal(provider.model,'gemini-3.5-flash-lite');
+ assert.equal(provider.available,true);
+});
 test('authenticated multi-provider chat routes to fixed endpoint',async()=>{
  const res=response();
  await handleChat({method:'POST',headers:{authorization:'Bearer '+webToken,'content-type':'application/json'},
