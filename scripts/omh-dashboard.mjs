@@ -96,7 +96,7 @@ export async function readState(state) {
   };
 }
 
-export async function createDashboardServer(state,{adminToken=process.env.OMH_DASHBOARD_ADMIN_TOKEN,workspace=process.env.OMH_WORKSPACE||process.cwd()}={}) {
+export async function createDashboardServer(state,{adminToken=process.env.OMH_DASHBOARD_ADMIN_TOKEN,workspace=process.env.OMH_WORKSPACE||process.cwd(),chatEnv=process.env,chatFetcher=fetch}={}) {
   if(adminToken!==undefined&&(typeof adminToken!=='string'||Buffer.byteLength(adminToken)<32))throw new Error('OMH dashboard administrator token must contain at least 32 bytes');
   const adminEnabled=adminToken!==undefined;
   const csrf = randomBytes(32).toString('hex');
@@ -132,7 +132,7 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
        json(data){response.setHeader('Content-Type','application/json; charset=utf-8');response.end(JSON.stringify(data));return this;}
       };
       return handleChat({method:request.method,headers:request.headers,body},adapter,{
-       accessCheck:()=>({ok:true,status:200})
+       env:chatEnv,fetcher:chatFetcher,accessCheck:()=>({ok:true,status:200})
       });
     }
     if(request.method==='GET'&&request.url==='/api/connectors')return send(200,JSON.stringify({providers:connectorStatuses()}),'application/json; charset=utf-8');
