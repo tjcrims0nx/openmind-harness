@@ -163,6 +163,8 @@ function renderView() {
   $('#hub').hidden = active !== 'workspace';
   $('#detail').hidden = active === 'workspace' || active === 'chat';
   $('#connectors-panel').hidden = active !== 'plugins';
+  document.querySelector('.dock').hidden = active === 'chat';
+  $('#breadcrumb-view').textContent = views[active] || 'Chat';
   for (const button of document.querySelectorAll('[data-view]')) {
     button.setAttribute('aria-pressed', button.dataset.view === active);
   }
@@ -304,30 +306,121 @@ $('#dock-tabs').onkeydown = event => {
   button.click();
   button.focus();
 };
-// Chat is the primary workspace. Until a separately authenticated model-chat
-// endpoint exists, retain draft text locally and never fabricate assistant output.
-for (const suggestion of document.querySelectorAll('[data-chat-suggestion]')) {
- suggestion.addEventListener('click', () => {
-  $('#chat-input').value = suggestion.dataset.chatSuggestion;
+// Chat frontend sends only authenticated requests to the fixed Vercel route.
+// Provider credentials stay server-side and browser input never selects an endpoint.
+let chatProviders=[];
+let chatHistory=[];
+let chatBusy=false;
+const chatProvider=$('#chat-provider');
+const chatSend=$('#chat-send');
+const chatNotice=$('#chat-notice');
+function selectedChatProvider(){return chatProviders.find(p=>p.id===chatProvider.value&&p.available);}
+function chatReady(){return remote&&!!selectedChatProvider()&&!chatBusy;}
+function renderChatControls(){
+ const selected=selectedChatProvider();
+ chatSend.disabled=!chatReady()||!$('#chat-input').value.trim();
+ chatProvider.disabled=chatBusy;
+ $('#chat-reset').disabled=chatBusy;
+ $('#chat-model').textContent=selected?selected.model:'No model connected';
+ $('#chat-hint').textContent=chatBusy?'Waiting for provider response…':selected?'Enter to send · Shift+Enter for a new line':'Configure a provider key in Vercel';
+ $('#chat-availability').textContent=selected?'Chat ready · '+selected.label:'Chat unavailable';
+}
+function chatMessage(role,body,providerLabel){
+ const message=el('article',undefined,'chat-message '+role);
+ const avatar=el('span',role==='user'?'You':'OMH','chat-avatar');
+ const content=el('div',undefined,'chat-message-content');
+ content.append(el('span',role==='user'?'YOU':providerLabel,'chat-message-name'),el('p',body));
+ message.append(avatar,content);
+ $('#chat-thread').append(message);
+ $('#chat-thread').scrollTop=$('#chat-thread').scrollHeight;
+}
+function resetChat(){
+ chatHistory=[];
+ $('#chat-thread').querySelectorAll('.chat-message').forEach(node=>node.remove());
+ $('#chat-welcome').hidden=false;
+ $('#chat-input').value='';
+ chatNotice.textContent=selectedChatProvider()?'Chat ready. Messages are kept only in this tab.':'Select a configured provider to chat.';
+ chatNotice.dataset.severity='info';
+ renderChatControls();
+}
+async function loadChatProviders(){
+ if(!remote){
+  chatNotice.textContent='Use the OpenCode editor for on-device chat; web chat requires the authenticated Vercel endpoint.';
+  chatProvider.replaceChildren(new Option('Chat available on Vercel',''));
+  renderChatControls();
+  return;
+ }
+ try {
+  const response=await runtimeFetch('/api/chat',{signal:AbortSignal.timeout(12000)});
+  if(!response.ok)throw Error('Provider configuration unavailable (HTTP '+response.status+')');
+  const payload=await response.json();
+  chatProviders=Array.isArray(payload.providers)?payload.providers:[];
+  chatProvider.replaceChildren(new Option('Choose provider',''));
+  for(const provider of chatProviders){
+   const option=new Option(provider.label+(provider.available?'':' · not configured'),provider.id);
+   option.disabled=!provider.available;
+   chatProvider.add(option);
+  }
+  const first=chatProviders.find(p=>p.available);
+  if(first)chatProvider.value=first.id;
+  chatNotice.textContent=first?'Chat ready. Choose a model and send a message.':'No provider API keys configured in Vercel. Add a server-side provider key to enable chat.';
+  chatNotice.dataset.severity='info';
+ }catch(error){
+  chatNotice.textContent='Chat unavailable: '+error.message;
+  chatNotice.dataset.severity='warning';
+  chatProvider.replaceChildren(new Option('Unable to load providers',''));
+ }
+ renderChatControls();
+}
+$('#chat-input').addEventListener('input',renderChatControls);
+chatProvider.onchange=resetChat;
+$('#chat-reset').onclick=resetChat;
+for(const suggestion of document.querySelectorAll('[data-chat-suggestion]')){
+ suggestion.addEventListener('click',()=>{
+  $('#chat-input').value=suggestion.dataset.chatSuggestion;
   $('#chat-input').focus();
-  $('#chat-notice').textContent = 'Draft ready. A chat-capable OMH backend must be connected before messages can be sent.';
+  renderChatControls();
  });
 }
-$('#chat-open-tools').onclick = () => {
- active = 'workspace';
- renderView();
-};
-$('#chat-form').onsubmit = event => {
+$('#chat-open-tools').onclick=()=>{active='workspace';renderView();};
+$('#chat-form').onsubmit=async event=>{
  event.preventDefault();
- $('#chat-notice').textContent = 'No chat provider is connected to this dashboard. OpenCode conversation tools are available on your trusted runtime; the remote gateway does not expose a chat route.';
- $('#chat-input').focus();
+ if(!chatReady())return;
+ const content=$('#chat-input').value.trim();
+ if(!content)return;
+ const provider=selectedChatProvider();
+ const pending=[...chatHistory,{role:'user',content}].slice(-16);
+ chatBusy=true;
+ renderChatControls();
+ try{
+  const response=await runtimeFetch('/api/chat',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({provider:provider.id,messages:pending}),
+   signal:AbortSignal.timeout(30000)
+  });
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(payload.error||('Provider request failed (HTTP '+response.status+')'));
+  if(typeof payload.text!=='string'||!payload.text.trim())throw Error('Provider returned no message');
+  $('#chat-welcome').hidden=true;
+  chatMessage('user',content,provider.label);
+  chatMessage('assistant',payload.text,provider.label);
+  chatHistory=[...pending,{role:'assistant',content:payload.text}].slice(-14);
+  $('#chat-input').value='';
+  chatNotice.textContent='Response from '+provider.label+' · '+(payload.model||provider.model);
+  chatNotice.dataset.severity='info';
+ }catch(error){
+  chatNotice.textContent=error.message;
+  chatNotice.dataset.severity='warning';
+ }finally{chatBusy=false;renderChatControls();}
 };
-$('#chat-input').addEventListener('keydown', event => {
- if(event.key==='Enter' && !event.shiftKey) {
+$('#chat-input').addEventListener('keydown',event=>{
+ if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){
   event.preventDefault();
   $('#chat-form').requestSubmit();
  }
 });
+loadChatProviders();
 $('#filter').onchange = renderView;
 $('#search-form').onsubmit = event => {
   event.preventDefault();
