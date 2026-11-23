@@ -75,7 +75,7 @@ export function App(){
   const content=draft.trim();
   if(!content||!selected||busy)return;
   const requestedProvider=selected.id;
-  const input=[...history,{role:'user' as const,content}].slice(-16);
+  const input:ChatMessage[]=[...history,{role:'user',content}].slice(-16);
   setBusy(true);
   setDraft('');
   setHistory(input);
