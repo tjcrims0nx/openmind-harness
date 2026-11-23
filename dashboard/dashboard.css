@@ -841,3 +841,7 @@ select {
 .records .task-action:hover { border-color: #4ed9ff; }
 .records .task-action:focus-visible { outline: 2px solid #4ed9ff; outline-offset: 3px; }
 .records .task-action:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Provider connector layout: external rules keep the dashboard's strict CSP intact. */
+#connectors-panel { padding: 16px; margin-bottom: 12px; }
+#connector-list .connector-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #263548; }
