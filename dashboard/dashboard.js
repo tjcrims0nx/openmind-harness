@@ -354,7 +354,7 @@ async function loadConnectorStatuses(){
   target.replaceChildren();
   for(const provider of data.providers){
    const line=document.createElement('div');
-   line.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #263548';
+   line.className='connector-row';
    const name=document.createElement('strong');name.textContent=provider.id;
    const status=document.createElement('span');status.textContent=provider.status;
    const button=document.createElement('button');button.type='button';button.textContent='Verify';button.disabled=provider.status!=='configured'||provider.id==='custom';
