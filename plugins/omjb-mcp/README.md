@@ -1,6 +1,6 @@
-# OpenMind Jailbreak Lab — MCP evidence plugin
+# OpenMind Jailbreak Lab — MCP integration (evidence + execution bridge)
 
-This optional **read-only MCP integration** connects the independent [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) evidence database with OpenMind Harness / OpenCode. It does **not** copy the lab's prompt corpus or execute test campaigns. It is opt-in and disabled unless you register it yourself.
+The **evidence server** in this optional integration is read-only and connects the independent [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) evidence database with OpenMind Harness / OpenCode. It does **not** copy the lab's prompt corpus or execute test campaigns. It is opt-in and disabled unless you register it yourself.
 
 The adapter is designed for authorized, evidence-based AI security evaluation and displays only aggregate information. It does **not** expose raw test prompts, model responses, sensitive adjudication notes, stored configurations, provider secrets, or filesystem contents.
 
@@ -63,3 +63,25 @@ The tests construct a temporary evidence store with private sentinel strings and
 - Generated or model-supplied text is not trusted as instructions. Do not connect this tool to untrusted network endpoints.
 - Evidence and review labels must be interpreted in context. Automated scoring cannot replace human adjudication.
 - Features involving actively executing adversarial tests or contacting providers are deliberately **not** part of the read-only plugin.
+
+## Lab execution bridge (early integration)
+
+OMH also includes `plugins/omjb-mcp/lab-server.mjs`, an **optional second MCP server** that calls the Lab's own Python runner. The Lab remains the source of truth: this is an orchestration adapter, not a copy of the Lab's engine.
+
+Set `OMJB_LAB_ROOT` to an absolute path to a trusted checkout of `OpenMind-Jailbreak-Lab`, `OMJB_DB_PATH` to an absolute SQLite evidence DB, and optionally `OMJB_PYTHON` to your interpreter. Register `lab-server.mjs` as a separate local MCP entry (for example `omjb-lab`) using the same registration shape as the evidence server above. No provider keys are required for offline echo tests.
+
+Tools currently exposed:
+
+| Tool | Behavior |
+| --- | --- |
+| `omjb_lab_capabilities` | Check whether the native Lab is installed and whether live runs are enabled |
+| `omjb_lab_run_case` | Run a selected `GL-###` case via `python -m omjb.cli`; supports offline `echo` and explicitly enabled provider targets |
+| `omjb_lab_run_campaign` | Launch the Lab's native reviewed-benign multi-provider evaluator with 1–100 request ceiling, finite estimated cost limit, two workers and deadline |
+
+**Live execution is disabled by default.** Only set `OMJB_ALLOW_LIVE_RUNS=1` in a trusted operator-controlled environment when you intend to permit provider calls and associated charges. Campaigns also require an existing reviewed corpus selected by `OMJB_REVIEWED_CORPUS` and an absolute `OMJB_CAMPAIGN_OUTPUT` evidence path. The native Lab checks case eligibility and corpus review constraints. MCP callers cannot provide arbitrary shell commands, raw prompts, corpus paths, or URLs.
+
+This is the **first executable integration**, not a claim that every Lab panel is wired to OMH. Still to integrate: catalog browsing, mutation specifications, offline replay, reviewer workflow and adjudication, guard evaluation, provenance/exports, dashboard screens, and end-to-end iPad packaging. None of those should be marked completed before their own tests pass.
+
+```bash
+node --test modules/omjb-lab-mcp.test.mjs
+```
