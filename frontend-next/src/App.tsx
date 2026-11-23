@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState,type FormEvent,type KeyboardEvent} from 'react';
 import {MarkDownRenderer} from '@openuidev/react-ui';
+import {RuntimeView} from './RuntimeView';
 
 type Provider={id:string;label:string;model:string;available:boolean};
 type ChatMessage={role:'user'|'assistant';content:string};
@@ -151,7 +152,7 @@ export function App(){
      </form>
      <div className="privacy-note">Keys stay on your server. Messages are sent only to the provider you select.</div>
     </div>
-   </main>:<main className="other-view"><span className="eyebrow">OPENMIND HARNESS</span><h1>{view}</h1><p>This OpenUI frontend is being integrated with the existing OMH tools. Open the current workspace dashboard for these controls.</p><a href="http://127.0.0.1:4177" target="_blank" rel="noopener noreferrer">Open local OMH dashboard</a></main>}
+   </main>:<RuntimeView view={view} token={token} local={local} onConnect={()=>setShowConnect(true)}/>}
   </div>
   {showConnect&&<div className="dialog-cover" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setShowConnect(false);}}>
     <section className="connect-dialog" role="dialog" aria-modal="true" aria-labelledby="connect-title">
