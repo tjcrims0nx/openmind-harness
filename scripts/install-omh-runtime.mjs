@@ -41,6 +41,23 @@ if(!config||typeof config!=='object'||Array.isArray(config)) {
 }
 const command=[process.execPath,join(dest,'scripts','omh-mcp.mjs')];
 const merged={...config,mcp:{...(config.mcp||{}),'omh-runtime':{type:'local',command,enabled:true,timeout:10000}}};
+// Explicit operator opt-in; OpenCode owns the stdio server lifecycle.
+const enableEvidence=process.argv.includes('--enable-omjb-evidence');
+const disableEvidence=process.argv.includes('--disable-omjb-evidence');
+if(enableEvidence&&disableEvidence)throw Error('Choose only one evidence plugin action');
+if(check&&(enableEvidence||disableEvidence))throw Error('Check mode cannot change plugin preferences');
+const evidenceCommand=[process.execPath,join(dest,'plugins','omjb-mcp','server.mjs')];
+if(enableEvidence||disableEvidence){
+ const existing=config.mcp?.['omjb-evidence'];
+ if(existing&&(!Array.isArray(existing.command)||existing.command[1]!==evidenceCommand[1]||existing.type!=='local'))
+  throw Error('Existing omjb-evidence registration is not installer-managed; review it manually');
+ if(enableEvidence){
+  const db=process.env.OMJB_DB_PATH;
+  if(!db||!await import('node:fs/promises').then(async fs=>{try{return (await fs.stat(db)).isFile()}catch{return false}}))
+   throw Error('Set OMJB_DB_PATH to an existing evidence database before enabling');
+  merged.mcp['omjb-evidence']={type:'local',command:evidenceCommand,enabled:true,timeout:10000,environment:{OMJB_DB_PATH:resolve(db)}};
+ }else if(existing)merged.mcp['omjb-evidence']={...existing,enabled:false};
+}
 if(check){
  const registered=config.mcp?.['omh-runtime'];
  if(!registered||registered.enabled!==true||registered.type!=='local'||
@@ -49,7 +66,7 @@ if(check){
  }
  await readFile(command[1],'utf8');
  process.stdout.write('OMH MCP registration verified: '+command[1]+'\n');
-}else if(dryRun){process.stdout.write(JSON.stringify({destination:dest,mcp:merged.mcp['omh-runtime']},null,2)+'\n');}
+}else if(dryRun){process.stdout.write(JSON.stringify({destination:dest,mcp:merged.mcp['omh-runtime'],omjbEvidence:merged.mcp['omjb-evidence']?{enabled:merged.mcp['omjb-evidence'].enabled===true}:undefined},null,2)+'\n');}
 else{
  await mkdir(join(dest,'scripts'),{recursive:true});
  // The dashboard imports shared chat adapters from ../lib at runtime.
@@ -65,6 +82,8 @@ else{
  } else {
    process.stderr.write('OpenUI frontend not built; dashboard will use the classic interface. Build it with `npm run build` in frontend-next and re-run this installer.\n');
  }
+ await mkdir(join(dest,'plugins'),{recursive:true});
+ await cp(join(source,'plugins','omjb-mcp'),join(dest,'plugins','omjb-mcp'),{recursive:true,force:true});
  for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-live.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});
  const tmp=configPath+'.'+randomUUID()+'.tmp';
  await writeFile(tmp,JSON.stringify(merged,null,2)+'\n',{mode:0o600});

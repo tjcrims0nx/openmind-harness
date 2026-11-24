@@ -22,7 +22,8 @@ def run(page,width):
       "memory":[{"id":"note-01","title":"Project notes","scope":"workspace"}],
       "workflowSteps":[{"id":"step-01","kind":"workspace.read","status":"completed"}],
       "plugins":[{"name":"omh-chat","version":"1.0.0","enabled":True}],
-      "traces":[{"type":"task.completed","at":"2026-11-23T16:00:00Z"}]
+      "traces":[{"type":"task.completed","at":"2026-11-23T16:00:00Z"}],
+      "evidenceMcp":{"name":"OpenMind Jailbreak Lab","enabled":True,"connected":True,"state":"connected","restarts":0,"lastError":None,"lastPingAt":"2026-11-23T21:00:00Z","tools":["omjb_status","omjb_list_runs","omjb_run_summary","omjb_pending_reviews","omjb_compare_runs"],"dbPath":"/tmp/evidence.db","pid":1234}
     }
     def handle_chat(route):
         request=route.request
@@ -59,6 +60,12 @@ def run(page,width):
         page.get_by_role("button",name="Toggle navigation").click()
     page.get_by_role("button",name="Plugins",exact=True).click()
     expect(page.locator(".runtime-record").get_by_text("omh-chat", exact=True)).to_be_visible()
+    expect(page.locator(".evidence-card .runtime-list-title strong")).to_have_text("OpenMind Jailbreak Lab")
+    expect(page.locator(".evidence-card .runtime-status.connected")).to_have_text("connected")
+    expect(page.get_by_text("5 read-only tools")).to_be_visible()
+    page.route("**/api/plugins/omjb/retry",lambda route:route.fulfill(status=200,json=async_state["evidenceMcp"]))
+    page.get_by_role("button",name="Retry connection").click()
+    expect(page.locator(".evidence-card .runtime-status.connected")).to_have_text("connected")
     assert not errors,"Browser exceptions: "+str(errors)
 
 with sync_playwright() as pw:
