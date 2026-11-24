@@ -153,8 +153,15 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 .runtime-record p{margin:7px 0 0;color:#c7a8dc;font-size:11px;overflow-wrap:anywhere}
 .runtime-status{flex:none;text-transform:capitalize;font-size:11px;color:#f5f2ff;border:1px solid #654078;border-radius:99px;padding:5px 10px}
 .runtime-status.running{border-color:#bf00ff;color:#c7a8dc}
+.runtime-status.connected{border-color:#bf00ff;color:#e0aaff;box-shadow:0 0 8px #bf00ff33}
+.runtime-status.reconnecting{border-color:#bf00ff;color:#c7a8dc}
 .runtime-status.completed,.runtime-status.enabled{border-color:#654078;color:#c7a8dc}
 .runtime-status.failed,.runtime-status.cancelled{border-color:#654078;color:#f5f2ff}
+.evidence-card{margin-bottom:20px}
+.evidence-actions{display:flex;gap:8px;flex-wrap:wrap;padding:13px 19px;border-top:1px solid #30203d}
+.evidence-actions button{border:1px solid #654078;background:#30203d;color:#f5f2ff;font-size:12px;padding:9px 12px;border-radius:9px;white-space:nowrap}
+.evidence-actions button:disabled{opacity:.45;cursor:not-allowed}
+.evidence-note{padding:0 19px 15px;color:#c7a8dc;font-size:11px;margin:0}
 .runtime-empty{padding:40px 15px;text-align:center;color:#c7a8dc;font-size:13px}
 .runtime-offline{padding:22px;border-radius:14px;border:1px solid #654078;background:#241c23;margin-bottom:20px}
 .runtime-offline strong{font-size:15px;color:#f5f2ff}
