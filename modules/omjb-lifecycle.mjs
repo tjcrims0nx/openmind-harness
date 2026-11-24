@@ -123,6 +123,10 @@ export class EvidenceMcpClient{
   if(this.restartTimer){clearTimeout(this.restartTimer);this.restartTimer=null;}
   if(this.child)await this.#killChild();
   this.connected=false;
+  // Clear the state before re-starting: start() refuses to run while the
+  // state still reads 'connected', which would leave the client stranded
+  // with no server and no restart scheduled.
+  this.state='stopped';
   return this.start();
  }
  async stop(){

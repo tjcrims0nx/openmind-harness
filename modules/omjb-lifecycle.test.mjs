@@ -142,11 +142,19 @@ test('retry resets the failure count and reconnects',async t=>{
  const {client,cleanup}=await fixture();
  t.after(cleanup);
  const c=client();
- await c.start();
- assert.equal(c.status().state,'connected');
+ const before=await c.start();
+ assert.equal(before.state,'connected');
+ assert.equal(before.connected,true);
  const status=await c.retry();
  assert.equal(status.state,'connected');
+ assert.equal(status.connected,true);
  assert.equal(status.restarts,0);
+ // A retry must actually start a new server: the pid changes and the new
+ // process is alive. (A stale 'connected' state with no server passed here
+ // before the retry state fix.)
+ assert.equal(typeof status.pid,'number');
+ assert.notEqual(status.pid,before.pid);
+ assert.ok(isAlive(status.pid));
  await c.stop();
 });
 
