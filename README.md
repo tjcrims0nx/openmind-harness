@@ -15,7 +15,7 @@
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/omh-modules.yml/badge.svg" alt="Module tests"></a>
   <a href="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml"><img src="https://github.com/tjcrims0nx/openmind-harness/actions/workflows/portable-packages.yml/badge.svg" alt="Portable packages"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-8961e8" alt="GPL-3.0"></a>
-  <img src="https://img.shields.io/badge/Node.js-22%2B-00c9cf" alt="Node 22+">
+  <img src="https://img.shields.io/badge/Node.js-22%2B-bf00ff" alt="Node 22+">
 </p>
 
 <p align="center"><sub>
@@ -44,6 +44,8 @@
 <sub>OpenCode handles its own model conversations and native tool loop. OMH's separate orchestration modules are experimental; they are not all wired into OpenCode's standard execution loop.</sub>
 
 ### 🚀 Quick start
+
+**Desktop beta:** [v0.1.0-beta.1](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1) — Windows x64 `.exe`, macOS arm64 `.dmg` / `.zip`, Linux amd64 `.deb` / x86_64 `.AppImage`. Packages are unsigned; review the published SHA-256 checksums before installation. See [desktop documentation](desktop/README.md) for limitations.
 
 **Choose your platform** ([full installation guide](INSTALL.md)).
 
@@ -142,21 +144,11 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 
 ### 🧪 Jailbreak Lab
 
-**Goal: the full [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab) inside OMH.** The Lab stays the underlying execution engine; the OMH integration is being developed in **[PR #6](https://github.com/tjcrims0nx/openmind-harness/pull/6)**.
-
-| Component | Progress |
-| --- | --- |
-| 📈 Evidence summaries, comparisons, pending reviews | Read-only MCP bridge in PR |
-| ▶️ Native Lab case runner and bounded campaigns | Initial opt-in execution bridge in PR |
-| 🧬 Mutation, replay, guard evaluation and provenance | Integration pending |
-| 👥 Human adjudication, exports and campaign history | Integration pending |
-| 🖥️ Unified dashboard and iPad operation | Integration pending |
-
-**Execution is not yet verified end to end.** The evidence fixture tests passed 3/3, but the Lab CLI requires its real SQLite schema (including `started_at`); the simplified evidence fixture cannot validate run creation. Live provider calls require explicit operator opt-in, approved inputs and bounded budgets. See [PR details](https://github.com/tjcrims0nx/openmind-harness/pull/6).
+OMH includes an optional **read-only evidence MCP** for the separate [OpenMind Jailbreak Lab](https://github.com/tjcrims0nx/OpenMind-Jailbreak-Lab). It exposes five bounded aggregate evidence tools, not raw prompts, execution or provider calls. Enable it explicitly in Plugins with an existing evidence database; it starts with OMH, retries unexpected disconnections at most five times and shuts down with the app. Settings persist; the evidence database is read-only. See [plugin documentation](plugins/omjb-mcp/README.md).
 
 ### 🖥️ Desktop application
 
-**OMH Desktop** is an Electron app for **Windows, macOS and Linux** with the official neon hexagon branding, chat-first interface and local OMH runtime dashboard.
+**OMH Desktop** is an Electron app for **Windows, macOS and Linux** with the official neon hexagon branding, black and neon purple, chat-first OpenUI interface and local OMH runtime dashboard. Built OpenUI is served at `/`; the classic fallback remains at `/classic`. No mandatory OpenAI login or default provider in OpenUI.
 
 - 🖥️ Native window with sandboxed, isolated renderer; local dashboard bound to `127.0.0.1`.
 - 💬 Authenticated multi-provider chat through the local dashboard; configure API keys securely in the desktop process environment.
@@ -169,7 +161,7 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 </p>
 <p align="center"><sub>Chat-first OpenUI interface — desktop and mobile.</sub></p>
 
-**Build artifacts are not a signed release.** Windows and macOS packages need platform signing, plus launch checks on each system, before production distribution.
+**Unsigned beta, not a signed production release.** Release baseline `c7f254e`: reported CI verification includes 137/137 module tests, desktop/mobile OpenUI smoke, ten provider routes, evidence-plugin lifecycle and five matching installer checksums. CI packaging and installer checks do not establish successful GUI launch on every target machine. Windows signing and macOS signing/notarization remain pending.
 
 ### 🛡️ Security & verification
 
