@@ -29,7 +29,16 @@ The server is at `plugins/omjb-mcp/server.mjs`. In OpenCode's `opencode.json` ad
 
 Set `OMJB_DB_PATH=/ABSOLUTE/PATH/OpenMind-Jailbreak-Lab/openmind.db` in the trusted environment that launches OpenCode. To choose an explicit Python interpreter, set `OMJB_PYTHON` (default `python3`). Do not supply keys or secrets to this plugin. OpenCode's effective environment must expose the path to the MCP subprocess. Do not serve the database or OpenCode web endpoint on a public network.
 
-The OMH installer **copies** the plugin into the installed runtime, but never registers or enables it without an operator action. Installed path: `~/.config/opencode/omh-runtime/plugins/omjb-mcp/server.mjs` (or under `XDG_CONFIG_HOME`).
+The OMH installer **copies** the plugin into the installed runtime. Registration is disabled by default. For explicit, persistent opt-in, run from the repository root:
+
+```sh
+OMJB_DB_PATH=/absolute/path/openmind.db node scripts/install-omh-runtime.mjs --enable-omjb-evidence
+node scripts/install-omh-runtime.mjs --disable-omjb-evidence
+```
+
+The enabled local MCP entry persists in OpenCode configuration across restarts. The OpenCode MCP client owns process initialization and shutdown; opening the standalone dashboard alone does not launch OpenCode. Restart the client after changing preferences. A missing database prevents enablement. Existing custom registrations are not overwritten. No provider API key is needed. The installer does not register an execution bridge.
+
+ Installed path: `~/.config/opencode/omh-runtime/plugins/omjb-mcp/server.mjs` (or under `XDG_CONFIG_HOME`).
 
 ## MCP tools
 
