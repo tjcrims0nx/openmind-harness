@@ -1,6 +1,6 @@
-# OpenUI frontend pilot
+# OpenUI primary frontend
 
-This is a **separate React/OpenUI replacement candidate** for the OMH website and Electron desktop shell. It does not replace the working production frontend until its build and browser tests pass.
+OpenUI is the primary chat-first interface for the built OMH desktop and local dashboard, with black and neon purple styling. The classic dashboard remains at `/classic`; if the OpenUI build is missing, the classic interface is the fallback.
 
 It uses the OpenUI `MarkDownRenderer` and `ThemeProvider` from `@openuidev/react-ui` 0.18.12, based on the user's [openui](https://github.com/tjcrims0nx/openui) fork (upstream [Thesys OpenUI](https://github.com/thesysdev/openui)). These packages are MIT-licensed; retain upstream attributions when distributing their source. The chat transport intentionally stays OMH's existing authenticated JSON `/api/chat` endpoint rather than pretending it is OpenUI's streaming format.
 
@@ -29,11 +29,11 @@ The script copies `../dashboard/app-icon.webp`, the official OMH emblem, into th
 
 - Proper mobile-sized chat with an always-visible composer, responsive navigation, provider selection, in-memory message history and OpenUI markdown rendering.
 - Explicit connection control for remote dashboard tokens; model keys stay on the server.
-- Existing Harness modules, MCP and dashboard remain unchanged; this is a replacement candidate until integrated and tested.
-- OpenUI supports streamed messages and generative components, but OMH's current JSON chat endpoint returns a final response. Actual token streaming and model-driven components require a separately verified server protocol; this pilot does not claim those capabilities.
-- Workspace, Agents, Tasks, Memory, Workflows, Plugins and Logs now read actual metadata from the authenticated `/api/state` endpoint. These views are **read-only** and fail visibly if the remote runtime is disconnected. Administrative task mutations and MCP registration still belong to the existing dashboard until their permissions and UI are migrated.
+- The interface uses existing authenticated runtime APIs and includes the opt-in read-only evidence plugin controls.
+- OpenUI supports streamed messages and generative components, but OMH's current JSON chat endpoint returns a final response. Actual token streaming and model-driven components require a separately verified server protocol; this release does not claim those capabilities.
+- Workspace, Agents, Tasks, Memory, Workflows, Plugins and Logs now read actual metadata from the authenticated `/api/state` endpoint. Runtime metadata views fail visibly if disconnected. Evidence plugin enable, disable and retry are separately authorized administrative operations; other privileged actions remain subject to existing runtime permissions.
 - Authored React UI and styles are original OMH code; no OpenUI source files are copied into this repository.
 
-## Rollout gate
+## Release verification
 
-Pass `npm run build` and the Chromium browser workflow at 390px and 1440px, review real CI screenshots, verify real hosted-provider and local CSRF paths, then migrate any remaining privileged runtime controls deliberately. **Do not switch Electron to this UI until these checks succeed.**
+Build with `npm run build` and run desktop/mobile browser smoke tests and module CI before publishing changes. Verify authenticated runtime routes, explicit provider selection, read-only evidence plugin lifecycle, and clean shutdown. The beta baseline is `c7f254e`; see the [release](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1).
