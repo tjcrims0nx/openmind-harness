@@ -131,17 +131,17 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
   const classic = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
     route, {type, body: await readFile(new URL(`../dashboard/${file}`, import.meta.url))},
   ])));
-  // OpenUI is primary when built; the classic dashboard stays at /classic
-  // (and its assets keep their root paths so the classic page's absolute
-  // references still resolve). Without a built frontend the classic
+  // The classic dashboard is always available at /classic (and its assets
+  // keep their root paths so its absolute references still resolve).
+  // OpenUI is primary when built; without a built frontend the classic
   // dashboard remains the home page.
   const assets = new Map(classic);
+  assets.set('/classic', classic.get('/'));
+  for (const [route, entry] of classic) {
+    if (route !== '/') assets.set(`/classic${route}`, entry);
+  }
   if (openui) {
     for (const [route, entry] of openui) assets.set(route, entry);
-    assets.set('/classic', classic.get('/'));
-    for (const [route, entry] of classic) {
-      if (route !== '/') assets.set(`/classic${route}`, entry);
-    }
   }
   const server = createServer(async (request, response) => {
     function send(status, body, type = 'text/plain; charset=utf-8') {
