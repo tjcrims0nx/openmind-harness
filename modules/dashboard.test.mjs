@@ -35,6 +35,9 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   assert.equal(typeof empty.platform.sandboxBackendInstalled, 'boolean');
   assert.equal(empty.counts.queued, 0);
   assert.deepEqual(empty.tasks, []);
+  assert.ok(Array.isArray(empty.providers));
+  assert.ok(empty.providers.every(p => typeof p.id === 'string' && (p.status === 'configured' || p.status === 'disconnected')));
+  assert.ok(empty.providers.every(p => !('key' in p) && !('token' in p) && !('secret' in p)));
 
   const queue = new TaskQueue(join(state, 'tasks.json'), {
     'agent.run': async () => 'private-output',
