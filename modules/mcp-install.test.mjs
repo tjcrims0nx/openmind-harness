@@ -39,6 +39,8 @@ test('installer adds a real absolute MCP command without removing unrelated serv
  assert.equal(node,process.execPath);
  assert.equal(entry,resolve(configDir,'omh-runtime/scripts/omh-mcp.mjs'));
  assert.match(await readFile(entry,'utf8'),/omh_status/);
+ assert.match(await readFile(join(configDir,'omh-runtime','lib','omh-chat.mjs'),'utf8'),/export/);
+ assert.match(await readFile(join(configDir,'omh-runtime','scripts','omh-dashboard.mjs'),'utf8'),/omh-chat/);
  await run('--check');
  const first=await readFile(file,'utf8');
  await run();
