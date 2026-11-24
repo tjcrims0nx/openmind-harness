@@ -138,7 +138,7 @@ node scripts/install-omh-runtime.mjs --check
 **Built-in scoped tool groups:**
 `omh_status` · `omh_doctor` · `omh_memory_search` · `omh_task_list` · `omh_trace_recent` · `omh_agent_inbox` · skill proposals and bounded queue operations.
 
-OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitrary filesystem access. Additional MCP connectors are configured separately. [MCP guide](docs/omh-runtime.md) · [Vercel integration](docs/vercel-live.md).
+OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitrary filesystem access. Additional MCP connectors are configured separately. [MCP guide](docs/omh-runtime.md).
 
 ### 🧪 Jailbreak Lab
 
@@ -177,7 +177,7 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 | | |
 | --- | --- |
 | 📦 [Installation](INSTALL.md) | 🛠️ [Features](docs/features.md) |
-| ⚙️ [Runtime & MCP](docs/omh-runtime.md) | 🔗 [Remote / Vercel](docs/vercel-live.md) |
+| ⚙️ [Runtime & MCP](docs/omh-runtime.md) |
 | 🗺️ [Roadmap](docs/omh-unified-agent-roadmap.md) | 🧪 [Evaluations](eval/README.md) |
 | 🏗️ [Harness CI](https://github.com/tjcrims0nx/openmind-harness/actions) | 📱 [iOS CI](https://github.com/tjcrims0nx/omh-iOS/actions) |
 | 📄 [License](LICENSE) | 📋 [Notices](LICENSE.md) |
