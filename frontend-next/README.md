@@ -15,7 +15,7 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5180`. Vite proxies `/api/*` to the loopback dashboard. Configure provider credentials in the **server environment**, not React. The selected model controls the provider adapter through the existing validated `/api/chat` route. For a deployed remote client, configure `OMH_WEB_ACCESS_TOKEN` and server-side provider API keys in Vercel, and serve the compiled frontend from the same origin as `/api/chat`.
+Open `http://127.0.0.1:5180`. Vite proxies `/api/*` to the loopback dashboard. Configure provider credentials in the **server environment**, not React. The selected model controls the provider adapter through the existing validated `/api/chat` route. 
 
 Build the static client:
 
@@ -36,4 +36,4 @@ The script copies `../dashboard/app-icon.webp`, the official OMH emblem, into th
 
 ## Rollout gate
 
-Pass `npm run build` and the Chromium browser workflow at 390px and 1440px, review real CI screenshots, verify real hosted-provider and local CSRF paths, then migrate any remaining privileged runtime controls deliberately. **Do not switch Vercel or Electron to this UI until these checks succeed.**
+Pass `npm run build` and the Chromium browser workflow at 390px and 1440px, review real CI screenshots, verify real hosted-provider and local CSRF paths, then migrate any remaining privileged runtime controls deliberately. **Do not switch Electron to this UI until these checks succeed.**
