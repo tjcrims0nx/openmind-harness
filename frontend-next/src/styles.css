@@ -181,3 +181,22 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 .composer:focus-within{border-color:var(--omh-neon);box-shadow:0 0 12px #bf00ff35}
 .omh-shell a,.message a{color:var(--omh-highlight)}
 .runtime-status.failed,.runtime-status.cancelled{border-style:dashed}
+
+/* Typeflow-inspired chat motion: original CSS, no template assets. */
+.chat-layout{width:min(100%,920px)}
+.conversation{background:transparent;border-color:transparent}
+.empty-state{gap:14px}
+.empty-state h2{font-size:clamp(23px,4vw,36px)}
+.composer{background:#100b16;border:1px solid #784296;border-radius:24px;transition:border-color .2s,box-shadow .2s}
+.compose-row button{border-radius:999px;transition:background .18s,transform .18s}
+.compose-row button:not(:disabled):hover{background:#9400c8;transform:translateY(-1px)}
+.message.assistant{background:transparent;border-color:transparent}
+.message.user{background:#21112e;border-color:#523069}
+@keyframes omh-message-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes omh-purple-pulse{0%,100%{filter:drop-shadow(0 0 8px #bf00ff44)}50%{filter:drop-shadow(0 0 18px #bf00ff99)}}
+@media(prefers-reduced-motion:no-preference){
+ .message{animation:omh-message-in .24s ease-out both}
+ .empty-state{animation:omh-message-in .4s ease-out both}
+ .hero-logo{animation:omh-purple-pulse 3s ease-in-out infinite}
+}
+@media(max-width:600px){.conversation{padding:8px}.composer{border-radius:18px}.empty-state{gap:10px}}
