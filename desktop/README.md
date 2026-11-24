@@ -1,8 +1,10 @@
 # OpenMind Harness Desktop
 
-A **native Electron window** for the existing OMH local-first runtime and cyberpunk chat interface, designed for **Windows, macOS and Linux**. The bundled JavaScript dashboard runs in a separate, short-lived Node process bound only to `127.0.0.1` on a random local port. Electron uses a sandboxed, context-isolated renderer with no Node access and denies external windows, navigations and browser permissions.
+A **native Electron window** for the existing OMH local-first runtime and black and neon purple OpenUI chat interface, designed for **Windows, macOS and Linux**. The bundled JavaScript dashboard runs in a separate, short-lived Node process bound only to `127.0.0.1` on a random local port. Electron uses a sandboxed, context-isolated renderer with no Node access and denies external windows, navigations and browser permissions.
 
 ## Desktop packages
+
+[Download unsigned beta v0.1.0-beta.1](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1). Verify SHA-256 checksums in the release notes. macOS beta targets Apple silicon; Windows targets x64 and Linux targets amd64/x86_64.
 
 | OS | Outputs | Notes |
 | --- | --- | --- |
@@ -18,7 +20,10 @@ Requires Node.js 24+ and npm plus a supported desktop graphical session:
 
 ```sh
 git clone https://github.com/tjcrims0nx/openmind-harness.git
-cd openmind-harness/desktop
+cd openmind-harness/frontend-next
+npm install
+npm run build
+cd ../desktop
 npm install
 npm start
 ```
@@ -33,9 +38,9 @@ The desktop app's **Chat** tab communicates with the local dashboard's `/api/cha
 - `GROQ_API_KEY`, `TOGETHER_API_KEY`, `OPENROUTER_API_KEY`
 - `ZAI_API_KEY`, `MOONSHOT_API_KEY`, `DASHSCOPE_API_KEY`
 
-The Chat selector shows only configured providers as available; it defaults to the first available provider and does not silently sign you in to a hosted AI service. Server-side model overrides are optional (for example `OMH_CHAT_OPENAI_MODEL`). Model names and provider billing/availability must be verified for your account. This chat endpoint is independent from OpenCode's own provider auth; you do not need a ChatGPT login first.
+The Chat selector shows only configured providers as available; it requires explicit provider selection and does not silently sign you in to a hosted AI service. Server-side model overrides are optional (for example `OMH_CHAT_OPENAI_MODEL`). Model names and provider billing/availability must be verified for your account. This chat endpoint is independent from OpenCode's own provider auth; you do not need a ChatGPT login first.
 
-**Local runtime:** The app starts the bundled read-only dashboard service and reads the OMH state from `OMH_STATE_DIR` or `<app data>/workspace/.omh`. To show your existing tasks and queues, set `OMH_STATE_DIR` before launch. The desktop app does not automatically start agent jobs or the OpenCode daemon.
+**Local runtime:** The app starts the bundled local dashboard service and reads the OMH state from `OMH_STATE_DIR` or `<app data>/workspace/.omh`. To show your existing tasks and queues, set `OMH_STATE_DIR` before launch. The desktop app does not automatically start agent jobs or the OpenCode daemon. The optional read-only evidence MCP starts when enabled and stops with the dashboard; bounded retries stop on shutdown. See [plugin documentation](../plugins/omjb-mcp/README.md).
 
 
 ## Security and limits
