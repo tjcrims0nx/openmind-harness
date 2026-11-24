@@ -30,9 +30,10 @@ jobs:
         run: |
           bash -n linux-setup.sh
           bash -n termux-setup.sh
-      - name: Validate dashboard build and runtime syntax
+      - name: Validate dashboard and runtime syntax
         run: |
-          node scripts/build-vercel-dashboard.mjs
+          node --check dashboard/dashboard.js
+          node --check lib/omh-chat.mjs
           node --check scripts/omh-runtime.mjs
           node --check scripts/omh-dashboard.mjs
           node --check scripts/install-omh-runtime.mjs

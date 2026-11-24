@@ -69,5 +69,10 @@
     "artifactName": "OMH-Desktop-${version}-${os}-${arch}.${ext}",
     "publish": null,
     "icon": "icon.png"
+  },
+  "homepage": "https://github.com/tjcrims0nx/openmind-harness",
+  "author": {
+    "name": "Cerberus AI",
+    "email": "tjcrims0n420@gmail.com"
   }
 }

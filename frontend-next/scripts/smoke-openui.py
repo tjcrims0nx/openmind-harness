@@ -58,7 +58,7 @@ def run(page,width):
     if width<600:
         page.get_by_role("button",name="Toggle navigation").click()
     page.get_by_role("button",name="Plugins",exact=True).click()
-    expect(page.get_by_text("omh-chat")).to_be_visible()
+    expect(page.locator(".runtime-record").get_by_text("omh-chat", exact=True)).to_be_visible()
     assert not errors,"Browser exceptions: "+str(errors)
 
 with sync_playwright() as pw:
