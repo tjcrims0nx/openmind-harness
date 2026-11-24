@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Authenticated HTTP gateway for a trusted, persistent Linux OMH runtime.
- * Designed for a TLS tunnel to Vercel; never execute model-supplied shell code.
+ * Designed for a authorized TLS reverse proxy; never execute model-supplied shell code.
  */
 import {createServer} from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
@@ -76,7 +76,7 @@ export function createLiveBridge({state=resolve(process.env.OMH_STATE_DIR||
   const send=(code,value)=>{res.writeHead(code,HEADERS);res.end(JSON.stringify(value));};
   if(!equal(req.headers.authorization?.replace(/^Bearer /i,''),token))return send(401,{error:'Unauthorized'});
   if(req.headers.origin||!['same-origin','none',undefined].includes(req.headers['sec-fetch-site']))
-   return send(403,{error:'Browser requests must use the authorized Vercel proxy'});
+   return send(403,{error:'Browser requests must use the authorized server-side proxy'});
   try{
    const pathname=new URL(req.url||'/', 'http://omh.internal').pathname;
    if(req.method==='GET'&&pathname==='/health')return send(200,{service:'omh-live',ready:true});
