@@ -200,3 +200,27 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
  .hero-logo{animation:omh-purple-pulse 3s ease-in-out infinite}
 }
 @media(max-width:600px){.conversation{padding:8px}.composer{border-radius:18px}.empty-state{gap:10px}}
+
+/* Final visual QA: contrast, narrow screens, scroll containment and motion. */
+.eyebrow,.message-role{color:#e0aaff}
+.small-dot{background:#776b80}
+.small-dot.connected{background:#bf00ff}
+.sidebar{overflow-y:auto}
+.message{min-width:0}
+.message pre,.message table{max-width:100%;overflow-x:auto}
+.message pre{display:block}
+.message img{max-width:100%;height:auto}
+.connect-dialog{max-height:calc(100dvh - 32px);overflow:auto}
+.compose-row button:not(:disabled):hover{background:#7900a8}
+@media(max-width:600px){
+ .chat-top{flex-wrap:wrap}
+ .model-controls{min-width:0;max-width:100%}
+ .header-left strong{overflow:hidden;text-overflow:ellipsis}
+ .header-left .divider,.header-left .divider+span{display:none}
+ .runtime-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .runtime-record>div{min-width:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .pulse,.hero-logo,.message,.empty-state{animation:none!important}
+ .compose-row button:not(:disabled):hover{transform:none}
+}
