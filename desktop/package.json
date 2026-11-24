@@ -33,6 +33,10 @@
         "to": "omh-runtime/dashboard"
       },
       {
+        "from": "../frontend-next/dist",
+        "to": "omh-runtime/frontend-next/dist"
+      },
+      {
         "from": "../scripts",
         "to": "omh-runtime/scripts"
       },
