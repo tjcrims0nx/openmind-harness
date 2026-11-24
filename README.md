@@ -163,6 +163,12 @@ OMH MCP does **not** grant an unrestricted shell, automatic approvals or arbitra
 - 📦 Windows `.exe`, macOS `.dmg` / `.zip`, Linux `.AppImage` / `.deb` packaging workflows.
 - 🔧 [Desktop setup and limitations](desktop/README.md) · [Desktop build workflow](.github/workflows/desktop-packages.yml).
 
+<p align="center">
+  <img src="docs/images/omh-openui-desktop.webp" alt="OpenMind Harness chat interface on desktop" width="720">
+  <img src="docs/images/omh-openui-mobile.webp" alt="OpenMind Harness chat interface on mobile" width="220">
+</p>
+<p align="center"><sub>Chat-first OpenUI interface — desktop and mobile.</sub></p>
+
 **Build artifacts are not a signed release.** Windows and macOS packages need platform signing, plus launch checks on each system, before production distribution.
 
 ### 🛡️ Security & verification
