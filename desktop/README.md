@@ -37,7 +37,6 @@ The Chat selector shows only configured providers as available; it defaults to t
 
 **Local runtime:** The app starts the bundled read-only dashboard service and reads the OMH state from `OMH_STATE_DIR` or `<app data>/workspace/.omh`. To show your existing tasks and queues, set `OMH_STATE_DIR` before launch. The desktop app does not automatically start agent jobs or the OpenCode daemon.
 
-**Hosted web version:** `openmind-harness.vercel.app` remains separate. Its chat backend uses the same provider adapter but needs provider keys and `OMH_WEB_ACCESS_TOKEN` configured on Vercel; browser authentication is distinct from local desktop authentication. Never commit tokens to Git.
 
 ## Security and limits
 
