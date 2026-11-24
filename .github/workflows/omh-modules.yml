@@ -20,16 +20,11 @@ jobs:
       - name: Test OMH modules
         run: node --test modules/*.test.mjs
 
-      - name: Validate Vercel frontend build and remote module syntax
+      - name: Validate runtime and chat module syntax
         run: |
-          node scripts/build-vercel-dashboard.mjs
           node --check scripts/omh-live.mjs
-          node --check scripts/connect-vercel-mcp.mjs
-          node --check lib/omh-vercel-proxy.mjs
-          node --check api/state.mjs
-          node --check api/actions.mjs
-          node --check api/mcp.mjs
-          node -e "const fs=require('fs');const html=fs.readFileSync('public/index.html','utf8');if(!html.includes('data-omh-remote=\\\"true\\\"'))process.exit(1)"
+          node --check scripts/omh-dashboard.mjs
+          node --check lib/omh-chat.mjs
 
       - name: Smoke-test OMH runtime CLI
         run: |
