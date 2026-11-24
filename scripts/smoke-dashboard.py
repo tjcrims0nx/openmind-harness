@@ -84,6 +84,12 @@ def exercise(page, url, mobile):
             elif key == "chat":
                 expect(page.locator("#chat")).to_be_visible()
                 expect(page.locator("#chat-send")).to_be_disabled()
+            elif key == "overview":
+                expect(page.locator("#overview")).to_be_visible()
+                expect(page.locator("#status-cards .status-card")).to_have_count(5)
+                expect(page.locator("#status-cards")).to_contain_text("Harness")
+                expect(page.locator("#status-cards")).to_contain_text("Providers")
+                expect(page.locator("#offline-card")).to_be_hidden()
             else:
                 label = page.locator(f"#navigation [data-view={key}] b").text_content()
                 expect(page.locator("#view-heading")).to_have_text(label)

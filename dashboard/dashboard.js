@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const views = {
-  chat: 'Chat', workspace: 'Workspace tools', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
+  chat: 'Chat', overview: 'Control Center', workspace: 'Workspace tools', agents: 'Agent teams', workflows: 'Workflows', tasks: 'Tasks', memory: 'Memory',
   skills: 'Skills', plugins: 'Plugins', traces: 'Trace', sandbox: 'Sandbox', schedules: 'Schedules',
   workspaces: 'Workspaces',
 };
@@ -154,11 +154,70 @@ function renderSearch() {
   showRows($('#matches'), rows, 'No matching runtime records.');
 }
 
+function statusCard(label, value, detail, tone) {
+  const card = el('div', undefined, 'status-card' + (tone ? ' ' + tone : ''));
+  card.append(el('span', label, 'label'));
+  card.append(el('div', value, 'value'));
+  if (detail) card.append(el('div', detail, 'detail'));
+  return card;
+}
+
+function renderStatusCards() {
+  const container = $('#status-cards');
+  container.replaceChildren();
+  if (!state) {
+    container.append(
+      statusCard('Harness', 'Offline', 'No live harness reachable.', 'offline'),
+      statusCard('Worker', 'Unknown', 'Start the harness to see worker status.'),
+      statusCard('Agents', '—', 'No roles loaded.'),
+      statusCard('Tasks', '—', 'No tasks recorded.'),
+      statusCard('Providers', '—', 'No provider status available.'),
+    );
+    return;
+  }
+  const counts = Object.entries(state.counts).filter(([, count]) => count > 0)
+    .map(([status, count]) => count + ' ' + status).join(' · ') || 'No tasks';
+  const providers = Array.isArray(state.providers) ? state.providers : [];
+  const configured = providers.filter(p => p.status === 'configured').length;
+  container.append(
+    statusCard('Harness', 'Online', (state.platform?.os || 'unknown OS') + '/' + (state.platform?.arch || 'unknown') + ' · Node ' + (state.platform?.node || '?'), 'online'),
+    statusCard('Worker', state.worker?.online ? 'Online' : 'Offline', state.worker?.online ? 'Daemon heartbeat current.' : 'Daemon heartbeat missing.', state.worker?.online ? 'online' : 'offline'),
+    statusCard('Agents', String(state.agents.length) + ' roles', state.agents.filter(a => a.running).length + ' running · ' + state.agents.filter(a => a.queued).length + ' queued'),
+    statusCard('Tasks', String(taskCount()), counts + (refreshed ? ' · Updated ' + time(refreshed) : '')),
+    statusCard('Providers', configured + ' of ' + providers.length + ' configured', providers.length ? providers.filter(p => p.status === 'configured').map(p => p.id).join(', ') || 'None configured' : 'No providers registered'),
+  );
+}
+
+function renderOfflineCard() {
+  const card = $('#offline-card');
+  card.hidden = Boolean(state);
+  if (state) return;
+  const steps = $('#offline-steps');
+  steps.replaceChildren();
+  const step = (heading, body) => {
+    const div = el('div', undefined, 'offline-step');
+    div.append(el('b', heading));
+    const p = el('p');
+    p.textContent = body;
+    div.append(p);
+    steps.append(div);
+  };
+  if (remote) {
+    step('1 · Start a Linux harness', 'On the machine that runs the harness, start the live gateway and the dashboard daemon so the remote dashboard has something to connect to.');
+    step('2 · Check the access token', 'The remote dashboard needs a valid access token (OMH_WEB_ACCESS_TOKEN). Enter it with Connect above, then Refresh.');
+    step('3 · Refresh this page', 'Once the harness is running and the token is set, Refresh here and the status cards should turn green.');
+  } else {
+    step('1 · Start the harness', 'Run the runtime dashboard on this machine, then Refresh. The dashboard reads live state from the local harness.');
+    step('2 · Check the port', 'If the dashboard itself loaded but state did not, the harness daemon may not be running. Restart it and try again.');
+  }
+}
+
 function renderView() {
   document.body.dataset.activeView=active;
   $('#chat').hidden = active !== 'chat';
+  $('#overview').hidden = active !== 'overview';
   $('#hub').hidden = active !== 'workspace';
-  $('#detail').hidden = active === 'workspace' || active === 'chat';
+  $('#detail').hidden = active === 'workspace' || active === 'chat' || active === 'overview';
   $('#connectors-panel').hidden = active !== 'plugins';
   document.querySelector('.dock').hidden = active === 'chat';
   $('#breadcrumb-view').textContent = views[active] || 'Chat';
@@ -166,7 +225,11 @@ function renderView() {
   for (const button of document.querySelectorAll('[data-view]')) {
     button.setAttribute('aria-pressed', button.dataset.view === active);
   }
-  if (active !== 'workspace' && active !== 'chat') {
+  if (active === 'overview') {
+    renderStatusCards();
+    renderOfflineCard();
+  }
+  if (active !== 'workspace' && active !== 'chat' && active !== 'overview') {
     $('#view-heading').textContent = views[active];
     $('#filter-label').hidden = !filterable.has(active);
     const rows = records(active).filter(r => !filterable.has(active) || $('#filter').value === 'all' || r.queueStatus === $('#filter').value);
@@ -209,7 +272,7 @@ document.addEventListener('click', event => {
   $('#filter').value = 'all';
   toggleMenu(false);
   renderView();
-  if (active !== 'workspace' && active !== 'chat') $('#view-heading').focus({preventScroll: true});
+  if (active !== 'workspace' && active !== 'chat' && active !== 'overview') $('#view-heading').focus({preventScroll: true});
 });
 document.addEventListener('click', async event => {
   const button=event.target.closest('button[data-action][data-task-id]');
