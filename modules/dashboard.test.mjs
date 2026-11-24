@@ -25,7 +25,7 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   const base = `http://127.0.0.1:${port}`;
   const page = await fetch(base);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Runtime dashboard/);
+  assert.match(await page.text(), /<title>Chat · OpenMind Harness<\/title>/);
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
 
   const empty = await (await fetch(base + '/api/state')).json();
