@@ -304,7 +304,7 @@ $('#dock-tabs').onkeydown = event => {
   button.click();
   button.focus();
 };
-// Chat frontend sends only authenticated requests to the fixed Vercel route.
+// Chat frontend sends only authenticated requests to the configured chat route.
 // Provider credentials stay server-side and browser input never selects an endpoint.
 let chatProviders=[];
 let chatHistory=[];
@@ -322,7 +322,7 @@ function renderChatControls(){
  $('#chat-connect').hidden=!remote || Boolean(webToken);
  $('#chat-connect').disabled=chatBusy;
  $('#chat-model').textContent=selected?selected.model:'No model connected';
- $('#chat-hint').textContent=chatBusy?'Waiting for provider response…':selected?'Enter to send · Shift+Enter for a new line':'Configure a provider key in Vercel';
+ $('#chat-hint').textContent=chatBusy?'Waiting for provider response…':selected?'Enter to send · Shift+Enter for a new line':'Configure a provider key in the runtime environment';
  $('#chat-availability').textContent=selected?'Chat ready · '+selected.label:'Chat unavailable';
 }
 function chatMessage(role,body,providerLabel){
@@ -357,7 +357,7 @@ async function loadChatProviders(){
   }
   const first=chatProviders.find(p=>p.available);
   if(first)chatProvider.value=first.id;
-  chatNotice.textContent=first?'Chat ready. Choose a model and send a message.':'No provider API keys configured in Vercel. Add a server-side provider key to enable chat.';
+  chatNotice.textContent=first?'Chat ready. Choose a model and send a message.':'No provider API keys configured in the runtime environment. Add a server-side provider key to enable chat.';
   chatNotice.dataset.severity='info';
  }catch(error){
   chatNotice.textContent=error.message.includes('Dashboard access token')?'Enter the dashboard access token with Connect to see available providers.':'Chat unavailable: '+error.message;
