@@ -36,7 +36,18 @@ OMJB_DB_PATH=/absolute/path/openmind.db node scripts/install-omh-runtime.mjs --e
 node scripts/install-omh-runtime.mjs --disable-omjb-evidence
 ```
 
-The enabled local MCP entry persists in OpenCode configuration across restarts. The OpenCode MCP client owns process initialization and shutdown; opening the standalone dashboard alone does not launch OpenCode. Restart the client after changing preferences. A missing database prevents enablement. Existing custom registrations are not overwritten. No provider API key is needed. The installer does not register an execution bridge.
+The enabled local MCP entry persists in OpenCode configuration across restarts. The OpenCode MCP client can initialize the plugin when OpenCode runs. Restart the client after changing preferences. A missing database prevents enablement. Existing custom registrations are not overwritten. No provider API key is needed. The installer does not register an execution bridge.
+
+## Standalone app lifecycle
+
+When OMH runs standalone, the dashboard itself is the MCP client (`modules/omjb-lifecycle.mjs`): it starts the enabled evidence server when OMH launches, reports its health in Settings → Plugins → OpenMind Jailbreak Lab, and stops it when OMH shuts down.
+
+Clean shutdown is a mandatory release requirement:
+
+- **No orphaned OMH-owned processes.** Stopping OMH kills the evidence server. If OMH itself is killed outright (SIGKILL), the server exits on its own when its stdin pipe closes.
+- **No background reconnect loops.** An unexpected disconnect is retried with backoff, at most 5 times; after that the plugin reports `failed` and waits for a manual retry or the next OMH launch.
+- **No duplicate instances on relaunch.** The dashboard binds its port before starting the server, so a second OMH on a taken port exits without spawning anything. A stale server left behind by an earlier run is stopped before a new one starts (tracked by a pid file next to the OpenCode config; only a process positively identified as this server is ever stopped).
+- **Saved settings and evidence remain intact.** The registration and the database are never rewritten by startup or shutdown; the database is only ever opened read-only.
 
  Installed path: `~/.config/opencode/omh-runtime/plugins/omjb-mcp/server.mjs` (or under `XDG_CONFIG_HOME`).
 

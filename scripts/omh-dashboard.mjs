@@ -17,6 +17,7 @@ import {sandboxAvailable} from '../modules/sandbox.mjs';
 import {readHeartbeat} from '../modules/runtime-health.mjs';
 import {connectorStatuses,verifyConnector} from '../modules/provider-auth.mjs';
 import {handleChat} from '../lib/omh-chat.mjs';
+import {EvidenceMcpClient,disabledEvidenceStatus,setEvidenceEnabled} from '../modules/omjb-lifecycle.mjs';
 
 const HOST = '127.0.0.1';
 const JSON_LIMIT = 4096;
@@ -47,7 +48,7 @@ const HEADERS = {
   'X-Content-Type-Options': 'nosniff',
 };
 
-export async function readState(state) {
+export async function readState(state,{evidenceMcp}={}) {
   const queue = new TaskQueue(join(state, 'tasks.json'));
   const [tasks, schedules, notes, traces, workspaces, skills, plugins] = await Promise.all([
     queue.load().then(store => store.list()),
@@ -77,6 +78,7 @@ export async function readState(state) {
   return {
     version: 1,
     worker:await readHeartbeat(join(state,'daemon-health.json')),
+    evidenceMcp:evidenceMcp?evidenceMcp.status():disabledEvidenceStatus(),
     platform: {os:process.platform,arch:process.arch,node:process.versions.node,sandboxBackendInstalled:sandboxAvailable()},
     counts,
     agents,
@@ -100,8 +102,9 @@ export async function readState(state) {
   };
 }
 
-export async function createDashboardServer(state,{adminToken=process.env.OMH_DASHBOARD_ADMIN_TOKEN,workspace=process.env.OMH_WORKSPACE||process.cwd(),chatEnv=process.env,chatFetcher=fetch}={}) {
+export async function createDashboardServer(state,{adminToken=process.env.OMH_DASHBOARD_ADMIN_TOKEN,workspace=process.env.OMH_WORKSPACE||process.cwd(),chatEnv=process.env,chatFetcher=fetch,evidenceMcp}={}) {
   if(adminToken!==undefined&&(typeof adminToken!=='string'||Buffer.byteLength(adminToken)<32))throw new Error('OMH dashboard administrator token must contain at least 32 bytes');
+  const evidence=evidenceMcp??new EvidenceMcpClient({});
   const adminEnabled=adminToken!==undefined;
   const csrf = randomBytes(32).toString('hex');
   const assets = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
@@ -153,14 +156,14 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
         return send(200,JSON.stringify(await verifyConnector(body.id)),'application/json; charset=utf-8');
       }catch{return send(400,'Invalid verification request');}
     }
-    if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject','/api/schedules/resume','/api/plugins/enable','/api/skills/accept'].includes(request.url)) {
+    if (request.method === 'POST' && ['/api/tasks/cancel','/api/tasks/retry','/api/schedules/pause','/api/plugins/disable','/api/skills/reject','/api/schedules/resume','/api/plugins/enable','/api/skills/accept','/api/plugins/omjb/retry','/api/plugins/omjb/enable','/api/plugins/omjb/disable'].includes(request.url)) {
       const port=server.address().port;
       if(request.headers.origin !== `http://${HOST}:${port}` ||
          !safeEqual(request.headers['x-omh-csrf'],csrf) ||
          request.headers['content-type']?.split(';')[0].trim() !== 'application/json'){
         return send(403,'Dashboard action not authorized');
       }
-      const privileged=['/api/schedules/resume','/api/plugins/enable','/api/skills/accept'].includes(request.url);
+      const privileged=['/api/schedules/resume','/api/plugins/enable','/api/skills/accept','/api/plugins/omjb/enable'].includes(request.url);
       if(privileged&&(!adminEnabled||!safeEqual(request.headers['x-omh-admin-token'],adminToken))){
         return send(403,'Administrator authorization required');
       }
@@ -180,6 +183,22 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
           if(!plugin)return send(409,'Plugin not enabled');
           const result=await registry.disable(body.name);
           return send(200,JSON.stringify({name:result.name,enabled:result.enabled}),'application/json; charset=utf-8');
+        }
+        if(request.url==='/api/plugins/omjb/retry'){
+          const status=await evidence.retry();
+          return send(200,JSON.stringify(status),'application/json; charset=utf-8');
+        }
+        if(request.url==='/api/plugins/omjb/enable'){
+          try{await setEvidenceEnabled(true,evidence.configPath);}
+          catch(error){return send(409,error.message);}
+          const status=await evidence.start();
+          return send(200,JSON.stringify(status),'application/json; charset=utf-8');
+        }
+        if(request.url==='/api/plugins/omjb/disable'){
+          try{await setEvidenceEnabled(false,evidence.configPath);}
+          catch(error){return send(409,error.message);}
+          const status=await evidence.stop();
+          return send(200,JSON.stringify(status),'application/json; charset=utf-8');
         }
         if(typeof body.id!=='string'||!/^[a-f0-9-]{36}$/i.test(body.id))return send(400,'Invalid identifier');
         if(request.url==='/api/schedules/resume'){
@@ -232,9 +251,10 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
     }
     if (request.method !== 'GET') return send(405, 'Method not allowed');
     if (request.url === '/api/session') return send(200,JSON.stringify({csrf}), 'application/json; charset=utf-8');
+    if (request.url === '/api/plugins/omjb') return send(200,JSON.stringify(evidence.status()),'application/json; charset=utf-8');
     if (request.url === '/api/state') {
       try {
-        return send(200, JSON.stringify({...await readState(state),adminActionsAvailable:adminEnabled}), 'application/json; charset=utf-8');
+        return send(200, JSON.stringify({...await readState(state,{evidenceMcp:evidence}),adminActionsAvailable:adminEnabled}), 'application/json; charset=utf-8');
       } catch (error) {
         console.error('OMH dashboard could not read runtime state:', error.code || error.name);
         return send(500, 'Runtime state could not be read.');
@@ -252,13 +272,33 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
   return server;
 }
 
+export async function startDashboardServer(state,{port=4177,adminToken,workspace,chatEnv,chatFetcher,evidenceMcp}={}) {
+  const evidence=evidenceMcp??new EvidenceMcpClient({});
+  const server=await createDashboardServer(state,{adminToken,workspace,chatEnv,chatFetcher,evidenceMcp:evidence});
+  // Bind the port BEFORE starting the evidence MCP: if another OMH owns
+  // the port, this call rejects and never spawns a duplicate server.
+  await new Promise((resolve,reject)=>{
+    server.once('error',reject);
+    server.listen(port,HOST,()=>{server.removeListener('error',reject);resolve();});
+  });
+  // The evidence MCP starts with OMH when the operator enabled it, and
+  // stops with OMH. A failed start must never prevent the dashboard itself.
+  await evidence.start().catch(error=>console.error('OMH evidence MCP did not start:',error.message));
+  const shutdown=async()=>{
+    await evidence.stop().catch(()=>{});
+    server.close(()=>process.exit(0));
+    setTimeout(()=>process.exit(0),3000).unref();
+  };
+  process.on('SIGINT',shutdown);
+  process.on('SIGTERM',shutdown);
+  return {server,evidence};
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const workspace = resolve(process.env.OMH_WORKSPACE || process.cwd());
   const state = resolve(process.env.OMH_STATE_DIR || join(workspace, '.omh'));
   const port = Number(process.env.OMH_DASHBOARD_PORT ?? 4177);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new RangeError('Invalid OMH dashboard port');
-  const server = await createDashboardServer(state);
-  server.listen(port, HOST, () => {
-    console.log(`OpenMind Harness dashboard at http://${HOST}:${server.address().port}`);
-  });
+  const {server}=await startDashboardServer(state,{port});
+  console.log(`OpenMind Harness dashboard at http://${HOST}:${server.address().port}`);
 }
