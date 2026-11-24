@@ -174,8 +174,8 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 /* OMH monochrome neon-purple identity; preserve image transparency and layout. */
 :root{color-scheme:dark;--omh-neon:#bf00ff;--omh-black:#050505;--omh-highlight:#e0aaff}
 .omh-shell{background:radial-gradient(ellipse at 75% 0,#190b24 0,transparent 42%),var(--omh-black)}
-.brand img,.header-logo,.hero-logo,.connect-dialog img{filter:grayscale(1) sepia(1) saturate(5) hue-rotate(235deg)}
-.hero-logo{filter:grayscale(1) sepia(1) saturate(5) hue-rotate(235deg) drop-shadow(0 0 10px #bf00ff77)}
+/* Logo files are permanently recolored neon purple; only the glow remains. */
+.hero-logo{filter:drop-shadow(0 0 10px #bf00ff77)}
 .compose-row button,.dialog-actions .primary{background:#7900a8;color:#fff}
 .sidebar nav button.selected{box-shadow:inset 3px 0 0 var(--omh-neon),0 0 12px #bf00ff22}
 .composer:focus-within{border-color:var(--omh-neon);box-shadow:0 0 12px #bf00ff35}
