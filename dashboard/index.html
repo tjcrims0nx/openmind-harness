@@ -54,6 +54,16 @@
       </form>
       <p class="chat-footnote">Provider credentials stay on the server. <button type="button" id="chat-open-tools">Workspace tools</button></p>
     </section>
+    <section id="overview" hidden aria-label="Control Center overview">
+      <div class="section-head"><h1>Control Center</h1><p>Live harness status at a glance. Chat stays the home view.</p></div>
+      <section class="pane offline-card" id="offline-card" hidden>
+        <h2>Harness offline</h2>
+        <p>The dashboard cannot reach a running harness, so there is no live data to show. Nothing here is broken — the harness simply is not running or is not reachable from this page.</p>
+        <div class="offline-steps" id="offline-steps"></div>
+        <p class="offline-note">Provider verification and task actions need the local harness. They stay unavailable until the harness is reachable.</p>
+      </section>
+      <div class="status-cards" id="status-cards" aria-label="Live status"></div>
+    </section>
     <div id="hub" hidden>
       <section class="hero" aria-label="OpenMind Harness"><h1>OMH</h1><p>OPENMIND HARNESS</p><small>Multi-agent <i>·</i> Memory <i>·</i> Workflows <i>·</i> Sandbox</small></section>
       <form class="query" id="search-form" role="search">

@@ -618,6 +618,89 @@ select {
   border-radius: 8px;
   background: #201710;
 }
+
+/* Control Center overview (secondary view; Chat stays the home view) */
+.offline-card {
+  padding: 18px;
+  margin-bottom: 14px;
+  border-color: #7c5737;
+  background: linear-gradient(145deg, #1a1208, #0d0906 72%);
+}
+.offline-card h2 {
+  font-size: 18px;
+  color: #ffd7aa;
+  margin-bottom: 8px;
+}
+.offline-card p {
+  font-size: 14px;
+  color: #d8c3a8;
+  line-height: 1.55;
+}
+.offline-steps {
+  margin: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+.offline-step {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: #07111b;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #c8d8e6;
+}
+.offline-step b {
+  color: #e6f1fd;
+  display: block;
+  margin-bottom: 2px;
+}
+.offline-note {
+  font-size: 12px !important;
+  color: var(--muted) !important;
+}
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.status-card {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, #07121d, #040a11 72%);
+  padding: 13px 14px;
+  min-width: 0;
+}
+.status-card .label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.status-card .value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.status-card .detail {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.status-card.online .value {
+  color: #65e9b4;
+}
+.status-card.offline .value {
+  color: #ffa571;
+}
 @media (min-width: 1600px) {
   body {
     max-width: 1920px;
