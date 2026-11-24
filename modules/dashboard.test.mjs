@@ -25,8 +25,20 @@ test('dashboard reads runtime stores over loopback without leaking task or note 
   const base = `http://127.0.0.1:${port}`;
   const page = await fetch(base);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /<title>Chat · OpenMind Harness<\/title>/);
+  const home = await page.text();
+  // OpenUI is primary when frontend-next/dist is built; otherwise the
+  // classic dashboard remains the home page. Either way /classic always
+  // serves the classic dashboard.
+  const isOpenUI = home.includes('<div id="root"></div>');
+  if (isOpenUI) {
+    assert.match(home, /<title>OpenMind Harness · Chat<\/title>/);
+  } else {
+    assert.match(home, /<title>Chat · OpenMind Harness<\/title>/);
+  }
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  const classic = await fetch(base + '/classic');
+  assert.equal(classic.status, 200);
+  assert.match(await classic.text(), /<title>Chat · OpenMind Harness<\/title>/);
 
   const empty = await (await fetch(base + '/api/state')).json();
   assert.equal(empty.platform.os, process.platform);
