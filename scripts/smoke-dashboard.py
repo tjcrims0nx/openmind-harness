@@ -190,29 +190,53 @@ def run(root):
             retry = page.locator("#activity button[data-action=retry]").first
             expect(retry).to_be_visible()
             retry_id = retry.get_attribute("data-task-id")
-            retry.click()
+            with page.expect_response(lambda response: response.url.endswith("/api/tasks/retry") and response.request.method == "POST") as action_response:
+                retry.click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             expect(page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")).to_be_visible()
             cancel = page.locator("#activity button[data-action=cancel][data-task-id='" + retry_id + "']")
-            cancel.click()
+            with page.expect_response(lambda response: response.url.endswith("/api/tasks/cancel") and response.request.method == "POST") as action_response:
+                cancel.click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert cli("task:list") and next(t for t in cli("task:list") if t["id"] == retry_id)["status"] == "cancelled"
             page.locator("#navigation [data-view=schedules]").click()
-            page.locator("#activity button[data-action=pause]").click()
+            with page.expect_response(lambda response: response.url.endswith("/api/schedules/pause") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=pause]").click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert cli("schedule:list")[0]["enabled"] is False
             page.locator("#navigation [data-view=plugins]").click()
-            page.locator("#activity button[data-action=disable]").click()
+            with page.expect_response(lambda response: response.url.endswith("/api/plugins/disable") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=disable]").click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert cli("plugin:list")[0]["enabled"] is False
             page.locator("#navigation [data-view=skills]").click()
-            page.locator("#activity button[data-action=reject]").first.click()
+            with page.expect_response(lambda response: response.url.endswith("/api/skills/reject") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=reject]").first.click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert any(p["status"] == "rejected" for p in cli("skill:proposals"))
             # An admin token is needed for restoring paused or disabled capabilities.
             page.locator("#navigation [data-view=schedules]").click()
-            page.locator("#activity button[data-action=resume]").click()
+            with page.expect_response(lambda response: response.url.endswith("/api/schedules/resume") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=resume]").click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert cli("schedule:list")[0]["enabled"] is True
             page.locator("#navigation [data-view=plugins]").click()
-            page.locator("#activity button[data-action=enable]").click()
+            with page.expect_response(lambda response: response.url.endswith("/api/plugins/enable") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=enable]").click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert cli("plugin:list")[0]["enabled"] is True
             page.locator("#navigation [data-view=skills]").click()
-            page.locator("#activity button[data-action=accept]").click()
+            with page.expect_response(lambda response: response.url.endswith("/api/skills/accept") and response.request.method == "POST") as action_response:
+                page.locator("#activity button[data-action=accept]").click()
+            assert action_response.value.ok, action_response.value.status
+            expect(page.locator("#connection")).to_have_text("Connected")
             assert any(p["status"] == "accepted" for p in cli("skill:proposals"))
             page.locator("#navigation [data-view=workspace]").click()
             page.locator("#refresh").click()
