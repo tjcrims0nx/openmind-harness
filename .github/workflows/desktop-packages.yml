@@ -86,7 +86,9 @@ jobs:
       - name: Capture actual running OMH Electron app
         env:
           OMH_DESKTOP_SCREENSHOT_DIR: ${{ runner.temp }}/omh-desktop-capture
-        run: xvfb-run -a --server-args="-screen 0 1680x1050x24" npm start
+        run: |
+          node make-icon.cjs
+          xvfb-run -a --server-args="-screen 0 1680x1050x24" npx electron . --disable-gpu
       - name: Publish desktop and mobile screenshots
         uses: actions/upload-artifact@v4
         with:
