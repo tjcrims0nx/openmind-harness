@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Installs OMH runtime + read-mostly MCP bridge into the local OpenCode config. */
 import {cp,mkdir,readFile,writeFile,rename} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 import {join,dirname,resolve} from 'node:path';
 import {homedir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -72,6 +73,15 @@ else{
  await cp(join(source,'lib'),join(dest,'lib'),{recursive:true,force:true});
  await cp(join(source,'modules'),join(dest,'modules'),{recursive:true,force:true});
  await cp(join(source,'dashboard'),join(dest,'dashboard'),{recursive:true,force:true});
+ // Ship the built OpenUI so the dashboard serves it as the primary
+ // interface. If the frontend has not been built yet the dashboard falls
+ // back to the classic interface; build it with `npm run build` in
+ // frontend-next and re-run this installer to pick it up.
+ if (existsSync(join(source,'frontend-next','dist','index.html'))) {
+   await cp(join(source,'frontend-next','dist'),join(dest,'frontend-next','dist'),{recursive:true,force:true});
+ } else {
+   process.stderr.write('OpenUI frontend not built; dashboard will use the classic interface. Build it with `npm run build` in frontend-next and re-run this installer.\n');
+ }
  await mkdir(join(dest,'plugins'),{recursive:true});
  await cp(join(source,'plugins','omjb-mcp'),join(dest,'plugins','omjb-mcp'),{recursive:true,force:true});
  for(const name of ['omh-mcp.mjs','omh-runtime.mjs','omh-daemon.mjs','omh-dashboard.mjs','omh-live.mjs'])await cp(join(source,'scripts',name),join(dest,'scripts',name),{force:true});

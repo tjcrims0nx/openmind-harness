@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import {createServer} from 'node:http';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {readFile, readdir} from 'node:fs/promises';
+import {join, resolve, extname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {OMH_AGENTS} from '../modules/agent-runner.mjs';
 import {PluginRegistry} from '../modules/plugin-registry.mjs';
@@ -39,6 +39,29 @@ const ASSETS = [
   ['/icons.svg', 'icons.svg', 'image/svg+xml'],
   ['/dashboard.js', 'dashboard.js', 'text/javascript; charset=utf-8'],
 ];
+// OpenUI is the primary interface; the classic dashboard stays at /classic.
+// The built OpenUI (frontend-next/dist) is read at startup when present; if
+// it is absent (not built yet) the classic dashboard remains the home page.
+const OPENUI_DIST = new URL('../frontend-next/dist/', import.meta.url);
+const OPENUI_TYPES = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png','.json':'application/json; charset=utf-8'};
+async function loadOpenUI() {
+  const entries = new Map();
+  let index;
+  try {
+    index = await readFile(new URL('index.html', OPENUI_DIST));
+  } catch { return null; }
+  entries.set('/', {type: 'text/html; charset=utf-8', body: index});
+  try {
+    for (const name of await readdir(new URL('assets/', OPENUI_DIST))) {
+      const type = OPENUI_TYPES[extname(name)] || 'application/octet-stream';
+      entries.set(`/assets/${name}`, {type, body: await readFile(new URL(`assets/${name}`, OPENUI_DIST))});
+    }
+  } catch { /* assets dir optional */ }
+  try {
+    entries.set('/app-icon.webp', {type: 'image/webp', body: await readFile(new URL('app-icon.webp', OPENUI_DIST))});
+  } catch { /* fall back to the dashboard icon below */ }
+  return entries;
+}
 const LIMIT = 50;
 const HEADERS = {
   'Cache-Control': 'no-store',
@@ -107,9 +130,22 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
   const evidence=evidenceMcp??new EvidenceMcpClient({});
   const adminEnabled=adminToken!==undefined;
   const csrf = randomBytes(32).toString('hex');
-  const assets = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
+  const openui = await loadOpenUI();
+  const classic = new Map(await Promise.all(ASSETS.map(async ([route, file, type]) => [
     route, {type, body: await readFile(new URL(`../dashboard/${file}`, import.meta.url))},
   ])));
+  // The classic dashboard is always available at /classic (and its assets
+  // keep their root paths so its absolute references still resolve).
+  // OpenUI is primary when built; without a built frontend the classic
+  // dashboard remains the home page.
+  const assets = new Map(classic);
+  assets.set('/classic', classic.get('/'));
+  for (const [route, entry] of classic) {
+    if (route !== '/') assets.set(`/classic${route}`, entry);
+  }
+  if (openui) {
+    for (const [route, entry] of openui) assets.set(route, entry);
+  }
   const server = createServer(async (request, response) => {
     function send(status, body, type = 'text/plain; charset=utf-8') {
       response.writeHead(status, {...HEADERS, 'Content-Type': type});
@@ -262,6 +298,14 @@ export async function createDashboardServer(state,{adminToken=process.env.OMH_DA
     }
     const asset = assets.get(request.url);
     if (asset) return send(200, asset.body, asset.type);
+    // Single-page-app fallback: extensionless non-API paths render the
+    // OpenUI shell so its client-side routing can take over. Paths with an
+    // extension (missing assets) and /api/* still 404 so a browser never
+    // gets HTML for a script or a mistyped API route.
+    const path = request.url.split('?')[0];
+    if (openui && !path.startsWith('/api/') && !extname(path)) {
+      return send(200, openui.get('/').body, 'text/html; charset=utf-8');
+    }
     return send(404, 'Not found');
   });
   server.requestTimeout=10000;
