@@ -22,6 +22,7 @@ export function App(){
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('Connect to load your configured models.');
  const [showConnect,setShowConnect]=useState(false);
+ const [showSettings,setShowSettings]=useState(false);
  const [menu,setMenu]=useState(false);
  const [view,setView]=useState<(typeof MENU)[number]>('Chat');
  const thread=useRef<HTMLDivElement>(null);
@@ -119,6 +120,7 @@ export function App(){
     <img src="/app-icon.webp" alt="" className="header-logo"/>
     <strong>OpenMind Harness</strong><span className="divider">/</span><span>{view}</span>
    </div><div className="header-right"><span className="status"><span className={'small-dot'+(selected?' connected':'')}/>{selected?'Model ready':'Not connected'}</span>
+   <button onClick={()=>setShowSettings(true)} className="settings-button settings-gear" aria-label="Settings" title="Settings">⚙</button>
    <button onClick={()=>{setShowConnect(true);setTokenDraft('');}} className="settings-button">Connect</button></div></header>
    {view==='Chat'?<main className="chat-layout">
     <div className="chat-top">
@@ -163,6 +165,22 @@ export function App(){
       {!local&&<><label htmlFor="access-token">Dashboard access token</label><input id="access-token" type="password" autoComplete="off" value={tokenDraft} onChange={e=>setTokenDraft(e.target.value)} placeholder="Paste OMH_WEB_ACCESS_TOKEN"/></>}
       <div className="dialog-actions"><button onClick={()=>setShowConnect(false)}>Cancel</button>
        <button className="primary" onClick={()=>{if(!local)setToken(tokenDraft.trim());else void refreshProviders();setShowConnect(false);}}>{local?'Refresh providers':'Connect'}</button></div>
+    </section>
+   </div>}
+  {showSettings&&<div className="dialog-cover" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setShowSettings(false);}}>
+    <section className="connect-dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <button className="close-dialog" aria-label="Close" onClick={()=>setShowSettings(false)}>×</button>
+      <h2 id="settings-title">Settings</h2>
+      <p>Providers are configured on your OMH runtime, never in this browser. Keys stay on your server.</p>
+      <h3>Providers</h3>
+      {providers.length===0?<p>No providers loaded yet. Connect to load your configured models.</p>:<ul className="settings-providers">
+        {providers.map(p=><li key={p.id}><strong>{p.label}</strong><span>{p.model}</span><em>{p.available?'Configured':'Needs API key'}</em></li>)}
+      </ul>}
+      {!local&&<><h3>Access token</h3><p>{token?'A dashboard access token is set for this tab.':'No dashboard access token set for this tab.'}</p>
+      <div className="dialog-actions"><button onClick={()=>{setShowSettings(false);setShowConnect(true);setTokenDraft('');}}>Enter access token</button></div></>}
+      <h3>Classic dashboard</h3>
+      <p>Prefer the previous interface? <a href="/classic">Open the classic dashboard</a>.</p>
+      <div className="dialog-actions"><button className="primary" onClick={()=>setShowSettings(false)}>Done</button></div>
     </section>
    </div>}
  </div>;
