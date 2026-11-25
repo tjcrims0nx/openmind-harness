@@ -40,11 +40,10 @@
 | 🪟 Windows x64 | `.exe` | [Windows installer](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
 | 🍎 macOS Apple Silicon (arm64) | `.dmg` / `.zip` | [macOS packages](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
 | 🐧 Linux x86_64 / amd64 | `.AppImage` / `.deb` | [Linux packages](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
-| 📱 iPadOS / iOS | `.ipa` (separate project; testing) | [Mobile releases](https://github.com/tjcrims0nx/omh-iOS/releases) |
 
-[All desktop releases](https://github.com/tjcrims0nx/openmind-harness/releases) · [Mobile repository](https://github.com/tjcrims0nx/omh-iOS)
+[All desktop releases](https://github.com/tjcrims0nx/openmind-harness/releases)
 
-Select the matching package from the release assets. Verify the published SHA-256 checksums before installing. Desktop packages are unsigned; mobile availability and device compatibility depend on the separate project's release status.
+Select the matching package from the release assets. Verify the published SHA-256 checksums before installing. Desktop packages are unsigned.
 
 ### ⚡ Overview
 
