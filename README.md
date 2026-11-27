@@ -41,11 +41,11 @@
 | 🍎 macOS Apple Silicon (arm64) | `.dmg` / `.zip` | [macOS packages](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
 | 🐧 Linux x86_64 / amd64 | `.AppImage` / `.deb` | [Linux packages](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
 
-**iOS / iPadOS — v0.1.0-beta.3 (unsigned beta)**
+**iOS / iPadOS — v0.1.0-beta.1 (unsigned beta)**
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| 📱 iPad / iPhone | `.ipa` | [iOS beta IPA](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.3#assets) |
+| 📱 iPad / iPhone | `.ipa` | [iOS beta IPA](https://github.com/tjcrims0nx/openmind-harness/releases/tag/v0.1.0-beta.1#assets) |
 
 Native SwiftUI dashboard with custom providers (custom-openai, custom-anthropic). Sideload the unsigned IPA with your own signing. Built from omh-iOS `7a5ad32`.
 
